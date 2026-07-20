@@ -25,6 +25,7 @@ function rowOf(item) {
   row.tabIndex = 0;
   row.setAttribute("role", "link");
   row.title = item.url;
+  row.draggable = true;
 
   const badge = document.createElement("span");
   badge.className = "badge";
