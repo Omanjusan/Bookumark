@@ -2,6 +2,12 @@
 
 import type { BookmarkItem } from "./bookmarks.js";
 
+/**
+ * URLから表示用のホスト名を取得する。
+ *
+ * @param url 解析するURL
+ * @returns URLのホスト名。解析できない場合は空文字列
+ */
 function hostnameOf(url: string): string {
   try {
     return new URL(url).hostname;
@@ -10,7 +16,13 @@ function hostnameOf(url: string): string {
   }
 }
 
-/* ホスト名からグリフバッジ用の色相(0-359)を決める。favicon導入までの代替 */
+/**
+ * 文字列からグリフバッジ用の色相を決定する。
+ * 同じ文字列には常に同じ0〜359の値を返す。
+ *
+ * @param text 色相の算出元となる文字列
+ * @returns HSLで使用する色相
+ */
 function hueOf(text: string): number {
   let h = 0;
   for (let i = 0; i < text.length; i++) {
@@ -19,6 +31,12 @@ function hueOf(text: string): number {
   return h;
 }
 
+/**
+ * ブックマーク1件を表すリスト行を生成する。
+ *
+ * @param item 描画するブックマーク
+ * @returns 操作用のデータ属性を持つリスト行
+ */
 function rowOf(item: BookmarkItem): HTMLLIElement {
   const row = document.createElement("li");
   row.className = "row";
@@ -55,6 +73,13 @@ function rowOf(item: BookmarkItem): HTMLLIElement {
   return row;
 }
 
+/**
+ * ブックマーク一覧を指定要素へ描画する。
+ * 既存の子要素は破棄し、項目が空の場合は空状態を表示する。
+ *
+ * @param root 描画先のルート要素
+ * @param items 表示順に並べたブックマーク
+ */
 export function renderList(root: HTMLElement, items: BookmarkItem[]): void {
   root.textContent = "";
   if (!items.length) {
@@ -70,6 +95,12 @@ export function renderList(root: HTMLElement, items: BookmarkItem[]): void {
   root.appendChild(list);
 }
 
+/**
+ * 読み込みエラーを指定要素へ表示する。
+ *
+ * @param root 描画先のルート要素
+ * @param err 表示対象のエラー値
+ */
 export function renderError(root: HTMLElement, err: unknown): void {
   root.textContent = "";
   const msg = document.createElement("p");

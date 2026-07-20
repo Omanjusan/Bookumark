@@ -9,21 +9,37 @@ const countEl = document.getElementById("count") as HTMLElement;
 /** 現在表示中の並び順(GUID順)。D&D並べ替えの操作対象。 */
 let currentItems: BookmarkItem[] = [];
 
+/**
+ * 行に設定されたURLを新しいタブで開く。
+ *
+ * @param row 操作対象の行。URLを持たない場合は何もしない
+ */
 function openRow(row: HTMLElement | null): void {
   const url = row?.dataset.url;
   if (url) browser.tabs.create({ url });
 }
 
+/**
+ * Firefoxの公式DBからブックマークを削除し、成功時だけ表示順へ反映する。
+ * 並び順の保存失敗はコンソールへ記録し、公式DBの削除結果を優先する。
+ *
+ * @param guid 削除するブックマークのGUID
+ */
 async function deleteRow(guid: string): Promise<void> {
   try {
     await removeBookmark(guid);
   } catch (err) {
-    console.warn("bookmarks.remove failed (UI側だけ整合を取る):", err);
+    console.warn("bookmarks.remove failed:", err);
+    return;
   }
   currentItems = currentItems.filter((it) => it.guid !== guid);
   renderList(root, currentItems);
   countEl.textContent = currentItems.length + "件";
-  await saveOrder(currentItems.map((it) => it.guid));
+  try {
+    await saveOrder(currentItems.map((it) => it.guid));
+  } catch (err) {
+    console.warn("order save failed after bookmark removal:", err);
+  }
 }
 
 root.addEventListener("click", (e) => {
@@ -50,6 +66,9 @@ root.addEventListener("keydown", (e) => {
 /* ---- D&D 並べ替え ---- */
 let draggedGuid: string | null = null;
 
+/**
+ * 全行からドラッグ挿入位置を示す装飾を取り除く。
+ */
 function clearDragOverMarks(): void {
   for (const r of root.querySelectorAll(".row")) {
     r.classList.remove("drag-over-top", "drag-over-bottom");
@@ -100,6 +119,13 @@ root.addEventListener("drop", (e) => {
   reorderAndPersist(draggedGuid, row.dataset.guid, before);
 });
 
+/**
+ * 指定項目を移動して一覧を再描画し、新しい表示順を保存する。
+ *
+ * @param fromGuid 移動するブックマークのGUID
+ * @param toGuid 挿入位置の基準となるブックマークのGUID
+ * @param before 基準項目の前へ挿入する場合はtrue、後ろの場合はfalse
+ */
 function reorderAndPersist(fromGuid: string, toGuid: string, before: boolean): void {
   const fromIdx = currentItems.findIndex((it) => it.guid === fromGuid);
   if (fromIdx === -1) return;
@@ -112,6 +138,10 @@ function reorderAndPersist(fromGuid: string, toGuid: string, before: boolean): v
   saveOrder(currentItems.map((it) => it.guid));
 }
 
+/**
+ * ブックマークと保存済み表示順を読み込み、初期画面を描画する。
+ * 読み込みまたは整合処理に失敗した場合はエラー状態を表示する。
+ */
 async function main(): Promise<void> {
   try {
     const items = await getFlatBookmarks();
