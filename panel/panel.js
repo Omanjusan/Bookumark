@@ -1,4 +1,4 @@
-import { getFlatBookmarks } from "./lib/bookmarks.js";
+import { getFlatBookmarks, removeBookmark } from "./lib/bookmarks.js";
 import { renderList, renderError } from "./lib/view.js";
 import { loadOrder, saveOrder, reconcile } from "./lib/overlay.js";
 
@@ -13,11 +13,30 @@ function openRow(row) {
   if (url) browser.tabs.create({ url });
 }
 
+async function deleteRow(guid) {
+  try {
+    await removeBookmark(guid);
+  } catch (err) {
+    console.warn("bookmarks.remove failed (UI側だけ整合を取る):", err);
+  }
+  currentItems = currentItems.filter((it) => it.guid !== guid);
+  renderList(root, currentItems);
+  countEl.textContent = currentItems.length + "件";
+  await saveOrder(currentItems.map((it) => it.guid));
+}
+
 root.addEventListener("click", (e) => {
+  const delBtn = e.target.closest(".delete-btn");
+  if (delBtn) {
+    const row = delBtn.closest(".row");
+    if (row) deleteRow(row.dataset.guid);
+    return;
+  }
   openRow(e.target.closest(".row"));
 });
 root.addEventListener("keydown", (e) => {
   if (e.key !== "Enter" && e.key !== " ") return;
+  if (e.target.closest(".delete-btn")) return; // ボタン自身のEnter/Space活性化に任せる
   const row = e.target.closest(".row");
   if (!row) return;
   e.preventDefault();

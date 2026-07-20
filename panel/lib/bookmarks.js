@@ -23,3 +23,8 @@ export async function getFlatBookmarks() {
   walk(tree);
   return out;
 }
+
+/** 公式DBへの書き戻し。ブックマークを削除する。 */
+export async function removeBookmark(guid) {
+  await browser.bookmarks.remove(guid);
+}

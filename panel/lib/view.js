@@ -43,6 +43,13 @@ function rowOf(item) {
   domain.textContent = hostnameOf(item.url);
   row.appendChild(domain);
 
+  const del = document.createElement("button");
+  del.type = "button";
+  del.className = "delete-btn";
+  del.setAttribute("aria-label", "削除: " + item.title);
+  del.textContent = "×";
+  row.appendChild(del);
+
   return row;
 }
 
