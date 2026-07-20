@@ -3,8 +3,18 @@
 <head>
   <meta charset="utf-8">
   <title>Bookumark</title>
+  <link rel="stylesheet" href="panel.css">
 </head>
 <body>
-  <p>Bookumark 最小E2E版(タイトル式リスト実装予定地)</p>
+  <div class="frame">
+    <header>
+      <h1>Bookumark</h1>
+      <span id="count"></span>
+    </header>
+    <main id="app">
+      <p class="status">読み込み中…</p>
+    </main>
+  </div>
+  <script type="module" src="panel.js"></script>
 </body>
 </html>
