@@ -65,6 +65,30 @@ UIモック検討(2026-07-20)で決まったこと・先送りしたことの記
 - 等倍のみ(スケールなし)。利用実績データをテキストで常時見せる最初の形式=アイコン系とテキスト系の中間
 - 実装ではドメイン表示用に URL のホスト名が必要(モックでは擬似ドメインマップで代用)
 
+## manifest / 権限(最小E2E版・決め打ち)
+
+manifest.json はリポジトリ直下。web-ext lint でエラー0を確認済み(2026-07-20)。
+
+- **Manifest V3**、`browser_specific_settings.gecko.id = bookumark@omanjusan`、`strict_min_version = 115.0`
+- `data_collection_permissions.required = ["none"]` — データ収集なしを明示(新しいAMO要件)。
+  lint警告2件は Firefox for Android 対応バージョン絡みのみ → デスクトップ専用なので無視でよい
+- **permissions は3つで確定**:
+  - `bookmarks` — コア層の読み取り+削除の書き戻し(正本=公式DB)
+  - `history` — 訪問回数・最終訪問日時の読み取り(常に読み取り専用)
+  - `storage` — オーバーレイ層(並び順・属性・メモ・表示設定)の保存
+- 不要と判断したもの:
+  - `tabs` — ブックマークを開くだけなら `tabs.create()` に権限不要
+  - `host_permissions` — 外部通信なし
+  - favicon 取得 — E2E版はグリフ(頭文字バッジ)で代替。取得手段は後日検討
+- **起動形態(E2E版)**: `npm run experiment`(= `web-ext run`)で Firefox が立ち上がり、
+  background の `runtime.onInstalled` が `panel/panel.html` をタブに自動で開く超シンプル構成。
+  ツールバーボタン(`action.default_popup`)からも同じ panel.html が開ける。
+  要求定義の「スピードダイヤル形式で起動」(`chrome_url_overrides.newtab`)は侵襲性が高いため後続で選択式にするか検討
+- **background は開発用の1リスナーのみ**(インストール時にパネルのタブを開くだけ)。
+  孤児オーバーレイの即時削除は、E2E版ではパネル起動時の突き合わせ(lazy reconcile)で担保。
+  `bookmarks.onRemoved` 等のイベント購読は後続で導入
+- 開発ツール: `web-ext` を devDependency 化(`npm run experiment` / `npm run lint:ext`)。lint エラー0・警告0
+
 ## 実装候補(次ステップ)
 
 **最初に作るのは最小E2E版**(開く/並べる/削除のみ・ビュー1種・ドック無し)。スコープと正本方針は [migration.md](migration.md) の決定事項を参照。

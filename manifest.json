@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Bookumark",
+  "version": "0.1.0",
+  "description": "under construction - customizable bookmark firefox add-on",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "bookumark@omanjusan",
+      "strict_min_version": "115.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    }
+  },
+  "permissions": [
+    "bookmarks",
+    "history",
+    "storage"
+  ],
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "action": {
+    "default_title": "Bookumark",
+    "default_popup": "panel/panel.html"
+  }
+}
