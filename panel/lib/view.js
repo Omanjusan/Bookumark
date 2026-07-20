@@ -21,6 +21,10 @@ function rowOf(item) {
   const row = document.createElement("li");
   row.className = "row";
   row.dataset.guid = item.guid;
+  row.dataset.url = item.url;
+  row.tabIndex = 0;
+  row.setAttribute("role", "link");
+  row.title = item.url;
 
   const badge = document.createElement("span");
   badge.className = "badge";

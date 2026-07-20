@@ -76,8 +76,13 @@ header h1 {
   padding: 6px 8px;
   border-radius: 7px;
   min-width: 0;
+  cursor: pointer;
 }
 .row:hover { background: var(--hover); }
+.row:focus-visible {
+  outline: 2px solid var(--text-faint);
+  outline-offset: -2px;
+}
 
 .badge {
   --h: 210;
