@@ -12,16 +12,20 @@
 ### モジュール構成(E2E版)
 
 ```text
-manifest.json
-background.js            # 開発用: パネルのタブを開くだけ
-panel/
-  panel.html
-  panel.css
-  panel.js               # エントリ。以下の3モジュールを束ねる
-  lib/
-    bookmarks.js         # 正本アクセス: getTree→フラット化 / remove。公式DBに触るのはここだけ
-    overlay.js           # storage.local: カスタム並び順(GUID配列) の load/save/reconcile
-    view.js              # タイトル式リストのDOM生成・イベント(クリック/D&D/削除)
+src/                     # TypeScriptの正本
+panel/                   # HTML/CSSの正本
+manifest.json            # manifestの正本
+dist/                    # ビルド生成物。web-extの実行・配布ルート
+  manifest.json
+  background.js          # 開発用: パネルのタブを開くだけ
+  panel/
+    panel.html
+    panel.css
+    panel.js             # エントリ。以下の3モジュールを束ねる
+    lib/
+      bookmarks.js       # 正本アクセス: getTree→フラット化 / remove。公式DBに触るのはここだけ
+      overlay.js         # storage.local: カスタム並び順(GUID配列) の load/save/reconcile
+      view.js            # タイトル式リストのDOM生成・イベント(クリック/D&D/削除)
 ```
 
 - 責務境界 = migration.md の3層に対応: `bookmarks.js`(コア層)/ `overlay.js`(オーバーレイ層)/ 利用実績層はE2Eでは未使用
