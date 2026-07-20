@@ -2,6 +2,7 @@
   "name": "bookumark",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "under construction - customizable bookmark firefox add-on",
   "scripts": {
     "build": "node scripts/build.mjs",
@@ -9,7 +10,8 @@
     "preexperiment": "npm run build:dev",
     "experiment": "web-ext run --source-dir dist --firefox=flatpak:org.mozilla.firefox --firefox-profile=develop --keep-profile-changes",
     "prelint:ext": "npm run build",
-    "lint:ext": "web-ext lint --source-dir dist"
+    "lint:ext": "web-ext lint --source-dir dist",
+    "test": "npm run build && node test/reconcile.test.mjs"
   },
   "devDependencies": {
     "@types/firefox-webext-browser": "^143.0.0",

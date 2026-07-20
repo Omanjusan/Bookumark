@@ -38,7 +38,12 @@ export interface ReconcileResult {
  */
 export function reconcile(order: string[], currentGuids: string[]): ReconcileResult {
   const currentSet = new Set(currentGuids);
-  const kept = order.filter((guid) => currentSet.has(guid));
+  const seen = new Set<string>();
+  const kept = order.filter((guid) => {
+    if (!currentSet.has(guid) || seen.has(guid)) return false;
+    seen.add(guid);
+    return true;
+  });
   const keptSet = new Set(kept);
   const appended = currentGuids.filter((guid) => !keptSet.has(guid));
   const next = kept.concat(appended);
