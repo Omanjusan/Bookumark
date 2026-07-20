@@ -1,6 +1,9 @@
 /*ignore.md
 node_modules/
 *.js.map
+/background.js
+/panel/panel.js
+/panel/lib/*.js
 dist/
 .claude/
 .env

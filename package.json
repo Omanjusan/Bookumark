@@ -5,6 +5,7 @@
   "description": "under construction - customizable bookmark firefox add-on",
   "scripts": {
     "build": "tsc",
+    "preexperiment": "npm run build",
     "experiment": "web-ext run --source-dir . --firefox=flatpak:org.mozilla.firefox --firefox-profile=develop --keep-profile-changes",
     "lint:ext": "web-ext lint --source-dir ."
   },
