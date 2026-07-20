@@ -17,7 +17,7 @@ panel/                   # HTML/CSSの正本
 manifest.json            # manifestの正本
 dist/                    # ビルド生成物。web-extの実行・配布ルート
   manifest.json
-  background.js          # 開発用: パネルのタブを開くだけ
+  background.js          # 開発ビルドだけに追加。パネルのタブを開く
   panel/
     panel.html
     panel.css

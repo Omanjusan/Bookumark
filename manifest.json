@@ -17,9 +17,6 @@
     "history",
     "storage"
   ],
-  "background": {
-    "scripts": ["background.js"]
-  },
   "action": {
     "default_title": "Bookumark",
     "default_popup": "panel/panel.html"
