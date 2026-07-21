@@ -6,6 +6,7 @@ interface TabCreateDetails {
 interface PanelTileOpenOptions {
   readonly createTab: (details: TabCreateDetails) => Promise<unknown>;
   readonly reportError: (error: unknown) => void;
+  readonly consumeSuppressedClick?: () => boolean;
 }
 
 interface PanelTileOpenConnection {
@@ -18,6 +19,7 @@ export function bindPanelTileOpen(
   options: PanelTileOpenOptions,
 ): PanelTileOpenConnection {
   const onClick = (event: Event): void => {
+    if (options.consumeSuppressedClick?.() === true) return;
     const target = event.target as { closest?: (selector: string) => Element | null } | null;
     const tile = target?.closest?.(".panel-tile") as HTMLElement | null | undefined;
     const url = tile?.dataset.url;

@@ -8,6 +8,7 @@ import type { DisplayBookmarkItem } from "./lib/display-item.js";
 import { INITIAL_DISPLAY_STATE, reduceDisplayState } from "./lib/display-state.js";
 import type { DisplayState } from "./lib/display-state.js";
 import { bindFreeMovementInput } from "./lib/panel-free-movement-input.js";
+import { createPanelDragClickGuard } from "./lib/panel-drag-click-guard.js";
 import { isPanelDragEnabled } from "./lib/panel-drag-policy.js";
 import { presentPanelDrawingPlan } from "./lib/panel-drawing-presenter.js";
 import { observeGridCells } from "./lib/grid-resize-observer.js";
@@ -31,6 +32,7 @@ let currentItems: readonly DisplayBookmarkItem[] | null = null;
 let gridCells = { columns: 0, rows: 0 };
 let query = "";
 let displayState: DisplayState = INITIAL_DISPLAY_STATE;
+const dragClickGuard = createPanelDragClickGuard();
 
 function dragEnabled(): boolean {
   return isPanelDragEnabled({
@@ -105,6 +107,7 @@ bindPanelSortDirectionInput(sortDirectionButton, () => {
 bindPanelTileOpen(root, {
   createTab: (details) => browser.tabs.create(details),
   reportError: (error) => console.warn("tabs.create failed:", error),
+  consumeSuppressedClick: dragClickGuard.consumeClick,
 });
 
 bindPanelTileDrag(
@@ -119,7 +122,10 @@ bindPanelTileDrag(
       (error) => console.warn("custom order save failed:", error),
     );
   },
-  { isEnabled: dragEnabled },
+  {
+    isEnabled: dragEnabled,
+    onDragStart: dragClickGuard.markDragStarted,
+  },
 );
 
 observeGridCells(root, (cells) => {

@@ -19,6 +19,7 @@ interface TileDragConnection {
 
 interface TileDragOptions {
   readonly isEnabled?: () => boolean;
+  readonly onDragStart?: () => void;
 }
 
 type TileDragRoot = Pick<
@@ -54,6 +55,7 @@ export function bindPanelTileDrag(
     const guid = tile?.dataset.guid;
     if (!tile || !guid) return;
     draggedGuid = guid;
+    options.onDragStart?.();
     tile.classList.add("dragging");
     if (dragEvent.dataTransfer) {
       dragEvent.dataTransfer.effectAllowed = "move";
