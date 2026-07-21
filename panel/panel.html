@@ -22,6 +22,15 @@
       <p class="status">読み込み中…</p>
     </main>
     <footer class="panel-tools">
+      <label>
+        並び順
+        <select id="sort-axis" aria-label="並び順" disabled>
+          <option value="title">タイトル</option>
+          <option value="dateAdded">追加日時</option>
+          <option value="visitCount" selected>訪問回数</option>
+          <option value="lastVisitTime">最終訪問日時</option>
+        </select>
+      </label>
       <label><input id="free-movement" type="checkbox" checked> 自由移動</label>
     </footer>
   </div>

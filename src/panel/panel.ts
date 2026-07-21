@@ -10,6 +10,7 @@ import { presentPanelDrawingPlan } from "./lib/panel-drawing-presenter.js";
 import { observeGridCells } from "./lib/grid-resize-observer.js";
 import { renderPanelGrid } from "./lib/panel-grid-view.js";
 import { bindPanelSearchInput } from "./lib/panel-search-input.js";
+import { bindPanelSortAxisInput } from "./lib/panel-sort-axis-input.js";
 import { renderError } from "./lib/view.js";
 import { loadOrder, saveOrder, reconcile } from "./lib/overlay.js";
 
@@ -17,6 +18,7 @@ const root = document.getElementById("app") as HTMLElement;
 const countEl = document.getElementById("count") as HTMLElement;
 const searchInput = document.getElementById("search") as HTMLInputElement;
 const freeMovementInput = document.getElementById("free-movement") as HTMLInputElement;
+const sortAxisSelect = document.getElementById("sort-axis") as HTMLSelectElement;
 const filters: readonly DisplayFilter<DisplayBookmarkItem>[] = [];
 let currentItems: readonly DisplayBookmarkItem[] | null = null;
 let gridCells = { columns: 0, rows: 0 };
@@ -64,6 +66,17 @@ bindFreeMovementInput(freeMovementInput, (enabled) => {
   displayState = reduceDisplayState(displayState, {
     type: "setFreeMovement",
     enabled,
+  });
+  sortAxisSelect.disabled = displayState.freeMovement;
+  sortAxisSelect.value = displayState.lastStandardSort.axisId;
+  redraw();
+});
+
+bindPanelSortAxisInput(sortAxisSelect, (axisId) => {
+  displayState = reduceDisplayState(displayState, {
+    type: "selectSort",
+    axisId,
+    direction: displayState.sort.direction,
   });
   redraw();
 });
