@@ -12,6 +12,7 @@ import { renderPanelGrid } from "./lib/panel-grid-view.js";
 import { bindPanelSearchInput } from "./lib/panel-search-input.js";
 import { bindPanelSortAxisInput } from "./lib/panel-sort-axis-input.js";
 import { bindPanelSortDirectionInput } from "./lib/panel-sort-direction-input.js";
+import { bindPanelTileOpen } from "./lib/panel-tile-open.js";
 import { renderError } from "./lib/view.js";
 import { loadOrder, saveOrder, reconcile } from "./lib/overlay.js";
 
@@ -95,6 +96,11 @@ bindPanelSortDirectionInput(sortDirectionButton, () => {
   displayState = reduceDisplayState(displayState, { type: "toggleDirection" });
   syncSortDirectionButton();
   redraw();
+});
+
+bindPanelTileOpen(root, {
+  createTab: (details) => browser.tabs.create(details),
+  reportError: (error) => console.warn("tabs.create failed:", error),
 });
 
 observeGridCells(root, (cells) => {

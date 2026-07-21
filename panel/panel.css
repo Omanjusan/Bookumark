@@ -219,6 +219,7 @@ header h1 {
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
+  cursor: pointer;
 }
 
 .panel-tile[data-size="1/16"] { grid-column: span 1; grid-row: span 1; }
