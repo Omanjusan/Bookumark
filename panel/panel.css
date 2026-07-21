@@ -103,6 +103,9 @@ header h1 {
   cursor: pointer;
 }
 .folder-button:hover { background: var(--hover); }
+.folder-button.dragging { opacity: 0.4; }
+.folder-button.drag-over-before { box-shadow: inset 3px 0 0 var(--text-faint); }
+.folder-button.drag-over-after { box-shadow: inset -3px 0 0 var(--text-faint); }
 .folder-button:focus-visible {
   outline: 2px solid var(--text-faint);
   outline-offset: 1px;

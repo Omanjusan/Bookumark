@@ -1,6 +1,10 @@
 import { loadBookmarkHistory } from "./lib/bookmark-history.js";
 import { getBookmarkTreeItems } from "./lib/bookmarks.js";
-import type { BookmarkItem, BookmarkTreeItem } from "./lib/bookmarks.js";
+import type {
+  BookmarkItem,
+  BookmarkTreeFolderItem,
+  BookmarkTreeItem,
+} from "./lib/bookmarks.js";
 import {
   createStoredCurrentFolder,
   loadCurrentFolder,
@@ -27,6 +31,7 @@ import { presentPanelDrawingPlan } from "./lib/panel-drawing-presenter.js";
 import { observeGridCells } from "./lib/grid-resize-observer.js";
 import { renderPanelGrid } from "./lib/panel-grid-view.js";
 import { bindPanelFolderNavigation } from "./lib/panel-folder-navigation.js";
+import { bindPanelFolderDrag } from "./lib/panel-folder-drag.js";
 import { renderPanelFolders } from "./lib/panel-folder-view.js";
 import { bindMovementModeInput } from "./lib/panel-movement-mode-input.js";
 import { bindPanelSearchInput } from "./lib/panel-search-input.js";
@@ -50,6 +55,7 @@ const sortAxisSelect = document.getElementById("sort-axis") as HTMLSelectElement
 const sortDirectionButton = document.getElementById("sort-direction") as HTMLButtonElement;
 const filters: readonly DisplayFilter<DisplayBookmarkItem>[] = [];
 let currentItems: readonly DisplayBookmarkItem[] | null = null;
+let currentFolders: readonly BookmarkTreeFolderItem[] = [];
 let treeItems: readonly BookmarkTreeItem[] = [];
 let folderOrders: CustomOrderByFolder = {};
 let currentFolderGuid: string | null = null;
@@ -81,6 +87,7 @@ function syncMovementControls(): void {
 }
 
 function redraw(): void {
+  renderPanelFolders(folderRoot, currentFolders, { draggable: dragEnabled() });
   if (currentItems === null) {
     renderPanelStatus(root, { status: "loading" });
     return;
@@ -169,9 +176,39 @@ bindPanelTileDrag(
   },
 );
 
-bindPanelFolderNavigation(folderRoot, (folderGuid) => {
-  void showFolder(folderGuid).catch(showLoadError);
-});
+bindPanelFolderNavigation(
+  folderRoot,
+  (folderGuid) => void showFolder(folderGuid).catch(showLoadError),
+  { consumeSuppressedClick: dragClickGuard.consumeClick },
+);
+
+bindPanelFolderDrag(
+  folderRoot,
+  (drop) => {
+    if (currentFolderGuid === null) return;
+    currentFolders = reorderItemsForTileDrop(currentFolders, drop);
+    redraw();
+    void persistCustomOrder(
+      currentFolders,
+      async (directOrder) => {
+        if (currentFolderGuid === null) return;
+        folderOrders = {
+          ...folderOrders,
+          [currentFolderGuid]: replaceFolderOrderSubset(
+            folderOrders[currentFolderGuid] ?? [],
+            directOrder,
+          ),
+        };
+        await saveFolderOrders(folderOrders);
+      },
+      (error) => console.warn("folder custom order save failed:", error),
+    );
+  },
+  {
+    isEnabled: dragEnabled,
+    onDragStart: dragClickGuard.markDragStarted,
+  },
+);
 
 observeGridCells(root, (cells) => {
   gridCells = cells;
@@ -187,13 +224,14 @@ async function showFolder(folderGuid: string): Promise<void> {
   if (stored === null) throw new Error(`Folder not found: ${folderGuid}`);
 
   currentItems = null;
+  currentFolders = [];
   currentFolderGuid = folderGuid;
   redraw();
   const contents = orderDirectFolderContents(
     directFolderContents(treeItems, folderGuid),
     folderOrders[folderGuid] ?? [],
   );
-  renderPanelFolders(folderRoot, contents.folders);
+  currentFolders = contents.folders;
 
   const orderedItems: BookmarkItem[] = contents.bookmarks;
   currentItems = await loadBookmarkHistory(orderedItems);

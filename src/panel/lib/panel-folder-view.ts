@@ -1,9 +1,14 @@
 import type { BookmarkTreeFolderItem } from "./bookmarks.js";
 
+interface PanelFolderViewOptions {
+  readonly draggable?: boolean;
+}
+
 /** 現在フォルダ直下のフォルダを固定サイズのボタンとして描画する。 */
 export function renderPanelFolders(
   root: HTMLElement,
   folders: readonly BookmarkTreeFolderItem[],
+  options: PanelFolderViewOptions = {},
 ): void {
   root.textContent = "";
   root.hidden = folders.length === 0;
@@ -14,6 +19,7 @@ export function renderPanelFolders(
     button.className = "folder-button";
     button.dataset.folderGuid = folder.guid;
     button.title = folder.title;
+    button.draggable = options.draggable ?? false;
 
     const icon = document.createElement("span");
     icon.className = "folder-icon";
