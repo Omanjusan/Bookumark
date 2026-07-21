@@ -4,8 +4,10 @@ import { readFile } from "node:fs/promises";
 
 const html = await readFile(new URL("../panel/panel.html", import.meta.url), "utf8");
 
-test("provides a labelled sort-axis select that starts disabled in free movement", () => {
-  assert.match(html, /<select[^>]+id="sort-axis"[^>]+aria-label="並び順"[^>]+disabled/);
+test("provides a labelled sort-axis select enabled in the initial normal mode", () => {
+  const select = html.match(/<select[^>]+id="sort-axis"[^>]*>/)?.[0] ?? "";
+  assert.match(select, /aria-label="並び順"/);
+  assert.doesNotMatch(select, /\bdisabled\b/);
   for (const axis of ["title", "dateAdded", "visitCount", "lastVisitTime"]) {
     assert.match(html, new RegExp(`<option[^>]+value="${axis}"`));
   }

@@ -60,7 +60,7 @@ const dragClickGuard = createPanelDragClickGuard();
 
 function dragEnabled(): boolean {
   return isPanelDragEnabled({
-    freeMovement: displayState.freeMovement,
+    movementMode: displayState.movementMode,
     query,
     filterCount: filters.length,
   });
@@ -68,7 +68,7 @@ function dragEnabled(): boolean {
 
 function syncSortDirectionButton(): void {
   const direction = displayState.lastStandardSort.direction;
-  sortDirectionButton.disabled = displayState.freeMovement;
+  sortDirectionButton.disabled = displayState.movementMode !== "normal";
   sortDirectionButton.dataset.direction = direction;
   sortDirectionButton.textContent = direction === "asc" ? "昇順" : "降順";
 }
@@ -99,15 +99,22 @@ function redraw(): void {
 
 bindPanelSearchInput(searchInput, (nextQuery) => {
   query = nextQuery;
+  if (query.trim().length > 0 && displayState.movementMode !== "normal") {
+    displayState = reduceDisplayState(displayState, { type: "resetMovementMode" });
+    freeMovementInput.checked = false;
+    sortAxisSelect.disabled = false;
+    sortAxisSelect.value = displayState.lastStandardSort.axisId;
+    syncSortDirectionButton();
+  }
   redraw();
 });
 
 bindFreeMovementInput(freeMovementInput, (enabled) => {
   displayState = reduceDisplayState(displayState, {
-    type: "setFreeMovement",
-    enabled,
+    type: "setMovementMode",
+    mode: enabled ? "custom-order" : "normal",
   });
-  sortAxisSelect.disabled = displayState.freeMovement;
+  sortAxisSelect.disabled = displayState.movementMode !== "normal";
   sortAxisSelect.value = displayState.lastStandardSort.axisId;
   syncSortDirectionButton();
   redraw();

@@ -4,11 +4,13 @@ import { readFile } from "node:fs/promises";
 
 const html = await readFile(new URL("../panel/panel.html", import.meta.url), "utf8");
 
-test("provides a disabled direction button showing the initial descending direction", () => {
+test("provides an enabled direction button showing the initial descending direction", () => {
   assert.match(
     html,
-    /<button[^>]+id="sort-direction"[^>]+type="button"[^>]+data-direction="desc"[^>]+disabled[^>]*>\s*降順\s*<\/button>/,
+    /<button[^>]+id="sort-direction"[^>]+type="button"[^>]+data-direction="desc"[^>]*>\s*降順\s*<\/button>/,
   );
+  const button = html.match(/<button[^>]+id="sort-direction"[^>]*>/)?.[0] ?? "";
+  assert.doesNotMatch(button, /\bdisabled\b/);
   assert.ok(html.indexOf('id="sort-axis"') < html.indexOf('id="sort-direction"'));
 });
 

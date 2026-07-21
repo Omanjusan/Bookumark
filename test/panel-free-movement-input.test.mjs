@@ -4,11 +4,12 @@ import { readFile } from "node:fs/promises";
 
 const html = await readFile(new URL("../panel/panel.html", import.meta.url), "utf8");
 
-test("provides an initially enabled free-movement checkbox outside the drawing root", () => {
+test("provides an initially disabled free-movement checkbox outside the drawing root", () => {
   assert.match(
     html,
-    /<input[^>]+id="free-movement"[^>]+type="checkbox"[^>]+checked/,
+    /<input[^>]+id="free-movement"[^>]+type="checkbox"/,
   );
+  assert.doesNotMatch(html.match(/<input[^>]+id="free-movement"[^>]*>/)?.[0] ?? "", /\bchecked\b/);
   assert.match(html, /<label[^>]*>[^<]*<input[^>]+id="free-movement"[^>]*>[^<]*自由移動/);
   assert.ok(html.indexOf('id="app"') < html.indexOf('id="free-movement"'));
 });

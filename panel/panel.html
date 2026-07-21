@@ -25,7 +25,7 @@
     <footer class="panel-tools">
       <label>
         並び順
-        <select id="sort-axis" aria-label="並び順" disabled>
+        <select id="sort-axis" aria-label="並び順">
           <option value="title">タイトル</option>
           <option value="dateAdded">追加日時</option>
           <option value="visitCount" selected>訪問回数</option>
@@ -37,9 +37,8 @@
         type="button"
         data-direction="desc"
         aria-label="並び方向を切り替え"
-        disabled
       >降順</button>
-      <label><input id="free-movement" type="checkbox" checked> 自由移動</label>
+      <label><input id="free-movement" type="checkbox"> 自由移動</label>
     </footer>
   </div>
   <script type="module" src="panel.js"></script>
