@@ -2,6 +2,7 @@ import { loadBookmarkHistory } from "./lib/bookmark-history.js";
 import { getFlatBookmarks } from "./lib/bookmarks.js";
 import type { BookmarkItem } from "./lib/bookmarks.js";
 import { reorderItemsForTileDrop } from "./lib/custom-order-items.js";
+import { persistCustomOrder } from "./lib/custom-order-persistence.js";
 import type { DisplayFilter } from "./lib/display-filter.js";
 import type { DisplayBookmarkItem } from "./lib/display-item.js";
 import { INITIAL_DISPLAY_STATE, reduceDisplayState } from "./lib/display-state.js";
@@ -101,6 +102,11 @@ bindPanelTileDrag(root, (drop) => {
   if (currentItems === null) return;
   currentItems = reorderItemsForTileDrop(currentItems, drop);
   redraw();
+  void persistCustomOrder(
+    currentItems,
+    saveOrder,
+    (error) => console.warn("custom order save failed:", error),
+  );
 });
 
 observeGridCells(root, (cells) => {
