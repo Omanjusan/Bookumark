@@ -33,6 +33,22 @@
       <p class="status">読み込み中…</p>
     </main>
     <footer class="panel-tools">
+      <div class="folder-navigation" role="group" aria-label="フォルダ履歴">
+        <button
+          id="folder-back"
+          type="button"
+          aria-label="前のフォルダへ戻る"
+          title="前のフォルダへ戻る"
+          disabled
+        >&lt;</button>
+        <button
+          id="folder-forward"
+          type="button"
+          aria-label="次のフォルダへ進む"
+          title="次のフォルダへ進む"
+          disabled
+        >&gt;</button>
+      </div>
       <label>
         並び順
         <select id="sort-axis" aria-label="並び順">

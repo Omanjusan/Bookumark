@@ -33,6 +33,10 @@ import { renderPanelGrid } from "./lib/panel-grid-view.js";
 import { bindPanelFolderNavigation } from "./lib/panel-folder-navigation.js";
 import { bindPanelFolderDrag } from "./lib/panel-folder-drag.js";
 import { renderPanelFolders } from "./lib/panel-folder-view.js";
+import { createFolderNavigationHistory } from "./lib/folder-navigation-history.js";
+import type { FolderNavigationHistory } from "./lib/folder-navigation-history.js";
+import { bindPanelFolderHistoryInput } from "./lib/panel-folder-history-input.js";
+import type { FolderHistoryDirection } from "./lib/panel-folder-history-input.js";
 import { bindMovementModeInput } from "./lib/panel-movement-mode-input.js";
 import {
   planOfficialFolderMove,
@@ -63,6 +67,8 @@ import {
 
 const root = document.getElementById("app") as HTMLElement;
 const folderRoot = document.getElementById("folders") as HTMLElement;
+const folderBackButton = document.getElementById("folder-back") as HTMLButtonElement;
+const folderForwardButton = document.getElementById("folder-forward") as HTMLButtonElement;
 const countEl = document.getElementById("count") as HTMLElement;
 const searchInput = document.getElementById("search") as HTMLInputElement;
 const movementModeRoot = document.getElementById("movement-mode") as HTMLElement;
@@ -82,6 +88,8 @@ let currentFolders: readonly BookmarkTreeFolderItem[] = [];
 let treeItems: readonly BookmarkTreeItem[] = [];
 let folderOrders: CustomOrderByFolder = {};
 let currentFolderGuid: string | null = null;
+let folderHistory: FolderNavigationHistory | null = null;
+let folderNavigationPending = false;
 let gridCells = { columns: 0, rows: 0 };
 let query = "";
 let displayState: DisplayState = INITIAL_DISPLAY_STATE;
@@ -123,6 +131,11 @@ function syncMovementControls(): void {
 }
 
 function redraw(): void {
+  folderHistoryConnection.render({
+    canGoBack: (folderHistory?.backDestination() ?? null) !== null,
+    canGoForward: (folderHistory?.forwardDestination() ?? null) !== null,
+    pending: folderNavigationPending,
+  });
   renderPanelFolders(folderRoot, currentFolders, { draggable: dragEnabled() });
   if (currentItems === null) {
     renderPanelStatus(root, { status: "loading" });
@@ -222,8 +235,13 @@ bindPanelTileDrag(
 
 bindPanelFolderNavigation(
   folderRoot,
-  (folderGuid) => void showFolder(folderGuid).catch(showLoadError),
+  (folderGuid) => void visitFolder(folderGuid).catch(showLoadError),
   { consumeSuppressedClick: dragClickGuard.consumeClick },
+);
+
+const folderHistoryConnection = bindPanelFolderHistoryInput(
+  { backward: folderBackButton, forward: folderForwardButton },
+  (direction) => void moveFolderHistory(direction).catch(showLoadError),
 );
 
 bindPanelFolderDrag(
@@ -418,21 +436,66 @@ async function showFolder(folderGuid: string): Promise<void> {
   const stored = createStoredCurrentFolder(treeItems, folderGuid);
   if (stored === null) throw new Error(`Folder not found: ${folderGuid}`);
 
+  const previous = {
+    items: currentItems,
+    folders: currentFolders,
+    folderGuid: currentFolderGuid,
+  };
   currentItems = null;
   currentFolders = [];
   currentFolderGuid = folderGuid;
   redraw();
-  const directContents = directFolderContents(treeItems, folderGuid);
-  const contents = displayState.movementMode === "directory-move"
-    ? directContents
-    : orderDirectFolderContents(directContents, folderOrders[folderGuid] ?? []);
-  currentFolders = contents.folders;
+  try {
+    const directContents = directFolderContents(treeItems, folderGuid);
+    const contents = displayState.movementMode === "directory-move"
+      ? directContents
+      : orderDirectFolderContents(directContents, folderOrders[folderGuid] ?? []);
+    const orderedItems: BookmarkItem[] = contents.bookmarks;
+    const loadedItems = await loadBookmarkHistory(orderedItems);
+    await saveCurrentFolder(stored);
+    currentFolders = contents.folders;
+    currentItems = loadedItems;
+    countEl.textContent = currentItems.length + "件";
+    redraw();
+  } catch (error) {
+    currentItems = previous.items;
+    currentFolders = previous.folders;
+    currentFolderGuid = previous.folderGuid;
+    redraw();
+    throw error;
+  }
+}
 
-  const orderedItems: BookmarkItem[] = contents.bookmarks;
-  currentItems = await loadBookmarkHistory(orderedItems);
-  await saveCurrentFolder(stored);
-  countEl.textContent = currentItems.length + "件";
+async function visitFolder(folderGuid: string): Promise<void> {
+  if (folderNavigationPending || currentFolderGuid === folderGuid) return;
+  folderNavigationPending = true;
   redraw();
+  try {
+    await showFolder(folderGuid);
+    folderHistory?.visit(folderGuid);
+  } finally {
+    folderNavigationPending = false;
+    redraw();
+  }
+}
+
+async function moveFolderHistory(direction: FolderHistoryDirection): Promise<void> {
+  if (folderNavigationPending || folderHistory === null) return;
+  const destination = direction === "back"
+    ? folderHistory.backDestination()
+    : folderHistory.forwardDestination();
+  if (destination === null) return;
+
+  folderNavigationPending = true;
+  redraw();
+  try {
+    await showFolder(destination);
+    if (direction === "back") folderHistory.moveBack();
+    else folderHistory.moveForward();
+  } finally {
+    folderNavigationPending = false;
+    redraw();
+  }
 }
 
 function showLoadError(error: unknown): void {
@@ -460,6 +523,8 @@ async function main(): Promise<void> {
     const folderGuid = resolveCurrentFolderGuid(treeItems, savedFolder);
     if (folderGuid === null) throw new Error("Firefox bookmark root was not found");
     await showFolder(folderGuid);
+    folderHistory = createFolderNavigationHistory(folderGuid);
+    redraw();
   } catch (error) {
     showLoadError(error);
   }
