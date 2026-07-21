@@ -39,6 +39,7 @@ import {
   planOfficialSiblingMove,
 } from "./lib/official-order.js";
 import type { OfficialSiblingMovePlan } from "./lib/official-order.js";
+import { executeOfficialMoveWithRecovery } from "./lib/official-move-executor.js";
 import { bindPanelSearchInput } from "./lib/panel-search-input.js";
 import { bindPanelSortAxisInput } from "./lib/panel-sort-axis-input.js";
 import { bindPanelSortDirectionInput } from "./lib/panel-sort-direction-input.js";
@@ -285,12 +286,33 @@ async function executeOfficialMove(plan: OfficialSiblingMovePlan): Promise<void>
   officialMovePending = true;
   redraw();
   try {
-    await moveBookmark(plan.guid, plan.destination);
-    treeItems = await getBookmarkTreeItems();
+    const result = await executeOfficialMoveWithRecovery(plan, {
+      move: moveBookmark,
+      loadTree: getBookmarkTreeItems,
+    });
+    if (result.status === "recovery-failed") {
+      const errors = result.error === undefined
+        ? [result.recoveryError]
+        : [result.error, result.recoveryError];
+      showLoadError(new AggregateError(errors, "Official move recovery failed"));
+      return;
+    }
+
+    treeItems = result.items;
     const reconciled = reconcileFolderOrders(folderOrders, treeItems);
     folderOrders = reconciled.orders;
     if (reconciled.changed) await saveFolderOrders(folderOrders);
-    if (currentFolderGuid !== null) await showFolder(currentFolderGuid);
+    const resolvedFolderGuid = resolveCurrentFolderGuid(
+      treeItems,
+      await loadCurrentFolder(),
+    );
+    if (resolvedFolderGuid === null) {
+      throw new Error("Firefox bookmark root was not found after official move");
+    }
+    await showFolder(resolvedFolderGuid);
+    if (result.status === "move-failed") {
+      console.warn("official bookmark move failed:", result.error);
+    }
   } catch (error) {
     showLoadError(error);
   } finally {

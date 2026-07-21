@@ -12,6 +12,7 @@ interface BookmarkTreeItemBase {
   parentGuid: string | null;
   index: number;
   title: string;
+  unmodifiable?: browser.bookmarks.BookmarkTreeNodeUnmodifiable;
 }
 
 export interface BookmarkTreeBookmarkItem extends BookmarkTreeItemBase {
@@ -56,6 +57,7 @@ export async function getBookmarkTreeItems(): Promise<BookmarkTreeItem[]> {
           title: node.title || node.url,
           url: node.url,
           ...(node.dateAdded === undefined ? {} : { dateAdded: node.dateAdded }),
+          ...(node.unmodifiable === undefined ? {} : { unmodifiable: node.unmodifiable }),
         });
         return;
       }
@@ -66,6 +68,7 @@ export async function getBookmarkTreeItems(): Promise<BookmarkTreeItem[]> {
         parentGuid,
         index,
         title: node.title ?? "",
+        ...(node.unmodifiable === undefined ? {} : { unmodifiable: node.unmodifiable }),
       });
       if (node.children) walk(node.children, node.id);
     });

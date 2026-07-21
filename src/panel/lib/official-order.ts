@@ -28,13 +28,18 @@ export function planOfficialFolderMove(
   if (source === undefined || target === undefined) {
     throw new Error("Official hierarchy move item not found");
   }
-  if (source.parentGuid === null) {
-    throw new Error("The bookmark root cannot be moved");
-  }
+  assertMovableSource(byGuid, source);
   if (source.guid === target.guid) return null;
   if (target.kind !== "folder") {
     throw new Error("Official hierarchy move target must be a folder");
   }
+  if (target.parentGuid === null) {
+    throw new Error("The bookmark root cannot accept moved items");
+  }
+  if (target.unmodifiable !== undefined) {
+    throw new Error("The target folder is unmodifiable");
+  }
+  assertNotDescendant(byGuid, source, target);
   return {
     guid: source.guid,
     destination: { parentId: target.guid },
@@ -52,9 +57,10 @@ export function planOfficialSiblingMove(
   if (source === undefined || target === undefined) {
     throw new Error("Official move item not found");
   }
-  if (source.parentGuid === null || target.parentGuid === null) {
+  if (target.parentGuid === null) {
     throw new Error("The bookmark root cannot be moved");
   }
+  assertMovableSource(byGuid, source);
   if (source.guid === target.guid) return null;
   if (source.parentGuid !== target.parentGuid) {
     throw new Error("Official sibling move requires the same parent");
@@ -70,5 +76,34 @@ export function planOfficialSiblingMove(
       return { guid: source.guid, destination: { parentId, index: target.index } };
     case "after":
       return { guid: source.guid, destination: { parentId, index: target.index + 1 } };
+  }
+}
+
+function assertMovableSource(
+  byGuid: ReadonlyMap<string, BookmarkTreeItem>,
+  source: BookmarkTreeItem,
+): void {
+  if (source.parentGuid === null) throw new Error("The bookmark root cannot be moved");
+  if (source.unmodifiable !== undefined) throw new Error("The source item is unmodifiable");
+  const parent = byGuid.get(source.parentGuid);
+  if (parent?.parentGuid === null) {
+    throw new Error("Firefox special root folders cannot be moved");
+  }
+}
+
+function assertNotDescendant(
+  byGuid: ReadonlyMap<string, BookmarkTreeItem>,
+  source: BookmarkTreeItem,
+  target: BookmarkTreeItem,
+): void {
+  if (source.kind !== "folder") return;
+  const visited = new Set<string>();
+  let current: BookmarkTreeItem | undefined = target;
+  while (current !== undefined && !visited.has(current.guid)) {
+    if (current.guid === source.guid) {
+      throw new Error("A folder cannot be moved into its descendant");
+    }
+    visited.add(current.guid);
+    current = current.parentGuid === null ? undefined : byGuid.get(current.parentGuid);
   }
 }

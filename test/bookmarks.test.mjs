@@ -223,6 +223,36 @@ test("keeps Firefox dateAdded only when it is available", async () => {
   ]);
 });
 
+test("keeps Firefox unmodifiable metadata for official move safety", async () => {
+  globalThis.browser = {
+    bookmarks: {
+      getTree: async () => [{
+        id: "root",
+        title: "Root",
+        children: [{
+          id: "managed",
+          title: "Managed",
+          url: "https://managed.example",
+          unmodifiable: "managed",
+        }],
+      }],
+    },
+  };
+
+  assert.deepEqual(await getBookmarkTreeItems(), [
+    { kind: "folder", guid: "root", parentGuid: null, index: 0, title: "Root" },
+    {
+      kind: "bookmark",
+      guid: "managed",
+      parentGuid: "root",
+      index: 0,
+      title: "Managed",
+      url: "https://managed.example",
+      unmodifiable: "managed",
+    },
+  ]);
+});
+
 test("delegates bookmark deletion to Firefox without changing the GUID", async () => {
   const removed = [];
   globalThis.browser = {

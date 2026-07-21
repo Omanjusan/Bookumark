@@ -8,8 +8,9 @@ import {
 
 const items = [
   { kind: "folder", guid: "root", parentGuid: null, index: 0, title: "Root" },
-  { kind: "bookmark", guid: "a", parentGuid: "root", index: 1, title: "A", url: "https://a.example" },
-  { kind: "bookmark", guid: "b", parentGuid: "root", index: 3, title: "B", url: "https://b.example" },
+  { kind: "folder", guid: "container", parentGuid: "root", index: 0, title: "Container" },
+  { kind: "bookmark", guid: "a", parentGuid: "container", index: 1, title: "A", url: "https://a.example" },
+  { kind: "bookmark", guid: "b", parentGuid: "container", index: 3, title: "B", url: "https://b.example" },
   { kind: "bookmark", guid: "other", parentGuid: "other-folder", index: 0, title: "Other", url: "https://other.example" },
 ];
 
@@ -20,7 +21,7 @@ test("plans an absolute first-position move with index zero", () => {
     placement: "start",
   }), {
     guid: "b",
-    destination: { parentId: "root", index: 0 },
+    destination: { parentId: "container", index: 0 },
   });
 });
 
@@ -31,7 +32,7 @@ test("plans an absolute last-position move by omitting index", () => {
     placement: "end",
   }), {
     guid: "a",
-    destination: { parentId: "root" },
+    destination: { parentId: "container" },
   });
 });
 
@@ -42,7 +43,7 @@ test("uses the target index for before and target index plus one for after", () 
     placement: "before",
   }), {
     guid: "b",
-    destination: { parentId: "root", index: 1 },
+    destination: { parentId: "container", index: 1 },
   });
   assert.deepEqual(planOfficialSiblingMove(items, {
     fromGuid: "a",
@@ -50,7 +51,7 @@ test("uses the target index for before and target index plus one for after", () 
     placement: "after",
   }), {
     guid: "a",
-    destination: { parentId: "root", index: 4 },
+    destination: { parentId: "container", index: 4 },
   });
 });
 
@@ -79,14 +80,14 @@ test("plans moving a bookmark or folder into a destination folder", () => {
   const nestedTarget = {
     kind: "folder",
     guid: "target-folder",
-    parentGuid: "root",
+    parentGuid: "container",
     index: 4,
     title: "Target",
   };
   const sourceFolder = {
     kind: "folder",
     guid: "source-folder",
-    parentGuid: "root",
+    parentGuid: "container",
     index: 5,
     title: "Source",
   };
@@ -107,4 +108,41 @@ test("rejects invalid hierarchy move endpoints", () => {
   assert.throws(() => planOfficialFolderMove(items, "a", "b"), /folder/);
   assert.throws(() => planOfficialFolderMove(items, "root", "root"), /root/);
   assert.equal(planOfficialFolderMove(items, "a", "a"), null);
+});
+
+test("rejects moving a folder into itself or any descendant", () => {
+  const hierarchy = items.concat([
+    { kind: "folder", guid: "parent", parentGuid: "container", index: 4, title: "Parent" },
+    { kind: "folder", guid: "child", parentGuid: "parent", index: 0, title: "Child" },
+    { kind: "folder", guid: "grandchild", parentGuid: "child", index: 0, title: "Grandchild" },
+  ]);
+
+  assert.equal(planOfficialFolderMove(hierarchy, "parent", "parent"), null);
+  assert.throws(
+    () => planOfficialFolderMove(hierarchy, "parent", "child"),
+    /descendant/,
+  );
+  assert.throws(
+    () => planOfficialFolderMove(hierarchy, "parent", "grandchild"),
+    /descendant/,
+  );
+});
+
+test("rejects moving Firefox special roots and managed nodes", () => {
+  const protectedItems = items.concat([
+    { kind: "folder", guid: "toolbar", parentGuid: "root", index: 1, title: "Toolbar" },
+    { kind: "bookmark", guid: "managed", parentGuid: "container", index: 4, title: "Managed", url: "https://managed.example", unmodifiable: "managed" },
+  ]);
+
+  assert.throws(() => planOfficialSiblingMove(protectedItems, {
+    fromGuid: "toolbar", toGuid: "container", placement: "after",
+  }), /special root/);
+  assert.throws(
+    () => planOfficialFolderMove(protectedItems, "managed", "container"),
+    /unmodifiable/,
+  );
+  assert.throws(
+    () => planOfficialFolderMove(protectedItems, "a", "root"),
+    /root/,
+  );
 });
