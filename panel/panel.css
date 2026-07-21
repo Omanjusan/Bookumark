@@ -145,3 +145,87 @@ header h1 {
   color: var(--text-muted);
 }
 .status.error { color: #c4402a; }
+
+/* パネル表示モード */
+.panel-grid {
+  --panel-grid-unit: 24px;
+  --panel-grid-gap: 4px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, var(--panel-grid-unit));
+  grid-auto-rows: var(--panel-grid-unit);
+  grid-auto-flow: row;
+  gap: var(--panel-grid-gap);
+  align-items: stretch;
+  justify-content: start;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.panel-tile {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  padding: 6px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.panel-tile[data-size="1/16"] { grid-column: span 1; grid-row: span 1; }
+.panel-tile[data-size="1/8"]  { grid-column: span 2; grid-row: span 1; }
+.panel-tile[data-size="1/4"]  { grid-column: span 2; grid-row: span 2; }
+.panel-tile[data-size="1/2"]  { grid-column: span 4; grid-row: span 2; }
+.panel-tile[data-size="1"]    { grid-column: span 4; grid-row: span 4; }
+.panel-tile[data-size="2"]    { grid-column: span 8; grid-row: span 4; }
+.panel-tile[data-size="4"]    { grid-column: span 8; grid-row: span 8; }
+
+.panel-favicon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.panel-title,
+.panel-domain,
+.panel-scale-value,
+.panel-auxiliary {
+  min-width: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.panel-title {
+  font-weight: 600;
+}
+
+.panel-tile[data-size="1/4"] .panel-title,
+.panel-tile[data-size="1/2"] .panel-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.panel-tile[data-size="1/4"] .panel-title { -webkit-line-clamp: 1; }
+.panel-tile[data-size="1/2"] .panel-title { -webkit-line-clamp: 2; }
+
+.panel-domain,
+.panel-auxiliary {
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
+.panel-scale-value {
+  margin-top: auto;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}

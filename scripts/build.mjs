@@ -34,10 +34,15 @@ if (!development) {
 }
 
 await mkdir(path.join(dist, "panel"), { recursive: true });
+await mkdir(path.join(dist, "panel", "icons"), { recursive: true });
 await Promise.all([
   copyFile(path.join(root, "manifest.json"), path.join(dist, "manifest.json")),
   copyFile(path.join(root, "panel", "panel.html"), path.join(dist, "panel", "panel.html")),
   copyFile(path.join(root, "panel", "panel.css"), path.join(dist, "panel", "panel.css")),
+  copyFile(
+    path.join(root, "panel", "icons", "bookmark.svg"),
+    path.join(dist, "panel", "icons", "bookmark.svg"),
+  ),
 ]);
 
 if (development) {
