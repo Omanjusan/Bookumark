@@ -11,7 +11,7 @@
     "experiment": "web-ext run --source-dir dist --firefox=flatpak:org.mozilla.firefox --firefox-profile=develop --keep-profile-changes",
     "prelint:ext": "npm run build",
     "lint:ext": "web-ext lint --source-dir dist",
-    "test": "npm run build && node test/reconcile.test.mjs"
+    "test": "npm run build && node --test test/*.test.mjs"
   },
   "devDependencies": {
     "@types/firefox-webext-browser": "^143.0.0",
