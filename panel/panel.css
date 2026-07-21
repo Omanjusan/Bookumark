@@ -175,7 +175,8 @@ header h1 {
   gap: 5px;
   cursor: pointer;
 }
-.panel-tools select {
+.panel-tools select,
+.panel-tools button {
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 4px 6px;
@@ -183,7 +184,9 @@ header h1 {
   color: var(--text);
   font: inherit;
 }
-.panel-tools select:disabled {
+.panel-tools button { cursor: pointer; }
+.panel-tools select:disabled,
+.panel-tools button:disabled {
   color: var(--text-faint);
   cursor: not-allowed;
 }

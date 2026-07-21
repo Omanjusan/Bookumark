@@ -11,6 +11,7 @@ import { observeGridCells } from "./lib/grid-resize-observer.js";
 import { renderPanelGrid } from "./lib/panel-grid-view.js";
 import { bindPanelSearchInput } from "./lib/panel-search-input.js";
 import { bindPanelSortAxisInput } from "./lib/panel-sort-axis-input.js";
+import { bindPanelSortDirectionInput } from "./lib/panel-sort-direction-input.js";
 import { renderError } from "./lib/view.js";
 import { loadOrder, saveOrder, reconcile } from "./lib/overlay.js";
 
@@ -19,6 +20,7 @@ const countEl = document.getElementById("count") as HTMLElement;
 const searchInput = document.getElementById("search") as HTMLInputElement;
 const freeMovementInput = document.getElementById("free-movement") as HTMLInputElement;
 const sortAxisSelect = document.getElementById("sort-axis") as HTMLSelectElement;
+const sortDirectionButton = document.getElementById("sort-direction") as HTMLButtonElement;
 const filters: readonly DisplayFilter<DisplayBookmarkItem>[] = [];
 let currentItems: readonly DisplayBookmarkItem[] | null = null;
 let gridCells = { columns: 0, rows: 0 };
@@ -31,6 +33,13 @@ function renderStatus(message: string): void {
   status.className = "status";
   status.textContent = message;
   root.appendChild(status);
+}
+
+function syncSortDirectionButton(): void {
+  const direction = displayState.lastStandardSort.direction;
+  sortDirectionButton.disabled = displayState.freeMovement;
+  sortDirectionButton.dataset.direction = direction;
+  sortDirectionButton.textContent = direction === "asc" ? "昇順" : "降順";
 }
 
 function redraw(): void {
@@ -69,6 +78,7 @@ bindFreeMovementInput(freeMovementInput, (enabled) => {
   });
   sortAxisSelect.disabled = displayState.freeMovement;
   sortAxisSelect.value = displayState.lastStandardSort.axisId;
+  syncSortDirectionButton();
   redraw();
 });
 
@@ -78,6 +88,12 @@ bindPanelSortAxisInput(sortAxisSelect, (axisId) => {
     axisId,
     direction: displayState.sort.direction,
   });
+  redraw();
+});
+
+bindPanelSortDirectionInput(sortDirectionButton, () => {
+  displayState = reduceDisplayState(displayState, { type: "toggleDirection" });
+  syncSortDirectionButton();
   redraw();
 });
 
