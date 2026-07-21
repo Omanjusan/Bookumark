@@ -86,6 +86,41 @@ test("ignores self drops and clears every mark on dragend", async () => {
   assert.equal(fake.listenerCount(), 0);
 });
 
+test("ignores every drag event while D&D is disabled", async () => {
+  const { bindPanelTileDrag } = await import(
+    "../dist/panel/lib/panel-tile-drag.js"
+  );
+  const source = tile("source", { left: 0, top: 0, width: 100, height: 100 });
+  const target = tile("target", { left: 120, top: 0, width: 100, height: 100 });
+  const fake = harness([source, target]);
+  const drops = [];
+  bindPanelTileDrag(
+    fake.root,
+    (drop) => drops.push(drop),
+    { isEnabled: () => false },
+  );
+
+  fake.emit("dragstart", { target: nestedIn(source) });
+  let prevented = false;
+  fake.emit("dragover", {
+    target: nestedIn(target),
+    clientX: 130,
+    clientY: 20,
+    preventDefault: () => { prevented = true; },
+  });
+  fake.emit("drop", {
+    target: nestedIn(target),
+    clientX: 130,
+    clientY: 20,
+    preventDefault() {},
+  });
+
+  assert.deepEqual(drops, []);
+  assert.equal(prevented, false);
+  assert.equal(source.classes.size, 0);
+  assert.equal(target.classes.size, 0);
+});
+
 function tile(guid, rect) {
   const classes = new Set();
   return {
