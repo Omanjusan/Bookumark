@@ -1,7 +1,135 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { getFlatBookmarks, removeBookmark } from "../dist/panel/lib/bookmarks.js";
+import {
+  getBookmarkTreeItems,
+  getFlatBookmarks,
+  removeBookmark,
+} from "../dist/panel/lib/bookmarks.js";
+
+test("represents nested folders and bookmarks with their parent and Firefox index", async () => {
+  globalThis.browser = {
+    bookmarks: {
+      getTree: async () => [{
+        id: "root",
+        title: "Root",
+        children: [
+          { id: "a", title: "A", url: "https://a.example", index: 0 },
+          {
+            id: "folder",
+            title: "Folder",
+            index: 1,
+            children: [
+              {
+                id: "nested",
+                title: "Nested",
+                url: "https://nested.example",
+                dateAdded: 1234,
+                index: 0,
+              },
+            ],
+          },
+        ],
+      }],
+    },
+  };
+
+  assert.deepEqual(await getBookmarkTreeItems(), [
+    { kind: "folder", guid: "root", parentGuid: null, index: 0, title: "Root" },
+    {
+      kind: "bookmark",
+      guid: "a",
+      parentGuid: "root",
+      index: 0,
+      title: "A",
+      url: "https://a.example",
+    },
+    { kind: "folder", guid: "folder", parentGuid: "root", index: 1, title: "Folder" },
+    {
+      kind: "bookmark",
+      guid: "nested",
+      parentGuid: "folder",
+      index: 0,
+      title: "Nested",
+      url: "https://nested.example",
+      dateAdded: 1234,
+    },
+  ]);
+});
+
+test("keeps empty folders and derives missing indexes from sibling order", async () => {
+  globalThis.browser = {
+    bookmarks: {
+      getTree: async () => [{
+        id: "root",
+        title: "Root",
+        children: [
+          { id: "first", title: "First", children: [] },
+          { id: "second", title: "Second", children: [] },
+        ],
+      }],
+    },
+  };
+
+  assert.deepEqual(await getBookmarkTreeItems(), [
+    { kind: "folder", guid: "root", parentGuid: null, index: 0, title: "Root" },
+    { kind: "folder", guid: "first", parentGuid: "root", index: 0, title: "First" },
+    { kind: "folder", guid: "second", parentGuid: "root", index: 1, title: "Second" },
+  ]);
+});
+
+test("excludes separators and place queries from tree items", async () => {
+  globalThis.browser = {
+    bookmarks: {
+      getTree: async () => [{
+        id: "root",
+        title: "Root",
+        children: [
+          { id: "separator", type: "separator", index: 0 },
+          { id: "query", title: "Query", url: "place:sort=8", index: 1 },
+          { id: "kept", title: "Kept", url: "https://kept.example", index: 2 },
+        ],
+      }],
+    },
+  };
+
+  assert.deepEqual(await getBookmarkTreeItems(), [
+    { kind: "folder", guid: "root", parentGuid: null, index: 0, title: "Root" },
+    {
+      kind: "bookmark",
+      guid: "kept",
+      parentGuid: "root",
+      index: 2,
+      title: "Kept",
+      url: "https://kept.example",
+    },
+  ]);
+});
+
+test("does not mutate the Firefox bookmark tree", async () => {
+  const tree = [{
+    id: "root",
+    title: "Root",
+    children: [{ id: "bookmark", title: "Bookmark", url: "https://example.com" }],
+  }];
+  const before = structuredClone(tree);
+  globalThis.browser = { bookmarks: { getTree: async () => tree } };
+
+  await getBookmarkTreeItems();
+
+  assert.deepEqual(tree, before);
+});
+
+test("propagates bookmark tree API failures", async () => {
+  const failure = new Error("bookmark DB unavailable");
+  globalThis.browser = {
+    bookmarks: {
+      getTree: async () => { throw failure; },
+    },
+  };
+
+  await assert.rejects(getBookmarkTreeItems(), (error) => error === failure);
+});
 
 test("flattens bookmark folders in Firefox tree order", async () => {
   globalThis.browser = {

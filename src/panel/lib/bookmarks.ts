@@ -7,6 +7,74 @@ export interface BookmarkItem {
   dateAdded?: number;
 }
 
+interface BookmarkTreeItemBase {
+  guid: string;
+  parentGuid: string | null;
+  index: number;
+  title: string;
+}
+
+export interface BookmarkTreeBookmarkItem extends BookmarkTreeItemBase {
+  kind: "bookmark";
+  url: string;
+  dateAdded?: number;
+}
+
+export interface BookmarkTreeFolderItem extends BookmarkTreeItemBase {
+  kind: "folder";
+}
+
+export type BookmarkTreeItem = BookmarkTreeBookmarkItem | BookmarkTreeFolderItem;
+
+/**
+ * Firefoxのブックマークツリーを、親子関係と公式indexを保持したフラットな契約へ変換する。
+ * フォルダと通常ブックマークを保持し、セパレーターとplace:クエリは除外する。
+ *
+ * @returns Firefoxの深さ優先順に並んだツリー項目
+ * @throws FirefoxのブックマークAPIがツリー取得に失敗した場合
+ */
+export async function getBookmarkTreeItems(): Promise<BookmarkTreeItem[]> {
+  const tree = await browser.bookmarks.getTree();
+  const out: BookmarkTreeItem[] = [];
+
+  const walk = (
+    nodes: readonly browser.bookmarks.BookmarkTreeNode[],
+    parentGuid: string | null,
+  ): void => {
+    nodes.forEach((node, siblingIndex) => {
+      const index = node.index ?? siblingIndex;
+
+      if (node.type === "separator") return;
+
+      if (node.url) {
+        if (node.url.startsWith("place:")) return;
+        out.push({
+          kind: "bookmark",
+          guid: node.id,
+          parentGuid,
+          index,
+          title: node.title || node.url,
+          url: node.url,
+          ...(node.dateAdded === undefined ? {} : { dateAdded: node.dateAdded }),
+        });
+        return;
+      }
+
+      out.push({
+        kind: "folder",
+        guid: node.id,
+        parentGuid,
+        index,
+        title: node.title ?? "",
+      });
+      if (node.children) walk(node.children, node.id);
+    });
+  };
+
+  walk(tree, null);
+  return out;
+}
+
 /**
  * ブックマークツリーをフラット化して返す。
  * フォルダ・セパレータ・place:クエリは除外(E2E版はブックマークのみの1リスト)。
@@ -16,29 +84,15 @@ export interface BookmarkItem {
  * @throws FirefoxのブックマークAPIがツリー取得に失敗した場合
  */
 export async function getFlatBookmarks(): Promise<BookmarkItem[]> {
-  const tree = await browser.bookmarks.getTree();
-  const out: BookmarkItem[] = [];
-
-  /**
-   * ブックマークツリーを深さ優先で走査し、表示可能な項目を結果配列へ追加する。
-   *
-   * @param nodes 走査するブックマークノード
-   */
-  const walk = (nodes: browser.bookmarks.BookmarkTreeNode[]): void => {
-    for (const node of nodes) {
-      if (node.url && !node.url.startsWith("place:")) {
-        out.push({
-          guid: node.id,
-          title: node.title || node.url,
-          url: node.url,
-          ...(node.dateAdded === undefined ? {} : { dateAdded: node.dateAdded }),
-        });
-      }
-      if (node.children) walk(node.children);
-    }
-  };
-  walk(tree);
-  return out;
+  const items = await getBookmarkTreeItems();
+  return items
+    .filter((item): item is BookmarkTreeBookmarkItem => item.kind === "bookmark")
+    .map(({ guid, title, url, dateAdded }) => ({
+      guid,
+      title,
+      url,
+      ...(dateAdded === undefined ? {} : { dateAdded }),
+    }));
 }
 
 /**
