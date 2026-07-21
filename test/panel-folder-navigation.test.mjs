@@ -1,0 +1,59 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+
+import { bindPanelFolderNavigation } from "../dist/panel/lib/panel-folder-navigation.js";
+
+test("navigates to the GUID of the closest folder button", () => {
+  const fake = harness();
+  const navigated = [];
+  bindPanelFolderNavigation(fake.root, (guid) => navigated.push(guid));
+
+  fake.click({
+    closest: (selector) => selector === ".folder-button"
+      ? { dataset: { folderGuid: "folder-a" } }
+      : null,
+  });
+
+  assert.deepEqual(navigated, ["folder-a"]);
+});
+
+test("ignores clicks outside folder buttons and buttons without a GUID", () => {
+  const fake = harness();
+  const navigated = [];
+  bindPanelFolderNavigation(fake.root, (guid) => navigated.push(guid));
+
+  fake.click({ closest: () => null });
+  fake.click({ closest: () => ({ dataset: {} }) });
+
+  assert.deepEqual(navigated, []);
+});
+
+test("stops navigating after disconnect", () => {
+  const fake = harness();
+  const navigated = [];
+  const connection = bindPanelFolderNavigation(fake.root, (guid) => navigated.push(guid));
+  connection.disconnect();
+
+  fake.click({ closest: () => ({ dataset: { folderGuid: "folder-a" } }) });
+
+  assert.deepEqual(navigated, []);
+});
+
+function harness() {
+  const listeners = new Set();
+  return {
+    root: {
+      addEventListener(type, listener) {
+        assert.equal(type, "click");
+        listeners.add(listener);
+      },
+      removeEventListener(type, listener) {
+        assert.equal(type, "click");
+        listeners.delete(listener);
+      },
+    },
+    click(target) {
+      for (const listener of listeners) listener({ target });
+    },
+  };
+}

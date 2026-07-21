@@ -76,6 +76,40 @@ header h1 {
   outline-offset: 1px;
 }
 
+.folder-region {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 10px;
+}
+.folder-region[hidden] { display: none; }
+.folder-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: 144px;
+  height: 36px;
+  padding: 6px 9px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.folder-button:hover { background: var(--hover); }
+.folder-button:focus-visible {
+  outline: 2px solid var(--text-faint);
+  outline-offset: 1px;
+}
+.folder-icon { flex: none; }
+.folder-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .list {
   list-style: none;
   margin: 0;
