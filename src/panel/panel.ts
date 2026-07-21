@@ -12,8 +12,8 @@ import { renderPanelGrid } from "./lib/panel-grid-view.js";
 import { bindPanelSearchInput } from "./lib/panel-search-input.js";
 import { bindPanelSortAxisInput } from "./lib/panel-sort-axis-input.js";
 import { bindPanelSortDirectionInput } from "./lib/panel-sort-direction-input.js";
+import { renderPanelStatus } from "./lib/panel-status-view.js";
 import { bindPanelTileOpen } from "./lib/panel-tile-open.js";
-import { renderError } from "./lib/view.js";
 import { loadOrder, saveOrder, reconcile } from "./lib/overlay.js";
 
 const root = document.getElementById("app") as HTMLElement;
@@ -28,14 +28,6 @@ let gridCells = { columns: 0, rows: 0 };
 let query = "";
 let displayState: DisplayState = INITIAL_DISPLAY_STATE;
 
-function renderStatus(message: string): void {
-  root.textContent = "";
-  const status = document.createElement("p");
-  status.className = "status";
-  status.textContent = message;
-  root.appendChild(status);
-}
-
 function syncSortDirectionButton(): void {
   const direction = displayState.lastStandardSort.direction;
   sortDirectionButton.disabled = displayState.freeMovement;
@@ -45,7 +37,7 @@ function syncSortDirectionButton(): void {
 
 function redraw(): void {
   if (currentItems === null) {
-    renderStatus("読み込み中…");
+    renderPanelStatus(root, { status: "loading" });
     return;
   }
   presentPanelDrawingPlan({
@@ -55,10 +47,10 @@ function redraw(): void {
     state: displayState,
     ...gridCells,
   }, {
-    showLoading: () => renderStatus("読み込み中…"),
+    showLoading: () => renderPanelStatus(root, { status: "loading" }),
     showEmpty: () => {
       countEl.textContent = "0件";
-      renderStatus("ブックマークがありません");
+      renderPanelStatus(root, { status: "empty" });
     },
     showGrid: (tiles) => {
       countEl.textContent = tiles.length + "件";
@@ -127,7 +119,11 @@ async function main(): Promise<void> {
     countEl.textContent = currentItems.length + "件";
     redraw();
   } catch (err) {
-    renderError(root, err);
+    renderPanelStatus(root, {
+      status: "error",
+      error: err,
+      reportError: (error) => console.error("panel load failed:", error),
+    });
   }
 }
 
