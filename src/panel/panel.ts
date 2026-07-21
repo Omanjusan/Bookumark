@@ -14,6 +14,13 @@ import type { DisplayBookmarkItem } from "./lib/display-item.js";
 import { INITIAL_DISPLAY_STATE, reduceDisplayState } from "./lib/display-state.js";
 import type { DisplayState } from "./lib/display-state.js";
 import { directFolderContents } from "./lib/folder-contents.js";
+import {
+  migrateLegacyOrder,
+  orderDirectFolderContents,
+  reconcileFolderOrders,
+  replaceFolderOrderSubset,
+} from "./lib/folder-order.js";
+import type { CustomOrderByFolder } from "./lib/folder-order.js";
 import { bindFreeMovementInput } from "./lib/panel-free-movement-input.js";
 import { createPanelDragClickGuard } from "./lib/panel-drag-click-guard.js";
 import { isPanelDragEnabled } from "./lib/panel-drag-policy.js";
@@ -28,7 +35,11 @@ import { bindPanelSortDirectionInput } from "./lib/panel-sort-direction-input.js
 import { renderPanelStatus } from "./lib/panel-status-view.js";
 import { bindPanelTileOpen } from "./lib/panel-tile-open.js";
 import { bindPanelTileDrag } from "./lib/panel-tile-drag.js";
-import { loadOrder, saveOrder, reconcile } from "./lib/overlay.js";
+import {
+  loadFolderOrders,
+  loadOrder,
+  saveFolderOrders,
+} from "./lib/overlay.js";
 
 const root = document.getElementById("app") as HTMLElement;
 const folderRoot = document.getElementById("folders") as HTMLElement;
@@ -40,7 +51,8 @@ const sortDirectionButton = document.getElementById("sort-direction") as HTMLBut
 const filters: readonly DisplayFilter<DisplayBookmarkItem>[] = [];
 let currentItems: readonly DisplayBookmarkItem[] | null = null;
 let treeItems: readonly BookmarkTreeItem[] = [];
-let globalOrder: string[] = [];
+let folderOrders: CustomOrderByFolder = {};
+let currentFolderGuid: string | null = null;
 let gridCells = { columns: 0, rows: 0 };
 let query = "";
 let displayState: DisplayState = INITIAL_DISPLAY_STATE;
@@ -131,12 +143,15 @@ bindPanelTileDrag(
     void persistCustomOrder(
       currentItems,
       async (directOrder) => {
-        const directGuids = new Set(directOrder);
-        let nextIndex = 0;
-        globalOrder = globalOrder.map((guid) => (
-          directGuids.has(guid) ? directOrder[nextIndex++] : guid
-        ));
-        await saveOrder(globalOrder);
+        if (currentFolderGuid === null) return;
+        folderOrders = {
+          ...folderOrders,
+          [currentFolderGuid]: replaceFolderOrderSubset(
+            folderOrders[currentFolderGuid] ?? [],
+            directOrder,
+          ),
+        };
+        await saveFolderOrders(folderOrders);
       },
       (error) => console.warn("custom order save failed:", error),
     );
@@ -165,16 +180,15 @@ async function showFolder(folderGuid: string): Promise<void> {
   if (stored === null) throw new Error(`Folder not found: ${folderGuid}`);
 
   currentItems = null;
+  currentFolderGuid = folderGuid;
   redraw();
-  const contents = directFolderContents(treeItems, folderGuid);
+  const contents = orderDirectFolderContents(
+    directFolderContents(treeItems, folderGuid),
+    folderOrders[folderGuid] ?? [],
+  );
   renderPanelFolders(folderRoot, contents.folders);
 
-  const byGuid = new Map<string, BookmarkItem>(
-    contents.bookmarks.map((item) => [item.guid, item]),
-  );
-  const orderedItems = globalOrder
-    .map((guid) => byGuid.get(guid))
-    .filter((item): item is BookmarkItem => item !== undefined);
+  const orderedItems: BookmarkItem[] = contents.bookmarks;
   currentItems = await loadBookmarkHistory(orderedItems);
   await saveCurrentFolder(stored);
   countEl.textContent = currentItems.length + "件";
@@ -192,11 +206,15 @@ function showLoadError(error: unknown): void {
 async function main(): Promise<void> {
   try {
     treeItems = await getBookmarkTreeItems();
-    const bookmarks = treeItems.filter((item) => item.kind === "bookmark");
-    const savedOrder = await loadOrder();
-    const reconciled = reconcile(savedOrder, bookmarks.map(({ guid }) => guid));
-    globalOrder = reconciled.order;
-    if (reconciled.changed) await saveOrder(globalOrder);
+    const savedFolderOrders = await loadFolderOrders();
+    if (savedFolderOrders === null) {
+      folderOrders = migrateLegacyOrder(await loadOrder(), treeItems);
+      await saveFolderOrders(folderOrders);
+    } else {
+      const reconciled = reconcileFolderOrders(savedFolderOrders, treeItems);
+      folderOrders = reconciled.orders;
+      if (reconciled.changed) await saveFolderOrders(folderOrders);
+    }
 
     const savedFolder = await loadCurrentFolder();
     const folderGuid = resolveCurrentFolderGuid(treeItems, savedFolder);

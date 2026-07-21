@@ -1,6 +1,34 @@
-/* オーバーレイ層(storage.local)。現状は並び順(GUID配列)のみを保持する */
+/* オーバーレイ層(storage.local)。公式DBを変更しない表示順を保持する */
+
+import type { CustomOrderByFolder } from "./folder-order.js";
 
 const KEY = "order";
+const FOLDER_ORDER_KEY = "orderByFolder";
+
+/** フォルダ単位の保存順を読み込む。未保存・不正値はnullで返す。 */
+export async function loadFolderOrders(): Promise<CustomOrderByFolder | null> {
+  const stored = await browser.storage.local.get(FOLDER_ORDER_KEY);
+  const value: unknown = stored[FOLDER_ORDER_KEY];
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+
+  const entries = Object.entries(value);
+  if (!entries.every(([, order]) => (
+    Array.isArray(order) && order.every((guid) => typeof guid === "string")
+  ))) return null;
+
+  return Object.fromEntries(entries.map(([folderGuid, order]) => [
+    folderGuid,
+    [...order as string[]],
+  ]));
+}
+
+/** フォルダ単位の表示順を防御的コピーで全量保存する。 */
+export async function saveFolderOrders(orders: CustomOrderByFolder): Promise<void> {
+  const copy = Object.fromEntries(
+    Object.entries(orders).map(([folderGuid, order]) => [folderGuid, [...order]]),
+  );
+  await browser.storage.local.set({ [FOLDER_ORDER_KEY]: copy });
+}
 
 /**
  * ローカルストレージから保存済みの表示順を読み込む。
