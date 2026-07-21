@@ -186,6 +186,30 @@ test("ignores a boundary drop when the dragged tile is already at that edge", as
   assert.equal(start.classes.size, 0);
 });
 
+test("marks click suppression only when a valid enabled drag starts", async () => {
+  const { bindPanelTileDrag } = await import(
+    "../dist/panel/lib/panel-tile-drag.js"
+  );
+  const source = tile("source", { left: 0, top: 0, width: 100, height: 100 });
+  const fake = harness([source]);
+  let dragStarts = 0;
+  let enabled = false;
+  bindPanelTileDrag(fake.root, () => {}, {
+    isEnabled: () => enabled,
+    onDragStart: () => { dragStarts += 1; },
+  });
+
+  fake.emit("dragstart", { target: nestedIn(source) });
+  assert.equal(dragStarts, 0);
+
+  enabled = true;
+  fake.emit("dragstart", { target: { closest: () => null } });
+  assert.equal(dragStarts, 0);
+
+  fake.emit("dragstart", { target: nestedIn(source) });
+  assert.equal(dragStarts, 1);
+});
+
 function tile(guid, rect) {
   const classes = new Set();
   return {

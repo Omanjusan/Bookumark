@@ -75,6 +75,31 @@ test("stops opening tiles after disconnect", async () => {
   assert.deepEqual(opened, []);
 });
 
+test("consumes a drag-generated click without opening the tile", async () => {
+  const { bindPanelTileOpen } = await import(
+    "../dist/panel/lib/panel-tile-open.js"
+  );
+  const fake = harness();
+  const opened = [];
+  let suppress = true;
+  bindPanelTileOpen(fake.root, {
+    createTab: async (details) => opened.push(details),
+    reportError: assert.fail,
+    consumeSuppressedClick: () => {
+      const result = suppress;
+      suppress = false;
+      return result;
+    },
+  });
+  const target = { closest: () => ({ dataset: { url: "https://example.com" } }) };
+
+  fake.click(target);
+  fake.click(target);
+  await settlePromises();
+
+  assert.deepEqual(opened, [{ url: "https://example.com", active: true }]);
+});
+
 function harness() {
   const listeners = new Set();
   return {
