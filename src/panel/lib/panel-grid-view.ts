@@ -14,12 +14,28 @@ export function renderPanelGrid(
 ): void {
   root.textContent = "";
 
+  const draggable = options.draggable ?? false;
+  if (draggable && tiles.length > 0) {
+    root.appendChild(boundaryElementOf("start", tiles[0].guid));
+  }
   const grid = document.createElement("ul");
   grid.className = "panel-grid";
   for (const tile of tiles) {
-    grid.appendChild(tileElementOf(tile, options.draggable ?? false));
+    grid.appendChild(tileElementOf(tile, draggable));
   }
   root.appendChild(grid);
+  if (draggable && tiles.length > 0) {
+    root.appendChild(boundaryElementOf("end", tiles[tiles.length - 1].guid));
+  }
+}
+
+function boundaryElementOf(position: "start" | "end", targetGuid: string): HTMLDivElement {
+  const boundary = document.createElement("div");
+  boundary.className = "panel-drop-boundary";
+  boundary.dataset.boundary = position;
+  boundary.dataset.targetGuid = targetGuid;
+  boundary.setAttribute("aria-hidden", "true");
+  return boundary;
 }
 
 function tileElementOf(tile: PanelTileModel, draggable: boolean): HTMLLIElement {

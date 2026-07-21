@@ -209,6 +209,16 @@ header h1 {
   overflow-y: auto;
 }
 
+.panel-drop-boundary {
+  height: 12px;
+  border: 1px dashed transparent;
+  border-radius: 6px;
+}
+.panel-drop-boundary.drag-over {
+  border-color: var(--text-faint);
+  background: var(--hover);
+}
+
 .panel-tile {
   display: flex;
   flex-direction: column;
