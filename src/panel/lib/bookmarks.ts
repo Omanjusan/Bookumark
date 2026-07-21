@@ -104,3 +104,16 @@ export async function getFlatBookmarks(): Promise<BookmarkItem[]> {
 export async function removeBookmark(guid: string): Promise<void> {
   await browser.bookmarks.remove(guid);
 }
+
+interface BookmarkMoveDestination {
+  readonly parentId?: string;
+  readonly index?: number;
+}
+
+/** Firefox公式ブックマークDB内で項目を指定位置へ移動する。 */
+export async function moveBookmark(
+  guid: string,
+  destination: BookmarkMoveDestination,
+): Promise<browser.bookmarks.BookmarkTreeNode> {
+  return browser.bookmarks.move(guid, destination);
+}

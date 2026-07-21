@@ -11,6 +11,7 @@ interface TileDrop {
   readonly fromGuid: string;
   readonly toGuid: string;
   readonly placement: CustomOrderPlacement;
+  readonly edge?: "start" | "end";
 }
 
 interface TileDragConnection {
@@ -120,6 +121,7 @@ export function bindPanelTileDrag(
         fromGuid: draggedGuid,
         toGuid: boundaryTargetGuid,
         placement: boundaryPosition === "start" ? "before" : "after",
+        edge: boundaryPosition,
       });
       clearDragState();
       return;

@@ -159,8 +159,8 @@ test("maps the start and end boundary zones to the outer insertion positions", a
   });
 
   assert.deepEqual(drops, [
-    { fromGuid: "middle", toGuid: "first", placement: "before" },
-    { fromGuid: "middle", toGuid: "last", placement: "after" },
+    { fromGuid: "middle", toGuid: "first", placement: "before", edge: "start" },
+    { fromGuid: "middle", toGuid: "last", placement: "after", edge: "end" },
   ]);
   assert.equal(start.classes.size, 0);
   assert.equal(end.classes.size, 0);

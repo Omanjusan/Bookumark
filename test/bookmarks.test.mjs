@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   getBookmarkTreeItems,
   getFlatBookmarks,
+  moveBookmark,
   removeBookmark,
 } from "../dist/panel/lib/bookmarks.js";
 
@@ -235,4 +236,20 @@ test("delegates bookmark deletion to Firefox without changing the GUID", async (
   await removeBookmark("bookmark-guid");
 
   assert.deepEqual(removed, ["bookmark-guid"]);
+});
+
+test("delegates an official bookmark move with an unchanged destination", async () => {
+  const moves = [];
+  const moved = { id: "bookmark-guid", parentId: "root", index: 0 };
+  globalThis.browser = {
+    bookmarks: {
+      move: async (guid, destination) => {
+        moves.push([guid, destination]);
+        return moved;
+      },
+    },
+  };
+
+  assert.equal(await moveBookmark("bookmark-guid", { parentId: "root", index: 0 }), moved);
+  assert.deepEqual(moves, [["bookmark-guid", { parentId: "root", index: 0 }]]);
 });
