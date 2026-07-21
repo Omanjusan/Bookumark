@@ -10,6 +10,11 @@ const titleCollator = new Intl.Collator("ja", {
   usage: "sort",
 });
 
+const dateTimeFormatter = new Intl.DateTimeFormat("ja-JP", {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
+
 /** 日本語ロケールの自然順で比較する、非スケーラブルな名前軸を作る。 */
 export function createTitleAxis(direction: SortDirection): SortAxis<string> {
   return {
@@ -32,6 +37,30 @@ export function createDateAddedAxis(direction: SortDirection): SortAxis<number> 
   };
 }
 
+/** 訪問回数で比較する、スケーラブルな活動軸を作る。 */
+export function createVisitCountAxis(direction: SortDirection): SortAxis<number> {
+  return {
+    id: "visitCount",
+    scalable: true,
+    direction,
+    valueOf: visitCountOf,
+    compare: (a, b) => (visitCountOf(a) ?? 0) - (visitCountOf(b) ?? 0),
+    formatValue: (value) => `${value}回`,
+  };
+}
+
+/** 最終訪問日時で比較する、非スケーラブルな活動軸を作る。 */
+export function createLastVisitTimeAxis(direction: SortDirection): SortAxis<number> {
+  return {
+    id: "lastVisitTime",
+    scalable: false,
+    direction,
+    valueOf: lastVisitTimeOf,
+    compare: (a, b) => (lastVisitTimeOf(a) ?? 0) - (lastVisitTimeOf(b) ?? 0),
+    formatValue: (value) => dateTimeFormatter.format(value),
+  };
+}
+
 function normalizedTitleOf(item: BookmarkItem): string | undefined {
   const title = item.title.trim();
   return title || undefined;
@@ -39,4 +68,12 @@ function normalizedTitleOf(item: BookmarkItem): string | undefined {
 
 function dateAddedOf(item: BookmarkItem): number | undefined {
   return (item as DisplayBookmarkItem).dateAdded;
+}
+
+function visitCountOf(item: BookmarkItem): number | undefined {
+  return (item as DisplayBookmarkItem).visitCount;
+}
+
+function lastVisitTimeOf(item: BookmarkItem): number | undefined {
+  return (item as DisplayBookmarkItem).lastVisitTime;
 }

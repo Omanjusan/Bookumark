@@ -4,6 +4,7 @@ export interface BookmarkItem {
   guid: string;
   title: string;
   url: string;
+  dateAdded?: number;
 }
 
 /**
@@ -30,6 +31,7 @@ export async function getFlatBookmarks(): Promise<BookmarkItem[]> {
           guid: node.id,
           title: node.title || node.url,
           url: node.url,
+          ...(node.dateAdded === undefined ? {} : { dateAdded: node.dateAdded }),
         });
       }
       if (node.children) walk(node.children);

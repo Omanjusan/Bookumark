@@ -75,6 +75,25 @@ test("uses the URL as the title when Firefox supplies an empty title", async () 
   }]);
 });
 
+test("keeps Firefox dateAdded only when it is available", async () => {
+  globalThis.browser = {
+    bookmarks: {
+      getTree: async () => [{
+        id: "root",
+        children: [
+          { id: "dated", title: "Dated", url: "https://dated.example", dateAdded: 1234 },
+          { id: "undated", title: "Undated", url: "https://undated.example" },
+        ],
+      }],
+    },
+  };
+
+  assert.deepEqual(await getFlatBookmarks(), [
+    { guid: "dated", title: "Dated", url: "https://dated.example", dateAdded: 1234 },
+    { guid: "undated", title: "Undated", url: "https://undated.example" },
+  ]);
+});
+
 test("delegates bookmark deletion to Firefox without changing the GUID", async () => {
   const removed = [];
   globalThis.browser = {

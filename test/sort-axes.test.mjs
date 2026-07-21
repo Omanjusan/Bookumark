@@ -2,7 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { sortForPanel } from "../dist/panel/lib/sort-axis.js";
-import { createDateAddedAxis, createTitleAxis } from "../dist/panel/lib/sort-axes.js";
+import {
+  createDateAddedAxis,
+  createLastVisitTimeAxis,
+  createTitleAxis,
+  createVisitCountAxis,
+} from "../dist/panel/lib/sort-axes.js";
 
 function item(guid, title, dateAdded) {
   return {
@@ -80,4 +85,50 @@ test("preserves input order for equal dates", () => {
     sortForPanel(items, createDateAddedAxis("asc")).map(({ guid }) => guid),
     ["b", "a"],
   );
+});
+
+test("makes only visit count scalable among the activity axes", () => {
+  assert.equal(createVisitCountAxis("desc").scalable, true);
+  assert.equal(createLastVisitTimeAxis("desc").scalable, false);
+});
+
+test("sorts visit counts in either direction with missing values at the minimum", () => {
+  const items = [
+    { ...item("five", "Five"), visitCount: 5 },
+    item("missing", "Missing"),
+    { ...item("zero", "Zero"), visitCount: 0 },
+    { ...item("two", "Two"), visitCount: 2 },
+  ];
+
+  assert.deepEqual(
+    sortForPanel(items, createVisitCountAxis("asc")).map(({ guid }) => guid),
+    ["missing", "zero", "two", "five"],
+  );
+  assert.deepEqual(
+    sortForPanel(items, createVisitCountAxis("desc")).map(({ guid }) => guid),
+    ["five", "two", "zero", "missing"],
+  );
+});
+
+test("sorts last-visit timestamps and preserves equal-value order", () => {
+  const items = [
+    { ...item("equal-b", "Equal B"), lastVisitTime: 200 },
+    item("missing", "Missing"),
+    { ...item("newest", "Newest"), lastVisitTime: 300 },
+    { ...item("equal-a", "Equal A"), lastVisitTime: 200 },
+  ];
+
+  assert.deepEqual(
+    sortForPanel(items, createLastVisitTimeAxis("desc")).map(({ guid }) => guid),
+    ["newest", "equal-b", "equal-a", "missing"],
+  );
+});
+
+test("formats activity values for panel display", () => {
+  const visitAxis = createVisitCountAxis("desc");
+  const lastVisitAxis = createLastVisitTimeAxis("desc");
+
+  assert.equal(visitAxis.formatValue(5), "5回");
+  assert.equal(typeof lastVisitAxis.formatValue(1_700_000_000_000), "string");
+  assert.ok(lastVisitAxis.formatValue(1_700_000_000_000).length > 0);
 });
