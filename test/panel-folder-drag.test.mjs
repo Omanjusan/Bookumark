@@ -77,8 +77,69 @@ test("ignores self drops and removes listeners on disconnect", () => {
   assert.equal(fake.listenerCount(), 0);
 });
 
-function dataTransfer() {
-  return { effectAllowed: "", setData() {} };
+test("maps the center third to moving inside a folder in directory mode", () => {
+  const source = folder("source", { left: 0, top: 0, width: 144, height: 36 });
+  const target = folder("target", { left: 150, top: 0, width: 144, height: 36 });
+  const fake = harness([source, target]);
+  const drops = [];
+  bindPanelFolderDrag(fake.root, (drop) => drops.push(drop), {
+    isEnabled: () => true,
+    insideEnabled: () => true,
+  });
+
+  fake.emit("dragstart", { target: nestedIn(source), dataTransfer: dataTransfer() });
+  fake.emit("drop", {
+    target: nestedIn(target),
+    clientX: 222,
+    dataTransfer: dataTransfer("source"),
+    preventDefault() {},
+  });
+
+  assert.deepEqual(drops, [{
+    fromGuid: "source",
+    toGuid: "target",
+    placement: "inside",
+  }]);
+});
+
+test("accepts an external bookmark tile drop on a folder center", () => {
+  const target = folder("target", { left: 150, top: 0, width: 144, height: 36 });
+  const fake = harness([target]);
+  const drops = [];
+  bindPanelFolderDrag(fake.root, (drop) => drops.push(drop), {
+    isEnabled: () => true,
+    insideEnabled: () => true,
+    acceptExternal: () => true,
+  });
+
+  let prevented = false;
+  fake.emit("dragover", {
+    target: nestedIn(target),
+    clientX: 222,
+    dataTransfer: dataTransfer("bookmark"),
+    preventDefault: () => { prevented = true; },
+  });
+  fake.emit("drop", {
+    target: nestedIn(target),
+    clientX: 222,
+    dataTransfer: dataTransfer("bookmark"),
+    preventDefault() {},
+  });
+
+  assert.equal(prevented, true);
+  assert.deepEqual(drops, [{
+    fromGuid: "bookmark",
+    toGuid: "target",
+    placement: "inside",
+  }]);
+});
+
+function dataTransfer(value = "") {
+  return {
+    effectAllowed: "",
+    setData() {},
+    getData: () => value,
+  };
 }
 
 function folder(guid, rect) {

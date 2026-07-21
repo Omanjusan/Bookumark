@@ -34,7 +34,11 @@ import { bindPanelFolderNavigation } from "./lib/panel-folder-navigation.js";
 import { bindPanelFolderDrag } from "./lib/panel-folder-drag.js";
 import { renderPanelFolders } from "./lib/panel-folder-view.js";
 import { bindMovementModeInput } from "./lib/panel-movement-mode-input.js";
-import { planOfficialSiblingMove } from "./lib/official-order.js";
+import {
+  planOfficialFolderMove,
+  planOfficialSiblingMove,
+} from "./lib/official-order.js";
+import type { OfficialSiblingMovePlan } from "./lib/official-order.js";
 import { bindPanelSearchInput } from "./lib/panel-search-input.js";
 import { bindPanelSortAxisInput } from "./lib/panel-sort-axis-input.js";
 import { bindPanelSortDirectionInput } from "./lib/panel-sort-direction-input.js";
@@ -208,10 +212,23 @@ bindPanelFolderDrag(
   (drop) => {
     if (currentFolderGuid === null) return;
     if (displayState.movementMode === "directory-move") {
-      void applyOfficialSiblingDrop(drop);
+      if (drop.placement === "inside") {
+        void applyOfficialHierarchyDrop(drop.fromGuid, drop.toGuid);
+      } else {
+        void applyOfficialSiblingDrop({
+          fromGuid: drop.fromGuid,
+          toGuid: drop.toGuid,
+          placement: drop.placement,
+        });
+      }
       return;
     }
-    currentFolders = reorderItemsForTileDrop(currentFolders, drop);
+    if (drop.placement === "inside") return;
+    currentFolders = reorderItemsForTileDrop(currentFolders, {
+      fromGuid: drop.fromGuid,
+      toGuid: drop.toGuid,
+      placement: drop.placement,
+    });
     redraw();
     void persistCustomOrder(
       currentFolders,
@@ -232,6 +249,8 @@ bindPanelFolderDrag(
   {
     isEnabled: dragEnabled,
     onDragStart: dragClickGuard.markDragStarted,
+    insideEnabled: () => displayState.movementMode === "directory-move",
+    acceptExternal: officialReorderEnabled,
   },
 );
 
@@ -249,6 +268,20 @@ async function applyOfficialSiblingDrop(drop: {
   });
   if (plan === null) return;
 
+  await executeOfficialMove(plan);
+}
+
+async function applyOfficialHierarchyDrop(
+  fromGuid: string,
+  targetFolderGuid: string,
+): Promise<void> {
+  if (!officialReorderEnabled()) return;
+  const plan = planOfficialFolderMove(treeItems, fromGuid, targetFolderGuid);
+  if (plan === null) return;
+  await executeOfficialMove(plan);
+}
+
+async function executeOfficialMove(plan: OfficialSiblingMovePlan): Promise<void> {
   officialMovePending = true;
   redraw();
   try {

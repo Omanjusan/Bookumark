@@ -1,7 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { planOfficialSiblingMove } from "../dist/panel/lib/official-order.js";
+import {
+  planOfficialFolderMove,
+  planOfficialSiblingMove,
+} from "../dist/panel/lib/official-order.js";
 
 const items = [
   { kind: "folder", guid: "root", parentGuid: null, index: 0, title: "Root" },
@@ -70,4 +73,38 @@ test("does not mutate tree items", () => {
   const before = structuredClone(items);
   planOfficialSiblingMove(items, { fromGuid: "a", toGuid: "b", placement: "after" });
   assert.deepEqual(items, before);
+});
+
+test("plans moving a bookmark or folder into a destination folder", () => {
+  const nestedTarget = {
+    kind: "folder",
+    guid: "target-folder",
+    parentGuid: "root",
+    index: 4,
+    title: "Target",
+  };
+  const sourceFolder = {
+    kind: "folder",
+    guid: "source-folder",
+    parentGuid: "root",
+    index: 5,
+    title: "Source",
+  };
+  const hierarchy = [...items, nestedTarget, sourceFolder];
+
+  assert.deepEqual(planOfficialFolderMove(hierarchy, "a", "target-folder"), {
+    guid: "a",
+    destination: { parentId: "target-folder" },
+  });
+  assert.deepEqual(planOfficialFolderMove(hierarchy, "source-folder", "target-folder"), {
+    guid: "source-folder",
+    destination: { parentId: "target-folder" },
+  });
+});
+
+test("rejects invalid hierarchy move endpoints", () => {
+  assert.throws(() => planOfficialFolderMove(items, "missing", "root"), /not found/);
+  assert.throws(() => planOfficialFolderMove(items, "a", "b"), /folder/);
+  assert.throws(() => planOfficialFolderMove(items, "root", "root"), /root/);
+  assert.equal(planOfficialFolderMove(items, "a", "a"), null);
 });

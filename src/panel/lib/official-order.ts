@@ -16,6 +16,31 @@ export interface OfficialSiblingMovePlan {
   };
 }
 
+/** ブックマークまたはフォルダを指定フォルダの末尾へ移す計画を返す。 */
+export function planOfficialFolderMove(
+  items: readonly BookmarkTreeItem[],
+  fromGuid: string,
+  targetFolderGuid: string,
+): OfficialSiblingMovePlan | null {
+  const byGuid = new Map(items.map((item) => [item.guid, item]));
+  const source = byGuid.get(fromGuid);
+  const target = byGuid.get(targetFolderGuid);
+  if (source === undefined || target === undefined) {
+    throw new Error("Official hierarchy move item not found");
+  }
+  if (source.parentGuid === null) {
+    throw new Error("The bookmark root cannot be moved");
+  }
+  if (source.guid === target.guid) return null;
+  if (target.kind !== "folder") {
+    throw new Error("Official hierarchy move target must be a folder");
+  }
+  return {
+    guid: source.guid,
+    destination: { parentId: target.guid },
+  };
+}
+
 /** 同一親内のdropをFirefox bookmarks.move用の挿入位置へ変換する。 */
 export function planOfficialSiblingMove(
   items: readonly BookmarkTreeItem[],
