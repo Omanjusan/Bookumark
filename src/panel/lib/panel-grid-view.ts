@@ -19,6 +19,7 @@ function tileElementOf(tile: PanelTileModel): HTMLLIElement {
   element.dataset.url = tile.url;
   element.dataset.size = tile.size;
   element.title = tile.url;
+  element.draggable = true;
 
   if (hasField(tile, "favicon")) {
     const favicon = document.createElement("img");

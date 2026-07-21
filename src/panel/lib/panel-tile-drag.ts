@@ -70,6 +70,10 @@ export function bindPanelTileDrag(
       dragEvent.clientX,
       dragEvent.clientY,
     );
+    tile.classList.toggle(
+      "drag-over-horizontal",
+      tile.getBoundingClientRect().width > tile.getBoundingClientRect().height,
+    );
     tile.classList.toggle("drag-over-before", placement === "before");
     tile.classList.toggle("drag-over-after", placement === "after");
   };
@@ -97,13 +101,18 @@ export function bindPanelTileDrag(
 
   function clearDropMarks(): void {
     for (const tile of root.querySelectorAll<HTMLElement>(".panel-tile")) {
-      tile.classList.remove("drag-over-before", "drag-over-after");
+      tile.classList.remove("drag-over-before", "drag-over-after", "drag-over-horizontal");
     }
   }
 
   function clearDragState(): void {
     for (const tile of root.querySelectorAll<HTMLElement>(".panel-tile")) {
-      tile.classList.remove("dragging", "drag-over-before", "drag-over-after");
+      tile.classList.remove(
+        "dragging",
+        "drag-over-before",
+        "drag-over-after",
+        "drag-over-horizontal",
+      );
     }
     draggedGuid = null;
   }

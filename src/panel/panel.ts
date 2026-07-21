@@ -1,6 +1,7 @@
 import { loadBookmarkHistory } from "./lib/bookmark-history.js";
 import { getFlatBookmarks } from "./lib/bookmarks.js";
 import type { BookmarkItem } from "./lib/bookmarks.js";
+import { reorderItemsForTileDrop } from "./lib/custom-order-items.js";
 import type { DisplayFilter } from "./lib/display-filter.js";
 import type { DisplayBookmarkItem } from "./lib/display-item.js";
 import { INITIAL_DISPLAY_STATE, reduceDisplayState } from "./lib/display-state.js";
@@ -14,6 +15,7 @@ import { bindPanelSortAxisInput } from "./lib/panel-sort-axis-input.js";
 import { bindPanelSortDirectionInput } from "./lib/panel-sort-direction-input.js";
 import { renderPanelStatus } from "./lib/panel-status-view.js";
 import { bindPanelTileOpen } from "./lib/panel-tile-open.js";
+import { bindPanelTileDrag } from "./lib/panel-tile-drag.js";
 import { loadOrder, saveOrder, reconcile } from "./lib/overlay.js";
 
 const root = document.getElementById("app") as HTMLElement;
@@ -93,6 +95,12 @@ bindPanelSortDirectionInput(sortDirectionButton, () => {
 bindPanelTileOpen(root, {
   createTab: (details) => browser.tabs.create(details),
   reportError: (error) => console.warn("tabs.create failed:", error),
+});
+
+bindPanelTileDrag(root, (drop) => {
+  if (currentItems === null) return;
+  currentItems = reorderItemsForTileDrop(currentItems, drop);
+  redraw();
 });
 
 observeGridCells(root, (cells) => {
