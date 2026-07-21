@@ -161,6 +161,19 @@ header h1 {
 }
 .status.error { color: #c4402a; }
 
+.panel-tools {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 4px 0;
+  color: var(--text-muted);
+}
+.panel-tools label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
 /* パネル表示モード */
 .panel-grid {
   --panel-grid-unit: 24px;

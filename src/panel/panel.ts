@@ -3,7 +3,9 @@ import { getFlatBookmarks } from "./lib/bookmarks.js";
 import type { BookmarkItem } from "./lib/bookmarks.js";
 import type { DisplayFilter } from "./lib/display-filter.js";
 import type { DisplayBookmarkItem } from "./lib/display-item.js";
-import { INITIAL_DISPLAY_STATE } from "./lib/display-state.js";
+import { INITIAL_DISPLAY_STATE, reduceDisplayState } from "./lib/display-state.js";
+import type { DisplayState } from "./lib/display-state.js";
+import { bindFreeMovementInput } from "./lib/panel-free-movement-input.js";
 import { presentPanelDrawingPlan } from "./lib/panel-drawing-presenter.js";
 import { observeGridCells } from "./lib/grid-resize-observer.js";
 import { renderPanelGrid } from "./lib/panel-grid-view.js";
@@ -14,10 +16,12 @@ import { loadOrder, saveOrder, reconcile } from "./lib/overlay.js";
 const root = document.getElementById("app") as HTMLElement;
 const countEl = document.getElementById("count") as HTMLElement;
 const searchInput = document.getElementById("search") as HTMLInputElement;
+const freeMovementInput = document.getElementById("free-movement") as HTMLInputElement;
 const filters: readonly DisplayFilter<DisplayBookmarkItem>[] = [];
 let currentItems: readonly DisplayBookmarkItem[] | null = null;
 let gridCells = { columns: 0, rows: 0 };
 let query = "";
+let displayState: DisplayState = INITIAL_DISPLAY_STATE;
 
 function renderStatus(message: string): void {
   root.textContent = "";
@@ -36,7 +40,7 @@ function redraw(): void {
     items: currentItems,
     query,
     filters,
-    state: INITIAL_DISPLAY_STATE,
+    state: displayState,
     ...gridCells,
   }, {
     showLoading: () => renderStatus("読み込み中…"),
@@ -53,6 +57,14 @@ function redraw(): void {
 
 bindPanelSearchInput(searchInput, (nextQuery) => {
   query = nextQuery;
+  redraw();
+});
+
+bindFreeMovementInput(freeMovementInput, (enabled) => {
+  displayState = reduceDisplayState(displayState, {
+    type: "setFreeMovement",
+    enabled,
+  });
   redraw();
 });
 
