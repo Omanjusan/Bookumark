@@ -6,6 +6,8 @@
   --text-muted: #5d6570;
   --text-faint: #8b93a0;
   --hover: #eaecf0;
+  --mode-custom: #2f6fca;
+  --mode-directory: #a65f00;
   --badge-s: 60%;
   --badge-l: 88%;
   --badge-fg-s: 45%;
@@ -20,6 +22,8 @@
     --text-muted: #9aa1ad;
     --text-faint: #6b7280;
     --hover: #262a33;
+    --mode-custom: #75a7ee;
+    --mode-directory: #e1a64f;
     --badge-s: 28%;
     --badge-l: 26%;
     --badge-fg-s: 40%;
@@ -223,6 +227,74 @@ header h1 {
 .panel-tools button:disabled {
   color: var(--text-faint);
   cursor: not-allowed;
+}
+
+.movement-mode {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.movement-mode legend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.movement-mode-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+.movement-option {
+  position: relative;
+  min-width: 0;
+}
+.movement-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.movement-segment {
+  display: block;
+  padding: 4px 7px;
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.movement-option:first-child .movement-segment { border-left: 0; }
+.movement-option input:focus-visible + .movement-segment {
+  outline: 2px solid var(--text-faint);
+  outline-offset: -2px;
+}
+.movement-option--custom input:checked + .movement-segment {
+  background: color-mix(in srgb, var(--mode-custom) 18%, var(--surface));
+  color: var(--mode-custom);
+}
+.movement-option--normal input:checked + .movement-segment {
+  background: var(--hover);
+  color: var(--text);
+}
+.movement-option--directory input:checked + .movement-segment {
+  background: color-mix(in srgb, var(--mode-directory) 18%, var(--surface));
+  color: var(--mode-directory);
+}
+.movement-mode-note {
+  display: block;
+  margin-top: 3px;
+  color: var(--text-faint);
+  font-size: 10px;
+  text-align: right;
 }
 
 /* パネル表示モード */

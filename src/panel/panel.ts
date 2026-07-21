@@ -21,7 +21,6 @@ import {
   replaceFolderOrderSubset,
 } from "./lib/folder-order.js";
 import type { CustomOrderByFolder } from "./lib/folder-order.js";
-import { bindFreeMovementInput } from "./lib/panel-free-movement-input.js";
 import { createPanelDragClickGuard } from "./lib/panel-drag-click-guard.js";
 import { isPanelDragEnabled } from "./lib/panel-drag-policy.js";
 import { presentPanelDrawingPlan } from "./lib/panel-drawing-presenter.js";
@@ -29,6 +28,7 @@ import { observeGridCells } from "./lib/grid-resize-observer.js";
 import { renderPanelGrid } from "./lib/panel-grid-view.js";
 import { bindPanelFolderNavigation } from "./lib/panel-folder-navigation.js";
 import { renderPanelFolders } from "./lib/panel-folder-view.js";
+import { bindMovementModeInput } from "./lib/panel-movement-mode-input.js";
 import { bindPanelSearchInput } from "./lib/panel-search-input.js";
 import { bindPanelSortAxisInput } from "./lib/panel-sort-axis-input.js";
 import { bindPanelSortDirectionInput } from "./lib/panel-sort-direction-input.js";
@@ -45,7 +45,7 @@ const root = document.getElementById("app") as HTMLElement;
 const folderRoot = document.getElementById("folders") as HTMLElement;
 const countEl = document.getElementById("count") as HTMLElement;
 const searchInput = document.getElementById("search") as HTMLInputElement;
-const freeMovementInput = document.getElementById("free-movement") as HTMLInputElement;
+const movementModeRoot = document.getElementById("movement-mode") as HTMLElement;
 const sortAxisSelect = document.getElementById("sort-axis") as HTMLSelectElement;
 const sortDirectionButton = document.getElementById("sort-direction") as HTMLButtonElement;
 const filters: readonly DisplayFilter<DisplayBookmarkItem>[] = [];
@@ -73,6 +73,13 @@ function syncSortDirectionButton(): void {
   sortDirectionButton.textContent = direction === "asc" ? "昇順" : "降順";
 }
 
+function syncMovementControls(): void {
+  movementModeConnection.setMode(displayState.movementMode);
+  sortAxisSelect.disabled = displayState.movementMode !== "normal";
+  sortAxisSelect.value = displayState.lastStandardSort.axisId;
+  syncSortDirectionButton();
+}
+
 function redraw(): void {
   if (currentItems === null) {
     renderPanelStatus(root, { status: "loading" });
@@ -97,26 +104,18 @@ function redraw(): void {
   });
 }
 
+const movementModeConnection = bindMovementModeInput(movementModeRoot, (mode) => {
+  displayState = reduceDisplayState(displayState, { type: "setMovementMode", mode });
+  syncMovementControls();
+  redraw();
+});
+
 bindPanelSearchInput(searchInput, (nextQuery) => {
   query = nextQuery;
   if (query.trim().length > 0 && displayState.movementMode !== "normal") {
     displayState = reduceDisplayState(displayState, { type: "resetMovementMode" });
-    freeMovementInput.checked = false;
-    sortAxisSelect.disabled = false;
-    sortAxisSelect.value = displayState.lastStandardSort.axisId;
-    syncSortDirectionButton();
+    syncMovementControls();
   }
-  redraw();
-});
-
-bindFreeMovementInput(freeMovementInput, (enabled) => {
-  displayState = reduceDisplayState(displayState, {
-    type: "setMovementMode",
-    mode: enabled ? "custom-order" : "normal",
-  });
-  sortAxisSelect.disabled = displayState.movementMode !== "normal";
-  sortAxisSelect.value = displayState.lastStandardSort.axisId;
-  syncSortDirectionButton();
   redraw();
 });
 
@@ -126,6 +125,7 @@ bindPanelSortAxisInput(sortAxisSelect, (axisId) => {
     axisId,
     direction: displayState.sort.direction,
   });
+  syncMovementControls();
   redraw();
 });
 

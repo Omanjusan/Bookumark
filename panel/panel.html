@@ -38,7 +38,28 @@
         data-direction="desc"
         aria-label="並び方向を切り替え"
       >降順</button>
-      <label><input id="free-movement" type="checkbox"> 自由移動</label>
+      <fieldset
+        id="movement-mode"
+        class="movement-mode"
+        aria-describedby="movement-mode-note"
+      >
+        <legend>移動モード</legend>
+        <div class="movement-mode-options">
+          <label class="movement-option movement-option--custom">
+            <input type="radio" name="movement-mode" value="custom-order">
+            <span class="movement-segment">カスタム配置</span>
+          </label>
+          <label class="movement-option movement-option--normal">
+            <input type="radio" name="movement-mode" value="normal" checked>
+            <span class="movement-segment">通常</span>
+          </label>
+          <label class="movement-option movement-option--directory">
+            <input type="radio" name="movement-mode" value="directory-move">
+            <span class="movement-segment">公式整理</span>
+          </label>
+        </div>
+        <span id="movement-mode-note" class="movement-mode-note">公式整理はFirefox本体へ反映</span>
+      </fieldset>
     </footer>
   </div>
   <script type="module" src="panel.js"></script>
