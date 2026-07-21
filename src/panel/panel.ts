@@ -40,6 +40,15 @@ import {
 } from "./lib/official-order.js";
 import type { OfficialSiblingMovePlan } from "./lib/official-order.js";
 import { executeOfficialMoveWithRecovery } from "./lib/official-move-executor.js";
+import {
+  createBookmarkMoveSnapshot,
+  planOfficialUndo,
+} from "./lib/official-undo.js";
+import type { BookmarkMoveSnapshot } from "./lib/official-undo.js";
+import {
+  bindOfficialMoveUndo,
+  renderOfficialMoveNotice,
+} from "./lib/panel-official-move-notice.js";
 import { bindPanelSearchInput } from "./lib/panel-search-input.js";
 import { bindPanelSortAxisInput } from "./lib/panel-sort-axis-input.js";
 import { bindPanelSortDirectionInput } from "./lib/panel-sort-direction-input.js";
@@ -59,6 +68,14 @@ const searchInput = document.getElementById("search") as HTMLInputElement;
 const movementModeRoot = document.getElementById("movement-mode") as HTMLElement;
 const sortAxisSelect = document.getElementById("sort-axis") as HTMLSelectElement;
 const sortDirectionButton = document.getElementById("sort-direction") as HTMLButtonElement;
+const officialMoveNoticeRoot = document.getElementById("official-move-notice") as HTMLElement;
+const officialMoveMessage = document.getElementById("official-move-message") as HTMLElement;
+const officialMoveUndoButton = document.getElementById("official-move-undo") as HTMLButtonElement;
+const officialMoveNoticeElements = {
+  root: officialMoveNoticeRoot,
+  message: officialMoveMessage,
+  undoButton: officialMoveUndoButton,
+};
 const filters: readonly DisplayFilter<DisplayBookmarkItem>[] = [];
 let currentItems: readonly DisplayBookmarkItem[] | null = null;
 let currentFolders: readonly BookmarkTreeFolderItem[] = [];
@@ -69,6 +86,7 @@ let gridCells = { columns: 0, rows: 0 };
 let query = "";
 let displayState: DisplayState = INITIAL_DISPLAY_STATE;
 let officialMovePending = false;
+let lastOfficialMove: BookmarkMoveSnapshot | null = null;
 const dragClickGuard = createPanelDragClickGuard();
 
 function customDragEnabled(): boolean {
@@ -175,7 +193,7 @@ bindPanelTileDrag(
   (drop) => {
     if (currentItems === null) return;
     if (displayState.movementMode === "directory-move") {
-      void applyOfficialSiblingDrop(drop);
+      void applyOfficialSiblingDrop(drop).catch(reportOfficialMoveError);
       return;
     }
     currentItems = reorderItemsForTileDrop(currentItems, drop);
@@ -214,13 +232,14 @@ bindPanelFolderDrag(
     if (currentFolderGuid === null) return;
     if (displayState.movementMode === "directory-move") {
       if (drop.placement === "inside") {
-        void applyOfficialHierarchyDrop(drop.fromGuid, drop.toGuid);
+        void applyOfficialHierarchyDrop(drop.fromGuid, drop.toGuid)
+          .catch(reportOfficialMoveError);
       } else {
         void applyOfficialSiblingDrop({
           fromGuid: drop.fromGuid,
           toGuid: drop.toGuid,
           placement: drop.placement,
-        });
+        }).catch(reportOfficialMoveError);
       }
       return;
     }
@@ -255,6 +274,10 @@ bindPanelFolderDrag(
   },
 );
 
+bindOfficialMoveUndo(officialMoveUndoButton, () => {
+  void undoLastOfficialMove().catch(reportOfficialMoveError);
+});
+
 async function applyOfficialSiblingDrop(drop: {
   readonly fromGuid: string;
   readonly toGuid: string;
@@ -268,8 +291,13 @@ async function applyOfficialSiblingDrop(drop: {
     placement: drop.edge ?? drop.placement,
   });
   if (plan === null) return;
-
-  await executeOfficialMove(plan);
+  const snapshot = createBookmarkMoveSnapshot(treeItems, plan.guid);
+  const sourceTitle = titleOf(plan.guid);
+  const parentTitle = titleOf(plan.destination.parentId);
+  await executeOfficialMove(plan, {
+    snapshot,
+    successMessage: `「${sourceTitle}」を「${parentTitle}」内で移動しました`,
+  });
 }
 
 async function applyOfficialHierarchyDrop(
@@ -279,10 +307,23 @@ async function applyOfficialHierarchyDrop(
   if (!officialReorderEnabled()) return;
   const plan = planOfficialFolderMove(treeItems, fromGuid, targetFolderGuid);
   if (plan === null) return;
-  await executeOfficialMove(plan);
+  const snapshot = createBookmarkMoveSnapshot(treeItems, plan.guid);
+  await executeOfficialMove(plan, {
+    snapshot,
+    successMessage: `「${titleOf(plan.guid)}」を「${titleOf(targetFolderGuid)}」へ移動しました`,
+  });
 }
 
-async function executeOfficialMove(plan: OfficialSiblingMovePlan): Promise<void> {
+interface OfficialMovePresentation {
+  readonly successMessage: string;
+  readonly snapshot?: BookmarkMoveSnapshot;
+  readonly clearUndoOnSuccess?: boolean;
+}
+
+async function executeOfficialMove(
+  plan: OfficialSiblingMovePlan,
+  presentation: OfficialMovePresentation,
+): Promise<void> {
   officialMovePending = true;
   redraw();
   try {
@@ -295,6 +336,11 @@ async function executeOfficialMove(plan: OfficialSiblingMovePlan): Promise<void>
         ? [result.recoveryError]
         : [result.error, result.recoveryError];
       showLoadError(new AggregateError(errors, "Official move recovery failed"));
+      renderOfficialMoveNotice(officialMoveNoticeElements, {
+        status: "error",
+        message: "公式状態を再取得できませんでした",
+        canUndo: lastOfficialMove !== null,
+      });
       return;
     }
 
@@ -312,6 +358,22 @@ async function executeOfficialMove(plan: OfficialSiblingMovePlan): Promise<void>
     await showFolder(resolvedFolderGuid);
     if (result.status === "move-failed") {
       console.warn("official bookmark move failed:", result.error);
+      renderOfficialMoveNotice(officialMoveNoticeElements, {
+        status: "error",
+        message: "公式ブックマークを移動できませんでした",
+        canUndo: lastOfficialMove !== null,
+      });
+    } else {
+      if (presentation.clearUndoOnSuccess === true) {
+        lastOfficialMove = null;
+      } else if (presentation.snapshot !== undefined) {
+        lastOfficialMove = presentation.snapshot;
+      }
+      renderOfficialMoveNotice(officialMoveNoticeElements, {
+        status: "success",
+        message: presentation.successMessage,
+        canUndo: lastOfficialMove !== null,
+      });
     }
   } catch (error) {
     showLoadError(error);
@@ -319,6 +381,28 @@ async function executeOfficialMove(plan: OfficialSiblingMovePlan): Promise<void>
     officialMovePending = false;
     redraw();
   }
+}
+
+async function undoLastOfficialMove(): Promise<void> {
+  if (lastOfficialMove === null || officialMovePending) return;
+  const undoPlan = planOfficialUndo(lastOfficialMove, treeItems);
+  await executeOfficialMove(undoPlan, {
+    successMessage: "直前の公式移動を元に戻しました",
+    clearUndoOnSuccess: true,
+  });
+}
+
+function titleOf(guid: string): string {
+  return treeItems.find((item) => item.guid === guid)?.title || guid;
+}
+
+function reportOfficialMoveError(error: unknown): void {
+  console.warn("official bookmark operation rejected:", error);
+  renderOfficialMoveNotice(officialMoveNoticeElements, {
+    status: "error",
+    message: error instanceof Error ? error.message : "公式操作を実行できませんでした",
+    canUndo: lastOfficialMove !== null,
+  });
 }
 
 observeGridCells(root, (cells) => {

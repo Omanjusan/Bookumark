@@ -19,6 +19,16 @@
       autocomplete="off"
     >
     <nav id="folders" class="folder-region" aria-label="フォルダ" hidden></nav>
+    <div
+      id="official-move-notice"
+      class="official-move-notice"
+      role="status"
+      aria-live="polite"
+      hidden
+    >
+      <span id="official-move-message"></span>
+      <button id="official-move-undo" type="button">元に戻す</button>
+    </div>
     <main id="app">
       <p class="status">読み込み中…</p>
     </main>
