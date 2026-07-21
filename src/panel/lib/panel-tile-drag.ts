@@ -17,6 +17,10 @@ interface TileDragConnection {
   disconnect(): void;
 }
 
+interface TileDragOptions {
+  readonly isEnabled?: () => boolean;
+}
+
 type TileDragRoot = Pick<
   HTMLElement,
   "addEventListener" | "removeEventListener" | "querySelectorAll"
@@ -38,10 +42,12 @@ export function placementForTilePointer(
 export function bindPanelTileDrag(
   root: TileDragRoot,
   deliver: (drop: TileDrop) => void,
+  options: TileDragOptions = {},
 ): TileDragConnection {
   let draggedGuid: string | null = null;
 
   const onDragStart = (event: Event): void => {
+    if (options.isEnabled?.() === false) return;
     const dragEvent = event as DragEvent;
     const tile = tileOf(dragEvent.target);
     const guid = tile?.dataset.guid;
@@ -59,6 +65,7 @@ export function bindPanelTileDrag(
   };
 
   const onDragOver = (event: Event): void => {
+    if (options.isEnabled?.() === false) return;
     if (!draggedGuid) return;
     const dragEvent = event as DragEvent;
     const tile = tileOf(dragEvent.target);
@@ -79,6 +86,10 @@ export function bindPanelTileDrag(
   };
 
   const onDrop = (event: Event): void => {
+    if (options.isEnabled?.() === false) {
+      clearDragState();
+      return;
+    }
     const dragEvent = event as DragEvent;
     const tile = tileOf(dragEvent.target);
     const toGuid = tile?.dataset.guid;

@@ -8,6 +8,7 @@ import type { DisplayBookmarkItem } from "./lib/display-item.js";
 import { INITIAL_DISPLAY_STATE, reduceDisplayState } from "./lib/display-state.js";
 import type { DisplayState } from "./lib/display-state.js";
 import { bindFreeMovementInput } from "./lib/panel-free-movement-input.js";
+import { isPanelDragEnabled } from "./lib/panel-drag-policy.js";
 import { presentPanelDrawingPlan } from "./lib/panel-drawing-presenter.js";
 import { observeGridCells } from "./lib/grid-resize-observer.js";
 import { renderPanelGrid } from "./lib/panel-grid-view.js";
@@ -30,6 +31,14 @@ let currentItems: readonly DisplayBookmarkItem[] | null = null;
 let gridCells = { columns: 0, rows: 0 };
 let query = "";
 let displayState: DisplayState = INITIAL_DISPLAY_STATE;
+
+function dragEnabled(): boolean {
+  return isPanelDragEnabled({
+    freeMovement: displayState.freeMovement,
+    query,
+    filterCount: filters.length,
+  });
+}
 
 function syncSortDirectionButton(): void {
   const direction = displayState.lastStandardSort.direction;
@@ -57,7 +66,7 @@ function redraw(): void {
     },
     showGrid: (tiles) => {
       countEl.textContent = tiles.length + "件";
-      renderPanelGrid(root, tiles);
+      renderPanelGrid(root, tiles, { draggable: dragEnabled() });
     },
   });
 }
@@ -98,16 +107,20 @@ bindPanelTileOpen(root, {
   reportError: (error) => console.warn("tabs.create failed:", error),
 });
 
-bindPanelTileDrag(root, (drop) => {
-  if (currentItems === null) return;
-  currentItems = reorderItemsForTileDrop(currentItems, drop);
-  redraw();
-  void persistCustomOrder(
-    currentItems,
-    saveOrder,
-    (error) => console.warn("custom order save failed:", error),
-  );
-});
+bindPanelTileDrag(
+  root,
+  (drop) => {
+    if (currentItems === null) return;
+    currentItems = reorderItemsForTileDrop(currentItems, drop);
+    redraw();
+    void persistCustomOrder(
+      currentItems,
+      saveOrder,
+      (error) => console.warn("custom order save failed:", error),
+    );
+  },
+  { isEnabled: dragEnabled },
+);
 
 observeGridCells(root, (cells) => {
   gridCells = cells;

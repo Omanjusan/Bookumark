@@ -2,24 +2,34 @@ import type { PanelInformationField, PanelTileModel } from "./panel-tile-model.j
 
 const FALLBACK_FAVICON_PATH = "icons/bookmark.svg";
 
+interface PanelGridViewOptions {
+  readonly draggable?: boolean;
+}
+
 /** 表示順に並んだモデルからパネルグリッドを描画する。 */
-export function renderPanelGrid(root: HTMLElement, tiles: readonly PanelTileModel[]): void {
+export function renderPanelGrid(
+  root: HTMLElement,
+  tiles: readonly PanelTileModel[],
+  options: PanelGridViewOptions = {},
+): void {
   root.textContent = "";
 
   const grid = document.createElement("ul");
   grid.className = "panel-grid";
-  for (const tile of tiles) grid.appendChild(tileElementOf(tile));
+  for (const tile of tiles) {
+    grid.appendChild(tileElementOf(tile, options.draggable ?? false));
+  }
   root.appendChild(grid);
 }
 
-function tileElementOf(tile: PanelTileModel): HTMLLIElement {
+function tileElementOf(tile: PanelTileModel, draggable: boolean): HTMLLIElement {
   const element = document.createElement("li");
   element.className = "panel-tile";
   element.dataset.guid = tile.guid;
   element.dataset.url = tile.url;
   element.dataset.size = tile.size;
   element.title = tile.url;
-  element.draggable = true;
+  element.draggable = draggable;
 
   if (hasField(tile, "favicon")) {
     const favicon = document.createElement("img");
