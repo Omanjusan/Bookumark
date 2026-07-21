@@ -121,6 +121,71 @@ test("ignores every drag event while D&D is disabled", async () => {
   assert.equal(target.classes.size, 0);
 });
 
+test("maps the start and end boundary zones to the outer insertion positions", async () => {
+  const { bindPanelTileDrag } = await import(
+    "../dist/panel/lib/panel-tile-drag.js"
+  );
+  const source = tile("middle", { left: 0, top: 0, width: 100, height: 100 });
+  const first = tile("first", { left: 0, top: 120, width: 100, height: 100 });
+  const last = tile("last", { left: 0, top: 240, width: 100, height: 100 });
+  const start = boundary("start", "first");
+  const end = boundary("end", "last");
+  const fake = harness([source, first, last]);
+  const drops = [];
+  bindPanelTileDrag(fake.root, (drop) => drops.push(drop));
+
+  fake.emit("dragstart", { target: nestedIn(source) });
+  let startPrevented = false;
+  fake.emit("dragover", {
+    target: nestedInBoundary(start),
+    preventDefault: () => { startPrevented = true; },
+  });
+  assert.equal(startPrevented, true);
+  assert.equal(start.classes.has("drag-over"), true);
+  fake.emit("drop", {
+    target: nestedInBoundary(start),
+    preventDefault() {},
+  });
+
+  fake.emit("dragstart", { target: nestedIn(source) });
+  fake.emit("dragover", {
+    target: nestedInBoundary(end),
+    preventDefault() {},
+  });
+  assert.equal(end.classes.has("drag-over"), true);
+  fake.emit("drop", {
+    target: nestedInBoundary(end),
+    preventDefault() {},
+  });
+
+  assert.deepEqual(drops, [
+    { fromGuid: "middle", toGuid: "first", placement: "before" },
+    { fromGuid: "middle", toGuid: "last", placement: "after" },
+  ]);
+  assert.equal(start.classes.size, 0);
+  assert.equal(end.classes.size, 0);
+});
+
+test("ignores a boundary drop when the dragged tile is already at that edge", async () => {
+  const { bindPanelTileDrag } = await import(
+    "../dist/panel/lib/panel-tile-drag.js"
+  );
+  const first = tile("first", { left: 0, top: 0, width: 100, height: 100 });
+  const start = boundary("start", "first");
+  const fake = harness([first]);
+  const drops = [];
+  bindPanelTileDrag(fake.root, (drop) => drops.push(drop));
+
+  fake.emit("dragstart", { target: nestedIn(first) });
+  fake.emit("drop", {
+    target: nestedInBoundary(start),
+    preventDefault() {},
+  });
+
+  assert.deepEqual(drops, []);
+  assert.equal(start.classes.size, 0);
+});
+
 function tile(guid, rect) {
   const classes = new Set();
   return {
@@ -140,6 +205,24 @@ function tile(guid, rect) {
 
 function nestedIn(panelTile) {
   return { closest: (selector) => selector === ".panel-tile" ? panelTile : null };
+}
+
+function boundary(position, targetGuid) {
+  const classes = new Set();
+  return {
+    dataset: { boundary: position, targetGuid },
+    classes,
+    classList: {
+      add: (...names) => names.forEach((name) => classes.add(name)),
+      remove: (...names) => names.forEach((name) => classes.delete(name)),
+    },
+  };
+}
+
+function nestedInBoundary(dropBoundary) {
+  return {
+    closest: (selector) => selector === ".panel-drop-boundary" ? dropBoundary : null,
+  };
 }
 
 function harness(tiles) {
