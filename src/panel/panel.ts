@@ -7,14 +7,17 @@ import { INITIAL_DISPLAY_STATE } from "./lib/display-state.js";
 import { presentPanelDrawingPlan } from "./lib/panel-drawing-presenter.js";
 import { observeGridCells } from "./lib/grid-resize-observer.js";
 import { renderPanelGrid } from "./lib/panel-grid-view.js";
+import { bindPanelSearchInput } from "./lib/panel-search-input.js";
 import { renderError } from "./lib/view.js";
 import { loadOrder, saveOrder, reconcile } from "./lib/overlay.js";
 
 const root = document.getElementById("app") as HTMLElement;
 const countEl = document.getElementById("count") as HTMLElement;
+const searchInput = document.getElementById("search") as HTMLInputElement;
 const filters: readonly DisplayFilter<DisplayBookmarkItem>[] = [];
 let currentItems: readonly DisplayBookmarkItem[] | null = null;
 let gridCells = { columns: 0, rows: 0 };
+let query = "";
 
 function renderStatus(message: string): void {
   root.textContent = "";
@@ -31,16 +34,27 @@ function redraw(): void {
   }
   presentPanelDrawingPlan({
     items: currentItems,
-    query: "",
+    query,
     filters,
     state: INITIAL_DISPLAY_STATE,
     ...gridCells,
   }, {
     showLoading: () => renderStatus("読み込み中…"),
-    showEmpty: () => renderStatus("ブックマークがありません"),
-    showGrid: (tiles) => renderPanelGrid(root, tiles),
+    showEmpty: () => {
+      countEl.textContent = "0件";
+      renderStatus("ブックマークがありません");
+    },
+    showGrid: (tiles) => {
+      countEl.textContent = tiles.length + "件";
+      renderPanelGrid(root, tiles);
+    },
   });
 }
+
+bindPanelSearchInput(searchInput, (nextQuery) => {
+  query = nextQuery;
+  redraw();
+});
 
 observeGridCells(root, (cells) => {
   gridCells = cells;
