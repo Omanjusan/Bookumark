@@ -14,10 +14,10 @@ export interface SortAxis<T> {
  * 軸の欠損値と方向を適用し、パネルの表示順を返す。
  * 入力配列は変更せず、同値項目は渡された順序を維持する。
  */
-export function sortForPanel<T>(
-  items: readonly BookmarkItem[],
-  axis: SortAxis<T>,
-): BookmarkItem[] {
+export function sortForPanel<TItem extends BookmarkItem, TValue>(
+  items: readonly TItem[],
+  axis: SortAxis<TValue>,
+): TItem[] {
   const direction = axis.direction === "asc" ? 1 : -1;
 
   return items

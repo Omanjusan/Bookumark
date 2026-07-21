@@ -1,10 +1,10 @@
 import type { BookmarkItem } from "./bookmarks.js";
 
 /** タイトル、ドメイン、URLを対象に複数語AND検索する。 */
-export function filterBookmarksByText(
-  items: readonly BookmarkItem[],
+export function filterBookmarksByText<T extends BookmarkItem>(
+  items: readonly T[],
   query: string,
-): BookmarkItem[] {
+): T[] {
   const terms = normalized(query).trim().split(/\s+/u).filter(Boolean);
   if (terms.length === 0) return [...items];
 
