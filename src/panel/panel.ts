@@ -523,7 +523,14 @@ async function main(): Promise<void> {
     const folderGuid = resolveCurrentFolderGuid(treeItems, savedFolder);
     if (folderGuid === null) throw new Error("Firefox bookmark root was not found");
     await showFolder(folderGuid);
-    folderHistory = createFolderNavigationHistory(folderGuid);
+    const restoredFolder = createStoredCurrentFolder(treeItems, folderGuid);
+    if (restoredFolder === null) {
+      throw new Error(`Folder not found after restoration: ${folderGuid}`);
+    }
+    folderHistory = createFolderNavigationHistory([
+      ...restoredFolder.ancestorGuids,
+      restoredFolder.guid,
+    ]);
     redraw();
   } catch (error) {
     showLoadError(error);

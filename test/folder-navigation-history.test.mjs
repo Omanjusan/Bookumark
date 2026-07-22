@@ -10,6 +10,26 @@ test("starts at the initial folder with no backward or forward destination", () 
   assert.equal(history.forwardDestination(), null);
 });
 
+test("starts at the end of an initial ancestor route", () => {
+  const history = createFolderNavigationHistory(["root", "parent", "current"]);
+
+  assert.equal(history.current(), "current");
+  assert.equal(history.backDestination(), "parent");
+  assert.equal(history.forwardDestination(), null);
+  assert.equal(history.moveBack(), "parent");
+  assert.equal(history.moveBack(), "root");
+  assert.equal(history.moveBack(), null);
+  assert.equal(history.moveForward(), "parent");
+  assert.equal(history.moveForward(), "current");
+});
+
+test("rejects an empty initial route", () => {
+  assert.throws(
+    () => createFolderNavigationHistory([]),
+    /requires an initial folder/,
+  );
+});
+
 test("moves backward and forward through visited folders", () => {
   const history = createFolderNavigationHistory("a");
   history.visit("b");

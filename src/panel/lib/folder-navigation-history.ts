@@ -8,10 +8,15 @@ export interface FolderNavigationHistory {
 }
 
 export function createFolderNavigationHistory(
-  initialFolderGuid: string,
+  initialRoute: string | readonly string[],
 ): FolderNavigationHistory {
-  const entries = [initialFolderGuid];
-  let index = 0;
+  const entries = typeof initialRoute === "string"
+    ? [initialRoute]
+    : [...initialRoute];
+  if (entries.length === 0) {
+    throw new Error("Folder navigation history requires an initial folder");
+  }
+  let index = entries.length - 1;
 
   return {
     current: () => entries[index],
