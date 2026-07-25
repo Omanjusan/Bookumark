@@ -21,6 +21,25 @@
           autocomplete="off"
         >
       </section>
+      <section class="dock-bay dock-bay--filter" aria-label="訪問状態フィルタベイ">
+        <fieldset id="visit-status-filter" class="visit-status-filter">
+          <legend>訪問状態</legend>
+          <div class="visit-status-options">
+            <label class="visit-status-option">
+              <input type="radio" name="visit-status" value="all" checked>
+              <span>すべて</span>
+            </label>
+            <label class="visit-status-option">
+              <input type="radio" name="visit-status" value="visited">
+              <span>訪問あり</span>
+            </label>
+            <label class="visit-status-option">
+              <input type="radio" name="visit-status" value="unvisited">
+              <span>未訪問</span>
+            </label>
+          </div>
+        </fieldset>
+      </section>
     </div>
     <nav id="folders" class="folder-region" aria-label="フォルダ" hidden></nav>
     <div

@@ -60,11 +60,13 @@ import { bindPanelSortDirectionInput } from "./lib/panel-sort-direction-input.js
 import { renderPanelStatus } from "./lib/panel-status-view.js";
 import { bindPanelTileOpen } from "./lib/panel-tile-open.js";
 import { bindPanelTileDrag } from "./lib/panel-tile-drag.js";
+import { bindVisitStatusFilterInput } from "./lib/panel-visit-filter-input.js";
 import {
   loadFolderOrders,
   loadOrder,
   saveFolderOrders,
 } from "./lib/overlay.js";
+import { createVisitStatusFilters } from "./lib/visit-status-filter.js";
 
 const root = document.getElementById("app") as HTMLElement;
 const folderRoot = document.getElementById("folders") as HTMLElement;
@@ -72,6 +74,7 @@ const folderBackButton = document.getElementById("folder-back") as HTMLButtonEle
 const folderForwardButton = document.getElementById("folder-forward") as HTMLButtonElement;
 const countEl = document.getElementById("count") as HTMLElement;
 const searchInput = document.getElementById("search") as HTMLInputElement;
+const visitStatusFilterRoot = document.getElementById("visit-status-filter") as HTMLElement;
 const movementModeRoot = document.getElementById("movement-mode") as HTMLElement;
 const sortAxisSelect = document.getElementById("sort-axis") as HTMLSelectElement;
 const sortDirectionButton = document.getElementById("sort-direction") as HTMLButtonElement;
@@ -177,6 +180,16 @@ bindPanelSearchInput(searchInput, (nextQuery) => {
   fixedDisplayState = reduceFixedDisplayState(fixedDisplayState, {
     type: "setQuery",
     query: nextQuery,
+  });
+  if (fixedDisplayState.display.movementMode !== previousMode) syncMovementControls();
+  redraw();
+});
+
+bindVisitStatusFilterInput(visitStatusFilterRoot, (value) => {
+  const previousMode = fixedDisplayState.display.movementMode;
+  fixedDisplayState = reduceFixedDisplayState(fixedDisplayState, {
+    type: "setFilters",
+    filters: createVisitStatusFilters(value),
   });
   if (fixedDisplayState.display.movementMode !== previousMode) syncMovementControls();
   redraw();

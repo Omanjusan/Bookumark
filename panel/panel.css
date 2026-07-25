@@ -69,7 +69,10 @@ header h1 {
   display: flex;
   gap: 8px;
 }
-.dock-rail--top { margin: 0 0 10px; }
+.dock-rail--top {
+  flex-wrap: wrap;
+  margin: 0 0 10px;
+}
 .dock-rail--bottom {
   flex-wrap: wrap;
   align-items: flex-start;
@@ -100,6 +103,53 @@ header h1 {
 #search:focus-visible {
   outline: 2px solid var(--text-faint);
   outline-offset: 1px;
+}
+
+.visit-status-filter {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.visit-status-filter legend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.visit-status-options {
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+.visit-status-option { position: relative; }
+.visit-status-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.visit-status-option span {
+  display: block;
+  padding: 4px 8px;
+  border-left: 1px solid var(--border);
+  color: var(--text-muted);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.visit-status-option:first-child span { border-left: 0; }
+.visit-status-option input:checked + span {
+  background: var(--hover);
+  color: var(--text);
+}
+.visit-status-option input:focus-visible + span {
+  outline: 2px solid var(--text-faint);
+  outline-offset: -2px;
 }
 
 .folder-region {
