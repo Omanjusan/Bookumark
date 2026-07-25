@@ -5,7 +5,6 @@ import type {
   BookmarkTreeFolderItem,
   BookmarkTreeItem,
 } from "./lib/bookmarks.js";
-import { buildCardViewModels } from "./lib/card-view-model.js";
 import { renderCardView } from "./lib/card-view.js";
 import {
   createStoredCurrentFolder,
@@ -16,11 +15,7 @@ import {
 import { reorderItemsForTileDrop } from "./lib/custom-order-items.js";
 import { persistCustomOrder } from "./lib/custom-order-persistence.js";
 import type { DisplayBookmarkItem } from "./lib/display-item.js";
-import {
-  buildFixedDisplaySet,
-  INITIAL_FIXED_DISPLAY_STATE,
-  reduceFixedDisplayState,
-} from "./lib/fixed-display-controller.js";
+import { INITIAL_FIXED_DISPLAY_STATE, reduceFixedDisplayState } from "./lib/fixed-display-controller.js";
 import { directFolderContents } from "./lib/folder-contents.js";
 import {
   migrateLegacyOrder,
@@ -30,10 +25,7 @@ import {
 } from "./lib/folder-order.js";
 import type { CustomOrderByFolder } from "./lib/folder-order.js";
 import { createPanelDragClickGuard } from "./lib/panel-drag-click-guard.js";
-import { isPanelDragEnabled } from "./lib/panel-drag-policy.js";
-import { presentPanelDrawingPlan } from "./lib/panel-drawing-presenter.js";
 import { observeGridCells } from "./lib/grid-resize-observer.js";
-import { buildIconViewModels } from "./lib/icon-view-model.js";
 import { renderIconView } from "./lib/icon-view.js";
 import { renderPanelGrid } from "./lib/panel-grid-view.js";
 import { bindPanelFolderNavigation } from "./lib/panel-folder-navigation.js";
@@ -41,7 +33,6 @@ import { bindPanelFolderDrag } from "./lib/panel-folder-drag.js";
 import { renderPanelFolders } from "./lib/panel-folder-view.js";
 import { createFolderNavigationHistory } from "./lib/folder-navigation-history.js";
 import type { FolderNavigationHistory } from "./lib/folder-navigation-history.js";
-import { buildListViewModels } from "./lib/list-view-model.js";
 import { renderListView } from "./lib/list-view.js";
 import { bindPanelFolderHistoryInput } from "./lib/panel-folder-history-input.js";
 import type { FolderHistoryDirection } from "./lib/panel-folder-history-input.js";
@@ -75,6 +66,8 @@ import {
   saveFolderOrders,
 } from "./lib/overlay.js";
 import { createVisitStatusFilters } from "./lib/visit-status-filter.js";
+import { presentSelectedView } from "./lib/selected-view-presenter.js";
+import { resolveViewDragMode } from "./lib/view-drag-policy.js";
 
 const root = document.getElementById("app") as HTMLElement;
 const folderRoot = document.getElementById("folders") as HTMLElement;
@@ -108,23 +101,21 @@ let officialMovePending = false;
 let lastOfficialMove: BookmarkMoveSnapshot | null = null;
 const dragClickGuard = createPanelDragClickGuard();
 
-function customDragEnabled(): boolean {
-  return isPanelDragEnabled({
+function currentDragMode(): ReturnType<typeof resolveViewDragMode> {
+  return resolveViewDragMode({
     movementMode: fixedDisplayState.display.movementMode,
     query: fixedDisplayState.query,
     filterCount: fixedDisplayState.filters.length,
+    officialMovePending,
   });
 }
 
 function officialReorderEnabled(): boolean {
-  return !officialMovePending
-    && fixedDisplayState.display.movementMode === "directory-move"
-    && fixedDisplayState.query.trim().length === 0
-    && fixedDisplayState.filters.length === 0;
+  return currentDragMode() === "official";
 }
 
 function dragEnabled(): boolean {
-  return customDragEnabled() || officialReorderEnabled();
+  return currentDragMode() !== null;
 }
 
 function syncSortDirectionButton(): void {
@@ -153,50 +144,10 @@ function redraw(): void {
     renderPanelStatus(root, { status: "loading" });
     return;
   }
-  if (fixedDisplayState.activeViewType === "list") {
-    const displaySet = buildFixedDisplaySet(currentItems, fixedDisplayState);
-    if (displaySet.items.length === 0) {
-      countEl.textContent = "0件";
-      renderPanelStatus(root, { status: "empty" });
-      return;
-    }
-    countEl.textContent = displaySet.items.length + "件";
-    renderListView(root, buildListViewModels(displaySet.items), {
-      draggable: dragEnabled(),
-    });
-    return;
-  }
-  if (fixedDisplayState.activeViewType === "icon") {
-    const displaySet = buildFixedDisplaySet(currentItems, fixedDisplayState);
-    if (displaySet.items.length === 0) {
-      countEl.textContent = "0件";
-      renderPanelStatus(root, { status: "empty" });
-      return;
-    }
-    countEl.textContent = displaySet.items.length + "件";
-    renderIconView(root, buildIconViewModels(displaySet.items), {
-      draggable: dragEnabled(),
-    });
-    return;
-  }
-  if (fixedDisplayState.activeViewType === "card") {
-    const displaySet = buildFixedDisplaySet(currentItems, fixedDisplayState);
-    if (displaySet.items.length === 0) {
-      countEl.textContent = "0件";
-      renderPanelStatus(root, { status: "empty" });
-      return;
-    }
-    countEl.textContent = displaySet.items.length + "件";
-    renderCardView(root, buildCardViewModels(displaySet.items), {
-      draggable: dragEnabled(),
-    });
-    return;
-  }
-  presentPanelDrawingPlan({
+  presentSelectedView({
     items: currentItems,
-    query: fixedDisplayState.query,
-    filters: fixedDisplayState.filters,
-    state: fixedDisplayState.display,
+    state: fixedDisplayState,
+    draggable: dragEnabled(),
     ...gridCells,
   }, {
     showLoading: () => renderPanelStatus(root, { status: "loading" }),
@@ -204,9 +155,21 @@ function redraw(): void {
       countEl.textContent = "0件";
       renderPanelStatus(root, { status: "empty" });
     },
-    showGrid: (tiles) => {
-      countEl.textContent = tiles.length + "件";
-      renderPanelGrid(root, tiles, { draggable: dragEnabled() });
+    showPanel: (models, options) => {
+      countEl.textContent = models.length + "件";
+      renderPanelGrid(root, models, options);
+    },
+    showIcon: (models, options) => {
+      countEl.textContent = models.length + "件";
+      renderIconView(root, models, options);
+    },
+    showCard: (models, options) => {
+      countEl.textContent = models.length + "件";
+      renderCardView(root, models, options);
+    },
+    showList: (models, options) => {
+      countEl.textContent = models.length + "件";
+      renderListView(root, models, options);
     },
   });
 }
