@@ -105,6 +105,7 @@ test("does not mutate items, filters, or previous state", () => {
     query: state.query,
     filters: [...state.filters],
     display: structuredClone(state.display),
+    activeViewType: "panel",
   };
 
   const next = reduceFixedDisplayState(state, { type: "setQuery", query: "Alpha" });

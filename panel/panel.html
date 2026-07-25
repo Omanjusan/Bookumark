@@ -91,6 +91,29 @@
           aria-label="並び方向を切り替え"
         >降順</button>
       </section>
+      <section class="dock-bay dock-bay--view" aria-label="表示形式ベイ">
+        <fieldset id="view-type" class="view-type">
+          <legend>表示形式</legend>
+          <div class="view-type-options">
+            <label class="view-type-option">
+              <input type="radio" name="view-type" value="panel" checked>
+              <span>パネル</span>
+            </label>
+            <label class="view-type-option">
+              <input type="radio" name="view-type" value="icon">
+              <span>アイコン</span>
+            </label>
+            <label class="view-type-option">
+              <input type="radio" name="view-type" value="card">
+              <span>カード</span>
+            </label>
+            <label class="view-type-option">
+              <input type="radio" name="view-type" value="list">
+              <span>一覧</span>
+            </label>
+          </div>
+        </fieldset>
+      </section>
       <section class="dock-bay dock-bay--movement" aria-label="移動モードベイ">
         <fieldset
           id="movement-mode"

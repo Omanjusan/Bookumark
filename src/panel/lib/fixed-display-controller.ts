@@ -11,11 +11,13 @@ import type {
   SortDirection,
   StandardSortAxisId,
 } from "./display-state.js";
+import type { ViewType } from "./view-type.js";
 
 export interface FixedDisplayState {
   readonly query: string;
   readonly filters: readonly DisplayFilter<DisplayBookmarkItem>[];
   readonly display: DisplayState;
+  readonly activeViewType: ViewType;
 }
 
 export type FixedDisplayAction =
@@ -30,12 +32,14 @@ export type FixedDisplayAction =
     readonly axisId: StandardSortAxisId;
     readonly direction: SortDirection;
   }
-  | { readonly type: "toggleDirection" };
+  | { readonly type: "toggleDirection" }
+  | { readonly type: "selectView"; readonly viewType: ViewType };
 
 export const INITIAL_FIXED_DISPLAY_STATE: FixedDisplayState = {
   query: "",
   filters: [],
   display: INITIAL_DISPLAY_STATE,
+  activeViewType: "panel",
 };
 
 /** 固定ベイの配置やDOMに依存せず、表示機能の共通状態を更新する。 */
@@ -77,6 +81,10 @@ export function reduceFixedDisplayState(
         ...state,
         display: reduceDisplayState(state.display, action),
       };
+    case "selectView":
+      return action.viewType === state.activeViewType
+        ? state
+        : { ...state, activeViewType: action.viewType };
   }
 }
 
