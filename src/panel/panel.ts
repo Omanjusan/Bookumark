@@ -31,6 +31,8 @@ import { createPanelDragClickGuard } from "./lib/panel-drag-click-guard.js";
 import { isPanelDragEnabled } from "./lib/panel-drag-policy.js";
 import { presentPanelDrawingPlan } from "./lib/panel-drawing-presenter.js";
 import { observeGridCells } from "./lib/grid-resize-observer.js";
+import { buildIconViewModels } from "./lib/icon-view-model.js";
+import { renderIconView } from "./lib/icon-view.js";
 import { renderPanelGrid } from "./lib/panel-grid-view.js";
 import { bindPanelFolderNavigation } from "./lib/panel-folder-navigation.js";
 import { bindPanelFolderDrag } from "./lib/panel-folder-drag.js";
@@ -158,6 +160,19 @@ function redraw(): void {
     }
     countEl.textContent = displaySet.items.length + "件";
     renderListView(root, buildListViewModels(displaySet.items), {
+      draggable: dragEnabled(),
+    });
+    return;
+  }
+  if (fixedDisplayState.activeViewType === "icon") {
+    const displaySet = buildFixedDisplaySet(currentItems, fixedDisplayState);
+    if (displaySet.items.length === 0) {
+      countEl.textContent = "0件";
+      renderPanelStatus(root, { status: "empty" });
+      return;
+    }
+    countEl.textContent = displaySet.items.length + "件";
+    renderIconView(root, buildIconViewModels(displaySet.items), {
       draggable: dragEnabled(),
     });
     return;

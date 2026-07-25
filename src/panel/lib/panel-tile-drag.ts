@@ -33,8 +33,9 @@ export function placementForTilePointer(
   rect: TileRect,
   clientX: number,
   clientY: number,
+  axis: "auto" | "horizontal" = "auto",
 ): CustomOrderPlacement {
-  if (rect.width > rect.height) {
+  if (axis === "horizontal" || rect.width > rect.height) {
     return clientX < rect.left + rect.width / 2 ? "before" : "after";
   }
   return clientY < rect.top + rect.height / 2 ? "before" : "after";
@@ -88,14 +89,17 @@ export function bindPanelTileDrag(
     dragEvent.preventDefault();
     clearDropMarks();
     clearBoundaryMark();
+    const rect = tile.getBoundingClientRect();
+    const horizontal = usesHorizontalDrop(tile, rect);
     const placement = placementForTilePointer(
-      tile.getBoundingClientRect(),
+      rect,
       dragEvent.clientX,
       dragEvent.clientY,
+      horizontal ? "horizontal" : "auto",
     );
     tile.classList.toggle(
       "drag-over-horizontal",
-      tile.getBoundingClientRect().width > tile.getBoundingClientRect().height,
+      horizontal,
     );
     tile.classList.toggle("drag-over-before", placement === "before");
     tile.classList.toggle("drag-over-after", placement === "after");
@@ -130,13 +134,15 @@ export function bindPanelTileDrag(
     const toGuid = tile?.dataset.guid;
     if (draggedGuid && tile && toGuid && toGuid !== draggedGuid) {
       dragEvent.preventDefault();
+      const rect = tile.getBoundingClientRect();
       deliver({
         fromGuid: draggedGuid,
         toGuid,
         placement: placementForTilePointer(
-          tile.getBoundingClientRect(),
+          rect,
           dragEvent.clientX,
           dragEvent.clientY,
+          usesHorizontalDrop(tile, rect) ? "horizontal" : "auto",
         ),
       });
     }
@@ -183,6 +189,11 @@ export function bindPanelTileDrag(
       clearDragState();
     },
   };
+}
+
+function usesHorizontalDrop(tile: HTMLElement, rect: TileRect): boolean {
+  const className = typeof tile.className === "string" ? tile.className : "";
+  return className.split(/\s+/u).includes("icon-tile") || rect.width > rect.height;
 }
 
 function tileOf(target: EventTarget | null): HTMLElement | null {
