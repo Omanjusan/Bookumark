@@ -5,6 +5,8 @@ import type {
   BookmarkTreeFolderItem,
   BookmarkTreeItem,
 } from "./lib/bookmarks.js";
+import { buildCardViewModels } from "./lib/card-view-model.js";
+import { renderCardView } from "./lib/card-view.js";
 import {
   createStoredCurrentFolder,
   loadCurrentFolder,
@@ -173,6 +175,19 @@ function redraw(): void {
     }
     countEl.textContent = displaySet.items.length + "件";
     renderIconView(root, buildIconViewModels(displaySet.items), {
+      draggable: dragEnabled(),
+    });
+    return;
+  }
+  if (fixedDisplayState.activeViewType === "card") {
+    const displaySet = buildFixedDisplaySet(currentItems, fixedDisplayState);
+    if (displaySet.items.length === 0) {
+      countEl.textContent = "0件";
+      renderPanelStatus(root, { status: "empty" });
+      return;
+    }
+    countEl.textContent = displaySet.items.length + "件";
+    renderCardView(root, buildCardViewModels(displaySet.items), {
       draggable: dragEnabled(),
     });
     return;

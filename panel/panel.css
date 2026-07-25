@@ -634,6 +634,60 @@ header h1 {
   -webkit-line-clamp: 2;
 }
 
+/* カード表示モード */
+.card-view {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+}
+.card-tile {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 96px;
+  padding: 12px;
+}
+.card-tile:hover {
+  border-color: var(--text-faint);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--text) 8%, transparent);
+}
+.card-view-image {
+  flex: none;
+  inline-size: 48px;
+  block-size: 48px;
+  object-fit: contain;
+}
+.card-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+.card-title,
+.card-domain,
+.card-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.card-title {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.card-domain {
+  margin: 2px 0 6px;
+  color: var(--text-faint);
+  font-size: 10.5px;
+}
+.card-meta {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
 .panel-title {
   font-weight: 600;
 }
