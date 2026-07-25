@@ -65,9 +65,31 @@ header h1 {
   font-variant-numeric: tabular-nums;
 }
 
+.dock-rail {
+  display: flex;
+  gap: 8px;
+}
+.dock-rail--top { margin: 0 0 10px; }
+.dock-rail--bottom {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.dock-bay {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+}
+.dock-bay--search { width: 100%; }
+.dock-bay--history { margin-right: auto; }
+
 #search {
   width: 100%;
-  margin: 0 0 10px;
+  margin: 0;
   padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -235,10 +257,7 @@ header h1 {
 .status.error { color: #c4402a; }
 
 .panel-tools {
-  display: flex;
   justify-content: flex-end;
-  align-items: center;
-  gap: 12px;
   padding: 10px 4px 0;
   color: var(--text-muted);
 }
