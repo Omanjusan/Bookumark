@@ -540,6 +540,60 @@ header h1 {
   overflow-wrap: anywhere;
 }
 
+/* 一覧表示モード */
+.list-view {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.list-tile {
+  display: flex;
+  grid-column: auto;
+  grid-row: auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 38px;
+  padding: 6px 8px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+}
+.list-tile:hover { background: var(--hover); }
+.list-icon {
+  flex: none;
+  inline-size: 24px;
+  block-size: 24px;
+  object-fit: contain;
+}
+.list-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.list-domain {
+  flex: none;
+  max-width: 40%;
+  overflow: hidden;
+  color: var(--text-faint);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 440px) {
+  .list-domain { display: none; }
+}
+
 .panel-title {
   font-weight: 600;
 }

@@ -15,6 +15,7 @@ import { reorderItemsForTileDrop } from "./lib/custom-order-items.js";
 import { persistCustomOrder } from "./lib/custom-order-persistence.js";
 import type { DisplayBookmarkItem } from "./lib/display-item.js";
 import {
+  buildFixedDisplaySet,
   INITIAL_FIXED_DISPLAY_STATE,
   reduceFixedDisplayState,
 } from "./lib/fixed-display-controller.js";
@@ -36,6 +37,8 @@ import { bindPanelFolderDrag } from "./lib/panel-folder-drag.js";
 import { renderPanelFolders } from "./lib/panel-folder-view.js";
 import { createFolderNavigationHistory } from "./lib/folder-navigation-history.js";
 import type { FolderNavigationHistory } from "./lib/folder-navigation-history.js";
+import { buildListViewModels } from "./lib/list-view-model.js";
+import { renderListView } from "./lib/list-view.js";
 import { bindPanelFolderHistoryInput } from "./lib/panel-folder-history-input.js";
 import type { FolderHistoryDirection } from "./lib/panel-folder-history-input.js";
 import { bindMovementModeInput } from "./lib/panel-movement-mode-input.js";
@@ -144,6 +147,19 @@ function redraw(): void {
   renderPanelFolders(folderRoot, currentFolders, { draggable: dragEnabled() });
   if (currentItems === null) {
     renderPanelStatus(root, { status: "loading" });
+    return;
+  }
+  if (fixedDisplayState.activeViewType === "list") {
+    const displaySet = buildFixedDisplaySet(currentItems, fixedDisplayState);
+    if (displaySet.items.length === 0) {
+      countEl.textContent = "0件";
+      renderPanelStatus(root, { status: "empty" });
+      return;
+    }
+    countEl.textContent = displaySet.items.length + "件";
+    renderListView(root, buildListViewModels(displaySet.items), {
+      draggable: dragEnabled(),
+    });
     return;
   }
   presentPanelDrawingPlan({
