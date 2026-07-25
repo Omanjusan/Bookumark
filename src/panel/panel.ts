@@ -13,10 +13,11 @@ import {
 } from "./lib/current-folder.js";
 import { reorderItemsForTileDrop } from "./lib/custom-order-items.js";
 import { persistCustomOrder } from "./lib/custom-order-persistence.js";
-import type { DisplayFilter } from "./lib/display-filter.js";
 import type { DisplayBookmarkItem } from "./lib/display-item.js";
-import { INITIAL_DISPLAY_STATE, reduceDisplayState } from "./lib/display-state.js";
-import type { DisplayState } from "./lib/display-state.js";
+import {
+  INITIAL_FIXED_DISPLAY_STATE,
+  reduceFixedDisplayState,
+} from "./lib/fixed-display-controller.js";
 import { directFolderContents } from "./lib/folder-contents.js";
 import {
   migrateLegacyOrder,
@@ -82,7 +83,6 @@ const officialMoveNoticeElements = {
   message: officialMoveMessage,
   undoButton: officialMoveUndoButton,
 };
-const filters: readonly DisplayFilter<DisplayBookmarkItem>[] = [];
 let currentItems: readonly DisplayBookmarkItem[] | null = null;
 let currentFolders: readonly BookmarkTreeFolderItem[] = [];
 let treeItems: readonly BookmarkTreeItem[] = [];
@@ -91,25 +91,24 @@ let currentFolderGuid: string | null = null;
 let folderHistory: FolderNavigationHistory | null = null;
 let folderNavigationPending = false;
 let gridCells = { columns: 0, rows: 0 };
-let query = "";
-let displayState: DisplayState = INITIAL_DISPLAY_STATE;
+let fixedDisplayState = INITIAL_FIXED_DISPLAY_STATE;
 let officialMovePending = false;
 let lastOfficialMove: BookmarkMoveSnapshot | null = null;
 const dragClickGuard = createPanelDragClickGuard();
 
 function customDragEnabled(): boolean {
   return isPanelDragEnabled({
-    movementMode: displayState.movementMode,
-    query,
-    filterCount: filters.length,
+    movementMode: fixedDisplayState.display.movementMode,
+    query: fixedDisplayState.query,
+    filterCount: fixedDisplayState.filters.length,
   });
 }
 
 function officialReorderEnabled(): boolean {
   return !officialMovePending
-    && displayState.movementMode === "directory-move"
-    && query.trim().length === 0
-    && filters.length === 0;
+    && fixedDisplayState.display.movementMode === "directory-move"
+    && fixedDisplayState.query.trim().length === 0
+    && fixedDisplayState.filters.length === 0;
 }
 
 function dragEnabled(): boolean {
@@ -117,16 +116,16 @@ function dragEnabled(): boolean {
 }
 
 function syncSortDirectionButton(): void {
-  const direction = displayState.lastStandardSort.direction;
-  sortDirectionButton.disabled = displayState.movementMode !== "normal";
+  const direction = fixedDisplayState.display.lastStandardSort.direction;
+  sortDirectionButton.disabled = fixedDisplayState.display.movementMode !== "normal";
   sortDirectionButton.dataset.direction = direction;
   sortDirectionButton.textContent = direction === "asc" ? "昇順" : "降順";
 }
 
 function syncMovementControls(): void {
-  movementModeConnection.setMode(displayState.movementMode);
-  sortAxisSelect.disabled = displayState.movementMode !== "normal";
-  sortAxisSelect.value = displayState.lastStandardSort.axisId;
+  movementModeConnection.setMode(fixedDisplayState.display.movementMode);
+  sortAxisSelect.disabled = fixedDisplayState.display.movementMode !== "normal";
+  sortAxisSelect.value = fixedDisplayState.display.lastStandardSort.axisId;
   syncSortDirectionButton();
 }
 
@@ -143,9 +142,9 @@ function redraw(): void {
   }
   presentPanelDrawingPlan({
     items: currentItems,
-    query,
-    filters,
-    state: displayState,
+    query: fixedDisplayState.query,
+    filters: fixedDisplayState.filters,
+    state: fixedDisplayState.display,
     ...gridCells,
   }, {
     showLoading: () => renderPanelStatus(root, { status: "loading" }),
@@ -161,7 +160,10 @@ function redraw(): void {
 }
 
 const movementModeConnection = bindMovementModeInput(movementModeRoot, (mode) => {
-  displayState = reduceDisplayState(displayState, { type: "setMovementMode", mode });
+  fixedDisplayState = reduceFixedDisplayState(fixedDisplayState, {
+    type: "setMovementMode",
+    mode,
+  });
   syncMovementControls();
   if (currentFolderGuid === null) {
     redraw();
@@ -171,26 +173,29 @@ const movementModeConnection = bindMovementModeInput(movementModeRoot, (mode) =>
 });
 
 bindPanelSearchInput(searchInput, (nextQuery) => {
-  query = nextQuery;
-  if (query.trim().length > 0 && displayState.movementMode !== "normal") {
-    displayState = reduceDisplayState(displayState, { type: "resetMovementMode" });
-    syncMovementControls();
-  }
+  const previousMode = fixedDisplayState.display.movementMode;
+  fixedDisplayState = reduceFixedDisplayState(fixedDisplayState, {
+    type: "setQuery",
+    query: nextQuery,
+  });
+  if (fixedDisplayState.display.movementMode !== previousMode) syncMovementControls();
   redraw();
 });
 
 bindPanelSortAxisInput(sortAxisSelect, (axisId) => {
-  displayState = reduceDisplayState(displayState, {
+  fixedDisplayState = reduceFixedDisplayState(fixedDisplayState, {
     type: "selectSort",
     axisId,
-    direction: displayState.sort.direction,
+    direction: fixedDisplayState.display.sort.direction,
   });
   syncMovementControls();
   redraw();
 });
 
 bindPanelSortDirectionInput(sortDirectionButton, () => {
-  displayState = reduceDisplayState(displayState, { type: "toggleDirection" });
+  fixedDisplayState = reduceFixedDisplayState(fixedDisplayState, {
+    type: "toggleDirection",
+  });
   syncSortDirectionButton();
   redraw();
 });
@@ -205,7 +210,7 @@ bindPanelTileDrag(
   root,
   (drop) => {
     if (currentItems === null) return;
-    if (displayState.movementMode === "directory-move") {
+    if (fixedDisplayState.display.movementMode === "directory-move") {
       void applyOfficialSiblingDrop(drop).catch(reportOfficialMoveError);
       return;
     }
@@ -248,7 +253,7 @@ bindPanelFolderDrag(
   folderRoot,
   (drop) => {
     if (currentFolderGuid === null) return;
-    if (displayState.movementMode === "directory-move") {
+    if (fixedDisplayState.display.movementMode === "directory-move") {
       if (drop.placement === "inside") {
         void applyOfficialHierarchyDrop(drop.fromGuid, drop.toGuid)
           .catch(reportOfficialMoveError);
@@ -287,7 +292,7 @@ bindPanelFolderDrag(
   {
     isEnabled: dragEnabled,
     onDragStart: dragClickGuard.markDragStarted,
-    insideEnabled: () => displayState.movementMode === "directory-move",
+    insideEnabled: () => fixedDisplayState.display.movementMode === "directory-move",
     acceptExternal: officialReorderEnabled,
   },
 );
@@ -447,7 +452,7 @@ async function showFolder(folderGuid: string): Promise<void> {
   redraw();
   try {
     const directContents = directFolderContents(treeItems, folderGuid);
-    const contents = displayState.movementMode === "directory-move"
+    const contents = fixedDisplayState.display.movementMode === "directory-move"
       ? directContents
       : orderDirectFolderContents(directContents, folderOrders[folderGuid] ?? []);
     const orderedItems: BookmarkItem[] = contents.bookmarks;
