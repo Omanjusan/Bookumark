@@ -88,7 +88,6 @@ type RailId = "top" | "left" | "right" | "bottom";
 type ChipInstanceConfiguration = {
   instanceId: string;
   chipType: string;
-  kind: ChipKind;
   order: number;
   settings: Record<string, unknown>;
 };
@@ -113,16 +112,28 @@ type LayoutConfiguration = {
   placements: BayPlacement[];
 };
 
-type DockingState = {
+type BayConfigurationsDocument = {
   schemaVersion: number;
   nextBaySequence: number;
+  nextChipSequence: number;
   bays: BayConfiguration[];
+};
+
+type MainLayoutsDocument = {
+  schemaVersion: number;
+  nextLayoutSequence: number;
   layouts: LayoutConfiguration[];
+};
+
+type DockingMetadataDocument = {
+  schemaVersion: number;
   activeLayoutId: string;
   preferredLayoutId?: string;
   lastUsedLayoutId?: string;
 };
 ```
+
+`kind`は`chipType`に対応するチップ定義側で保持し、インスタンスごとの保存値には含めない。ベイ、チップインスタンス、レイアウトはそれぞれ独立した単調増加カウンターを持ち、削除済みIDを再利用しない。
 
 実装時はベイ内部設定とメインレイアウトを論理的に別キーへ保存する。
 
