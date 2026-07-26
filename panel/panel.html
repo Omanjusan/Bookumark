@@ -10,7 +10,14 @@
     <header>
       <h1>Bookumark</h1>
       <span id="count"></span>
+      <button id="bay-factory-entry" type="button">ベイを編集</button>
     </header>
+    <div id="bay-factory-selection" class="bay-factory-selection" hidden>
+      <select id="bay-factory-select" aria-label="編集するベイ">
+        <option value="">編集するベイを選択</option>
+      </select>
+      <button id="bay-factory-open" type="button" disabled>選択したベイを編集</button>
+    </div>
     <div class="dock-rail dock-rail--top" aria-label="上レール">
       <section class="dock-bay dock-bay--search" aria-label="検索ベイ">
         <input

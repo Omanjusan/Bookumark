@@ -64,6 +64,45 @@ header h1 {
   color: var(--text-faint);
   font-variant-numeric: tabular-nums;
 }
+#bay-factory-entry {
+  margin-left: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 7px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.bay-factory-selection {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 10px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.bay-factory-selection[hidden] { display: none; }
+.bay-factory-selection select {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+.bay-factory-selection select,
+.bay-factory-selection button {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 7px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+.bay-factory-selection button:not(:disabled) { cursor: pointer; }
+.bay-factory-selection button:disabled {
+  color: var(--text-faint);
+  cursor: not-allowed;
+}
 
 .dock-rail {
   display: flex;

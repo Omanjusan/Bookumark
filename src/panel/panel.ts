@@ -1,4 +1,5 @@
 import { loadBookmarkHistory } from "./lib/bookmark-history.js";
+import { bindBayFactory } from "./lib/bay-factory-controller.js";
 import { getBookmarkTreeItems, moveBookmark } from "./lib/bookmarks.js";
 import type {
   BookmarkItem,
@@ -83,6 +84,14 @@ const sortDirectionButton = document.getElementById("sort-direction") as HTMLBut
 const officialMoveNoticeRoot = document.getElementById("official-move-notice") as HTMLElement;
 const officialMoveMessage = document.getElementById("official-move-message") as HTMLElement;
 const officialMoveUndoButton = document.getElementById("official-move-undo") as HTMLButtonElement;
+const bayFactoryEntry = document.getElementById("bay-factory-entry") as HTMLButtonElement;
+const bayFactorySelection = document.getElementById("bay-factory-selection") as HTMLElement;
+const bayFactorySelect = document.getElementById("bay-factory-select") as HTMLSelectElement;
+const bayFactoryOpen = document.getElementById("bay-factory-open") as HTMLButtonElement;
+const bayFactoryDialog = document.getElementById("bay-factory-dialog") as HTMLDialogElement;
+const bayFactoryClose = document.getElementById("bay-factory-close") as HTMLButtonElement;
+const bayFactoryName = document.getElementById("bay-factory-name") as HTMLInputElement;
+const bayFactoryEditor = document.getElementById("bay-factory-editor") as HTMLElement;
 const officialMoveNoticeElements = {
   root: officialMoveNoticeRoot,
   message: officialMoveMessage,
@@ -100,6 +109,18 @@ let fixedDisplayState = INITIAL_FIXED_DISPLAY_STATE;
 let officialMovePending = false;
 let lastOfficialMove: BookmarkMoveSnapshot | null = null;
 const dragClickGuard = createPanelDragClickGuard();
+
+// 永続ユーザーベイとの接続はDB-8で行い、現段階では偽データを注入しない。
+bindBayFactory({
+  entry: bayFactoryEntry,
+  selection: bayFactorySelection,
+  select: bayFactorySelect,
+  open: bayFactoryOpen,
+  dialog: bayFactoryDialog,
+  close: bayFactoryClose,
+  name: bayFactoryName,
+  editor: bayFactoryEditor,
+}, []);
 
 function currentDragMode(): ReturnType<typeof resolveViewDragMode> {
   return resolveViewDragMode({
