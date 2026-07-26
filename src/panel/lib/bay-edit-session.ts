@@ -4,6 +4,7 @@ import type {
   JsonObject,
 } from "./docking-persistence-model.js";
 import { issueChipId } from "./docking-persistence-model.js";
+import { saveBayConfigurations } from "./docking-storage.js";
 
 export interface BayEditSession {
   readonly bayId: string;
@@ -11,6 +12,7 @@ export interface BayEditSession {
   readonly nextChipSequence: number;
   readonly canUndo: boolean;
   readonly canRedo: boolean;
+  readonly saving: boolean;
   savedBay(): BayConfiguration;
   draftBay(): BayConfiguration;
   addChip(chipType: string, index: number): string;
@@ -20,10 +22,12 @@ export interface BayEditSession {
   undo(): boolean;
   redo(): boolean;
   markSaved(): void;
+  save(): Promise<void>;
 }
 
 interface BayEditSessionOptions {
   readonly createInitialSettings?: (chipType: string) => JsonObject;
+  readonly saveDocument?: (document: BayConfigurationsDocument) => Promise<void>;
 }
 
 /** 保存済みベイと独立した初期ドラフトを持つ編集セッションを開始する。 */
@@ -43,8 +47,10 @@ export function createBayEditSession(
   // 保存基準とドラフトを別々に複製し、原本や返却値からの変更を遮断する。
   let saved = structuredClone(sourceBay);
   let draft = structuredClone(sourceBay);
+  let baseDocument = structuredClone(document);
   let nextChipSequence = document.nextChipSequence;
   let dirty = false;
+  let saving = false;
   const undoStack: BayConfiguration[] = [];
   const redoStack: BayConfiguration[] = [];
 
@@ -58,6 +64,7 @@ export function createBayEditSession(
 
   /** 指定位置へ新しいチップインスタンスを追加し、発行したIDを返す。 */
   const addChip = (chipType: string, index: number): string => {
+    assertNotSaving();
     if (chipType.trim() === "") {
       throw new TypeError("chipType must not be empty");
     }
@@ -86,6 +93,7 @@ export function createBayEditSession(
 
   /** 指定したチップをドラフトから削除し、残ったorderを正規化する。 */
   const deleteChip = (instanceId: string): void => {
+    assertNotSaving();
     const sourceIndex = chipIndex(draft, instanceId);
     const nextDraft = structuredClone(draft);
     nextDraft.chips.splice(sourceIndex, 1);
@@ -95,6 +103,7 @@ export function createBayEditSession(
 
   /** 移動元を除いた後の最終添字へチップを移し、変更の有無を返す。 */
   const reorderChip = (instanceId: string, index: number): boolean => {
+    assertNotSaving();
     const sourceIndex = chipIndex(draft, instanceId);
     if (!Number.isInteger(index) || index < 0 || index >= draft.chips.length) {
       throw new RangeError("index must be a chip position in the draft");
@@ -111,6 +120,7 @@ export function createBayEditSession(
 
   /** 指定したチップの設定を呼び出し元と共有しない値へ置き換える。 */
   const updateChipSettings = (instanceId: string, settings: JsonObject): void => {
+    assertNotSaving();
     const index = chipIndex(draft, instanceId);
     const nextSettings = structuredClone(settings);
     const nextDraft = structuredClone(draft);
@@ -120,6 +130,7 @@ export function createBayEditSession(
 
   /** 直前の操作を戻し、保存境界では変更なしを返す。 */
   const undo = (): boolean => {
+    assertNotSaving();
     const previous = undoStack.pop();
     if (previous === undefined) return false;
     redoStack.push(structuredClone(draft));
@@ -130,6 +141,7 @@ export function createBayEditSession(
 
   /** Undoした操作を同じチップIDを含む状態として再適用する。 */
   const redo = (): boolean => {
+    assertNotSaving();
     const next = redoStack.pop();
     if (next === undefined) return false;
     undoStack.push(structuredClone(draft));
@@ -139,12 +151,45 @@ export function createBayEditSession(
   };
 
   /** 現在のドラフトを新しい保存基準とし、それ以前の履歴を破棄する。 */
-  const markSaved = (): void => {
+  const applySavedBoundary = (): void => {
     saved = structuredClone(draft);
     undoStack.length = 0;
     redoStack.length = 0;
     dirty = false;
   };
+
+  /** 現在のドラフトを外部保存なしで新しい保存境界にする。 */
+  const markSaved = (): void => {
+    assertNotSaving();
+    applySavedBoundary();
+  };
+
+  /** 対象ベイと採番値だけを反映したベイ文書を保存する。 */
+  const save = async (): Promise<void> => {
+    if (saving) throw new Error("save is already in progress");
+    if (!dirty) return;
+
+    const candidate = structuredClone(baseDocument);
+    const targetIndex = candidate.bays.findIndex((bay) => bay.id === bayId);
+    if (targetIndex < 0) throw new Error(`editable bay was not found: ${bayId}`);
+    candidate.bays[targetIndex] = structuredClone(draft);
+    candidate.nextChipSequence = nextChipSequence;
+
+    saving = true;
+    try {
+      const persist = options.saveDocument ?? saveBayConfigurations;
+      await persist(structuredClone(candidate));
+      baseDocument = candidate;
+      applySavedBoundary();
+    } finally {
+      saving = false;
+    }
+  };
+
+  /** 保存中に編集状態が分岐しないよう同期操作を拒否する。 */
+  function assertNotSaving(): void {
+    if (saving) throw new Error("save is in progress");
+  }
 
   return {
     bayId,
@@ -160,6 +205,9 @@ export function createBayEditSession(
     get canRedo(): boolean {
       return redoStack.length > 0;
     },
+    get saving(): boolean {
+      return saving;
+    },
     /** 最後に保存されたベイの変更可能なスナップショットを返す。 */
     savedBay: (): BayConfiguration => structuredClone(saved),
     /** 現在の編集ドラフトの変更可能なスナップショットを返す。 */
@@ -171,6 +219,7 @@ export function createBayEditSession(
     undo,
     redo,
     markSaved,
+    save,
   };
 }
 
