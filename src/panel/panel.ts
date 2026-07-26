@@ -38,13 +38,18 @@ import { renderPanelGrid } from "./lib/panel-grid-view.js";
 import { bindPanelFolderNavigation } from "./lib/panel-folder-navigation.js";
 import { bindPanelFolderDrag } from "./lib/panel-folder-drag.js";
 import { renderPanelFolders } from "./lib/panel-folder-view.js";
-import { loadPanelDockingState } from "./lib/panel-docking-bootstrap.js";
+import {
+  buildPanelBayModels,
+  loadPanelDockingState,
+} from "./lib/panel-docking-bootstrap.js";
 import { createFolderNavigationHistory } from "./lib/folder-navigation-history.js";
 import type { FolderNavigationHistory } from "./lib/folder-navigation-history.js";
 import { renderListView } from "./lib/list-view.js";
 import { bindPanelFolderHistoryInput } from "./lib/panel-folder-history-input.js";
 import type { FolderHistoryDirection } from "./lib/panel-folder-history-input.js";
 import { bindMovementModeInput } from "./lib/panel-movement-mode-input.js";
+import { bindLayoutManagement } from "./lib/layout-management-controller.js";
+import { createLayoutManagementCoordinator } from "./lib/layout-management-coordinator.js";
 import {
   planOfficialFolderMove,
   planOfficialSiblingMove,
@@ -91,6 +96,28 @@ const sortDirectionButton = document.getElementById("sort-direction") as HTMLBut
 const officialMoveNoticeRoot = document.getElementById("official-move-notice") as HTMLElement;
 const officialMoveMessage = document.getElementById("official-move-message") as HTMLElement;
 const officialMoveUndoButton = document.getElementById("official-move-undo") as HTMLButtonElement;
+const layoutSelect = document.getElementById("layout-select") as HTMLSelectElement;
+const layoutDefault = document.getElementById("layout-default") as HTMLButtonElement;
+const layoutManage = document.getElementById("layout-manage") as HTMLButtonElement;
+const layoutDialog = document.getElementById("layout-dialog") as HTMLDialogElement;
+const layoutDialogClose = document.getElementById("layout-dialog-close") as HTMLButtonElement;
+const layoutName = document.getElementById("layout-name") as HTMLInputElement;
+const layoutSource = document.getElementById("layout-source") as HTMLSelectElement;
+const layoutDuplicationModes = document.getElementById(
+  "layout-duplication-modes",
+) as HTMLFieldSetElement;
+const layoutDuplicationShared = document.getElementById(
+  "layout-duplication-shared",
+) as HTMLInputElement;
+const layoutDuplicationIndependent = document.getElementById(
+  "layout-duplication-independent",
+) as HTMLInputElement;
+const layoutCreate = document.getElementById("layout-create") as HTMLButtonElement;
+const layoutRename = document.getElementById("layout-rename") as HTMLButtonElement;
+const layoutPreferred = document.getElementById("layout-preferred") as HTMLButtonElement;
+const layoutDelete = document.getElementById("layout-delete") as HTMLButtonElement;
+const layoutRetry = document.getElementById("layout-retry") as HTMLButtonElement;
+const layoutStatus = document.getElementById("layout-status") as HTMLElement;
 const bayFactoryAdd = document.getElementById("bay-factory-add") as HTMLButtonElement;
 const bayFactoryEntry = document.getElementById("bay-factory-entry") as HTMLButtonElement;
 const bayFactorySelection = document.getElementById("bay-factory-selection") as HTMLElement;
@@ -622,6 +649,30 @@ async function main(): Promise<void> {
     bayFactoryConnection.replaceBays(dockingState.bays);
     // 後続の動的レール描画が同じactiveレイアウトを参照できる境界として保持する。
     root.dataset.activeLayoutId = dockingState.activeLayout.id;
+    const layoutCoordinator = createLayoutManagementCoordinator(dockingState.documents);
+    bindLayoutManagement({
+      select: layoutSelect,
+      restoreDefault: layoutDefault,
+      manage: layoutManage,
+      dialog: layoutDialog,
+      close: layoutDialogClose,
+      name: layoutName,
+      source: layoutSource,
+      duplicationModes: layoutDuplicationModes,
+      shared: layoutDuplicationShared,
+      independent: layoutDuplicationIndependent,
+      create: layoutCreate,
+      rename: layoutRename,
+      preferred: layoutPreferred,
+      delete: layoutDelete,
+      retry: layoutRetry,
+      status: layoutStatus,
+    }, layoutCoordinator, {
+      onStateChange: (documents) => {
+        root.dataset.activeLayoutId = documents.dockingMetadata.activeLayoutId;
+        bayFactoryConnection.replaceBays(buildPanelBayModels(documents));
+      },
+    });
     treeItems = await getBookmarkTreeItems();
     const savedFolderOrders = await loadFolderOrders();
     if (savedFolderOrders === null) {

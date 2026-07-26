@@ -10,6 +10,9 @@
     <header>
       <h1>Bookumark</h1>
       <span id="count"></span>
+      <select id="layout-select" aria-label="名前付きレイアウト"></select>
+      <button id="layout-default" type="button">デフォルトに戻す</button>
+      <button id="layout-manage" type="button">レイアウト管理</button>
       <button id="bay-factory-add" type="button">ベイを追加</button>
       <button id="bay-factory-entry" type="button">ベイを編集</button>
     </header>
@@ -148,6 +151,33 @@
       </section>
     </footer>
   </div>
+  <dialog id="layout-dialog" class="layout-dialog" aria-labelledby="layout-dialog-title">
+    <div class="layout-dialog-heading">
+      <h2 id="layout-dialog-title">レイアウト管理</h2>
+      <button id="layout-dialog-close" type="button" aria-label="レイアウト管理を閉じる">×</button>
+    </div>
+    <label>名前 <input id="layout-name" type="text" autocomplete="off"></label>
+    <label>複製元
+      <select id="layout-source">
+        <option value="">空白から作成</option>
+      </select>
+    </label>
+    <fieldset id="layout-duplication-modes">
+      <legend>ベイの扱い</legend>
+      <label><input id="layout-duplication-shared" type="radio" name="layout-duplication" value="shared" checked> 同じベイを使用</label>
+      <small>ベイの編集内容が両方のレイアウトに反映されます</small>
+      <label><input id="layout-duplication-independent" type="radio" name="layout-duplication" value="independent"> ベイも複製</label>
+      <small>新しいレイアウト専用のベイとして編集できます</small>
+    </fieldset>
+    <div class="layout-dialog-actions">
+      <button id="layout-create" type="button">新規作成</button>
+      <button id="layout-rename" type="button">名前変更</button>
+      <button id="layout-preferred" type="button">既定にする</button>
+      <button id="layout-delete" type="button">削除</button>
+      <button id="layout-retry" type="button" hidden>保存を再試行</button>
+    </div>
+    <p id="layout-status" role="status" aria-live="polite"></p>
+  </dialog>
   <dialog id="bay-factory-dialog" class="bay-factory-dialog" aria-labelledby="bay-factory-title">
     <div class="bay-factory-heading">
       <h2 id="bay-factory-title">ベイ工場</h2>

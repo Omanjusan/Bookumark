@@ -42,7 +42,19 @@ export async function loadPanelDockingState(
     throw new Error(`active layout was not found: ${documents.dockingMetadata.activeLayoutId}`);
   }
 
-  const bays = documents.bayConfigurations.bays.map((bay) => ({
+  const bays = buildPanelBayModels(documents);
+  return {
+    documents,
+    bays: structuredClone(bays),
+    activeLayout: structuredClone(activeLayout),
+  };
+}
+
+/** 正常化済みベイ文書をベイ工場の選択・編集表示モデルへ変換する。 */
+export function buildPanelBayModels(
+  documents: DockingDocuments,
+): SelectableBayFactoryViewModel[] {
+  return documents.bayConfigurations.bays.map((bay) => ({
     bayId: bay.id,
     name: bay.name,
     permanent: bay.permanent,
@@ -51,9 +63,4 @@ export async function loadPanelDockingState(
       label: CHIP_LABELS.get(chip.chipType) ?? chip.chipType,
     })),
   }));
-  return {
-    documents,
-    bays: structuredClone(bays),
-    activeLayout: structuredClone(activeLayout),
-  };
 }

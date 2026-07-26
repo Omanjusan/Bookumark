@@ -88,6 +88,28 @@ header h1 {
   background: var(--surface);
 }
 .bay-factory-selection[hidden] { display: none; }
+.layout-dialog {
+  width: min(520px, calc(100vw - 32px));
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.layout-dialog::backdrop { background: rgb(0 0 0 / 45%); }
+.layout-dialog-heading,
+.layout-dialog-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.layout-dialog-heading { justify-content: space-between; }
+.layout-dialog label { display: block; margin: 10px 0; }
+.layout-dialog input[type="text"],
+.layout-dialog select { width: 100%; box-sizing: border-box; }
+.layout-dialog fieldset { margin: 12px 0; }
+.layout-dialog fieldset label { margin: 6px 0; }
+.layout-dialog small { display: block; margin-left: 24px; color: var(--text-faint); }
+#layout-status { min-height: 1.4em; }
 .bay-factory-selection select {
   flex: 1 1 180px;
   min-width: 0;
