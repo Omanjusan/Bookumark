@@ -1,9 +1,11 @@
 import { loadBookmarkHistory } from "./lib/bookmark-history.js";
 import { bindBayFactory } from "./lib/bay-factory-controller.js";
 import { bindBayFactoryChipDrag } from "./lib/bay-factory-chip-drag.js";
+import { renderBayFactoryEditor } from "./lib/bay-factory-static-view.js";
 import { renderChipToolSelector } from "./lib/chip-tool-selector-view.js";
 import { bindChipToolBayDrag } from "./lib/chip-tool-bay-drag.js";
 import { bindChipToolTooltip } from "./lib/chip-tool-tooltip.js";
+import { bindNewBayFactory } from "./lib/new-bay-factory-controller.js";
 import { getBookmarkTreeItems, moveBookmark } from "./lib/bookmarks.js";
 import type {
   BookmarkItem,
@@ -88,6 +90,7 @@ const sortDirectionButton = document.getElementById("sort-direction") as HTMLBut
 const officialMoveNoticeRoot = document.getElementById("official-move-notice") as HTMLElement;
 const officialMoveMessage = document.getElementById("official-move-message") as HTMLElement;
 const officialMoveUndoButton = document.getElementById("official-move-undo") as HTMLButtonElement;
+const bayFactoryAdd = document.getElementById("bay-factory-add") as HTMLButtonElement;
 const bayFactoryEntry = document.getElementById("bay-factory-entry") as HTMLButtonElement;
 const bayFactorySelection = document.getElementById("bay-factory-selection") as HTMLElement;
 const bayFactorySelect = document.getElementById("bay-factory-select") as HTMLSelectElement;
@@ -143,6 +146,15 @@ bindBayFactory({
   continueEditing: bayFactoryContinueEditing,
   discardChanges: bayFactoryDiscardChanges,
 }, []);
+let temporaryBaySequence = 1;
+bindNewBayFactory({
+  add: bayFactoryAdd,
+  dialog: bayFactoryDialog,
+  name: bayFactoryName,
+}, {
+  createTemporaryId: () => `new-bay-session-${temporaryBaySequence++}`,
+  render: (model) => renderBayFactoryEditor(bayFactoryEditor, model),
+});
 renderChipToolSelector(chipToolList, []);
 bindChipToolTooltip(
   chipToolList,

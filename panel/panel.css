@@ -64,6 +64,7 @@ header h1 {
   color: var(--text-faint);
   font-variant-numeric: tabular-nums;
 }
+#bay-factory-add,
 #bay-factory-entry {
   margin-left: auto;
   border: 1px solid var(--border);
@@ -74,6 +75,8 @@ header h1 {
   font: inherit;
   cursor: pointer;
 }
+#bay-factory-add { margin-left: auto; }
+#bay-factory-add + #bay-factory-entry { margin-left: 0; }
 .bay-factory-selection {
   display: flex;
   flex-wrap: wrap;
