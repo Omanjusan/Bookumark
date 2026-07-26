@@ -24,7 +24,12 @@ test("keeps the first bay for each valid canonical id", () => {
   }, fallback);
 
   assert.deepEqual(result.document.bays, [
-    { id: "bay-1", name: "先頭", permanent: true, chips: firstChips },
+    {
+      id: "bay-1",
+      name: "先頭",
+      permanent: true,
+      chips: [{ ...firstChips[0], order: 1 }],
+    },
     { id: "bay-4", name: "末尾", permanent: false, chips: [] },
   ]);
   assert.equal(result.changed, true);
