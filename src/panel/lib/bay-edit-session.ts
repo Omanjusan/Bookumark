@@ -9,12 +9,17 @@ export interface BayEditSession {
   readonly bayId: string;
   readonly dirty: boolean;
   readonly nextChipSequence: number;
+  readonly canUndo: boolean;
+  readonly canRedo: boolean;
   savedBay(): BayConfiguration;
   draftBay(): BayConfiguration;
   addChip(chipType: string, index: number): string;
   deleteChip(instanceId: string): void;
   reorderChip(instanceId: string, index: number): boolean;
   updateChipSettings(instanceId: string, settings: JsonObject): void;
+  undo(): boolean;
+  redo(): boolean;
+  markSaved(): void;
 }
 
 interface BayEditSessionOptions {
@@ -36,10 +41,20 @@ export function createBayEditSession(
   }
 
   // 保存基準とドラフトを別々に複製し、原本や返却値からの変更を遮断する。
-  const saved = structuredClone(sourceBay);
-  const draft = structuredClone(sourceBay);
+  let saved = structuredClone(sourceBay);
+  let draft = structuredClone(sourceBay);
   let nextChipSequence = document.nextChipSequence;
   let dirty = false;
+  const undoStack: BayConfiguration[] = [];
+  const redoStack: BayConfiguration[] = [];
+
+  /** 次のドラフトを1操作として確定し、Redo分岐を破棄する。 */
+  const commitMutation = (nextDraft: BayConfiguration): void => {
+    undoStack.push(structuredClone(draft));
+    draft = structuredClone(nextDraft);
+    redoStack.length = 0;
+    dirty = !sameBay(draft, saved);
+  };
 
   /** 指定位置へ新しいチップインスタンスを追加し、発行したIDを返す。 */
   const addChip = (chipType: string, index: number): string => {
@@ -53,32 +68,29 @@ export function createBayEditSession(
     // 生成処理を先に完了させ、失敗時に採番やドラフトを部分変更しない。
     const settings = structuredClone(options.createInitialSettings?.(chipType) ?? {});
     const issued = issueChipId(nextChipSequence);
-    const chips = draft.chips.map((chip) => structuredClone(chip));
-    chips.splice(index, 0, {
+    const nextDraft = structuredClone(draft);
+    nextDraft.chips.splice(index, 0, {
       instanceId: issued.id,
       chipType,
       order: index + 1,
       settings,
     });
-    chips.forEach((chip, chipIndex) => {
+    nextDraft.chips.forEach((chip, chipIndex) => {
       chip.order = chipIndex + 1;
     });
 
-    draft.chips = chips;
+    commitMutation(nextDraft);
     nextChipSequence = issued.nextSequence;
-    dirty = true;
     return issued.id;
   };
 
   /** 指定したチップをドラフトから削除し、残ったorderを正規化する。 */
   const deleteChip = (instanceId: string): void => {
     const sourceIndex = chipIndex(draft, instanceId);
-    const chips = draft.chips
-      .filter((_, index) => index !== sourceIndex)
-      .map((chip) => structuredClone(chip));
-    normalizeChipOrder(chips);
-    draft.chips = chips;
-    dirty = true;
+    const nextDraft = structuredClone(draft);
+    nextDraft.chips.splice(sourceIndex, 1);
+    normalizeChipOrder(nextDraft.chips);
+    commitMutation(nextDraft);
   };
 
   /** 移動元を除いた後の最終添字へチップを移し、変更の有無を返す。 */
@@ -89,12 +101,11 @@ export function createBayEditSession(
     }
     if (sourceIndex === index) return false;
 
-    const chips = draft.chips.map((chip) => structuredClone(chip));
-    const [moved] = chips.splice(sourceIndex, 1);
-    chips.splice(index, 0, moved);
-    normalizeChipOrder(chips);
-    draft.chips = chips;
-    dirty = true;
+    const nextDraft = structuredClone(draft);
+    const [moved] = nextDraft.chips.splice(sourceIndex, 1);
+    nextDraft.chips.splice(index, 0, moved);
+    normalizeChipOrder(nextDraft.chips);
+    commitMutation(nextDraft);
     return true;
   };
 
@@ -102,10 +113,37 @@ export function createBayEditSession(
   const updateChipSettings = (instanceId: string, settings: JsonObject): void => {
     const index = chipIndex(draft, instanceId);
     const nextSettings = structuredClone(settings);
-    const chips = draft.chips.map((chip) => structuredClone(chip));
-    chips[index].settings = nextSettings;
-    draft.chips = chips;
-    dirty = true;
+    const nextDraft = structuredClone(draft);
+    nextDraft.chips[index].settings = nextSettings;
+    commitMutation(nextDraft);
+  };
+
+  /** 直前の操作を戻し、保存境界では変更なしを返す。 */
+  const undo = (): boolean => {
+    const previous = undoStack.pop();
+    if (previous === undefined) return false;
+    redoStack.push(structuredClone(draft));
+    draft = previous;
+    dirty = !sameBay(draft, saved);
+    return true;
+  };
+
+  /** Undoした操作を同じチップIDを含む状態として再適用する。 */
+  const redo = (): boolean => {
+    const next = redoStack.pop();
+    if (next === undefined) return false;
+    undoStack.push(structuredClone(draft));
+    draft = next;
+    dirty = !sameBay(draft, saved);
+    return true;
+  };
+
+  /** 現在のドラフトを新しい保存基準とし、それ以前の履歴を破棄する。 */
+  const markSaved = (): void => {
+    saved = structuredClone(draft);
+    undoStack.length = 0;
+    redoStack.length = 0;
+    dirty = false;
   };
 
   return {
@@ -116,6 +154,12 @@ export function createBayEditSession(
     get nextChipSequence(): number {
       return nextChipSequence;
     },
+    get canUndo(): boolean {
+      return undoStack.length > 0;
+    },
+    get canRedo(): boolean {
+      return redoStack.length > 0;
+    },
     /** 最後に保存されたベイの変更可能なスナップショットを返す。 */
     savedBay: (): BayConfiguration => structuredClone(saved),
     /** 現在の編集ドラフトの変更可能なスナップショットを返す。 */
@@ -124,6 +168,9 @@ export function createBayEditSession(
     deleteChip,
     reorderChip,
     updateChipSettings,
+    undo,
+    redo,
+    markSaved,
   };
 }
 
@@ -139,4 +186,9 @@ function normalizeChipOrder(chips: BayConfiguration["chips"]): void {
   chips.forEach((chip, index) => {
     chip.order = index + 1;
   });
+}
+
+/** JSON保存可能なベイ同士が同じ編集状態か判定する。 */
+function sameBay(left: BayConfiguration, right: BayConfiguration): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
 }
