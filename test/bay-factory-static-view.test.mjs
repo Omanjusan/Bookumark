@@ -43,7 +43,7 @@ test("builds an observable empty-bay plan", () => {
   });
 });
 
-test("renders text chips in their model order without interactive controls", () => {
+test("renders draggable text chips in their model order", () => {
   const fake = createFakeDocument();
   const root = fake.element("section");
 
@@ -59,10 +59,11 @@ test("renders text chips in their model order without interactive controls", () 
     className: chip.className,
     instanceId: chip.dataset.instanceId,
     text: chip.textContent,
+    draggable: chip.draggable,
   })), [
-    { tagName: "SPAN", className: "bay-factory-chip", instanceId: "chip-1", text: "検索" },
-    { tagName: "SPAN", className: "bay-factory-chip", instanceId: "chip-2", text: "訪問状態" },
-    { tagName: "SPAN", className: "bay-factory-chip", instanceId: "chip-3", text: "表示形式" },
+    { tagName: "SPAN", className: "bay-factory-chip", instanceId: "chip-1", text: "検索", draggable: true },
+    { tagName: "SPAN", className: "bay-factory-chip", instanceId: "chip-2", text: "訪問状態", draggable: true },
+    { tagName: "SPAN", className: "bay-factory-chip", instanceId: "chip-3", text: "表示形式", draggable: true },
   ]);
 });
 
@@ -88,6 +89,7 @@ function createFakeDocument() {
     className: "",
     textContent: "",
     dataset: {},
+    draggable: false,
     children: [],
     attributes: {},
     appendChild(child) { this.children.push(child); return child; },

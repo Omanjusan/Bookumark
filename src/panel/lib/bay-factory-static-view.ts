@@ -68,6 +68,7 @@ export function renderBayFactoryEditor(
     const chip = documentRef.createElement("span");
     chip.className = "bay-factory-chip";
     chip.dataset.instanceId = model.instanceId;
+    chip.draggable = true;
     chip.textContent = model.label;
     preview.appendChild(chip);
   }

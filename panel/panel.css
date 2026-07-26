@@ -689,6 +689,8 @@ header h1 {
   color: var(--text);
   white-space: nowrap;
 }
+.bay-factory-chip[draggable="true"] { cursor: grab; }
+.bay-factory-chip.dragging { opacity: 0.45; }
 .bay-factory-empty {
   display: grid;
   place-content: center;

@@ -1,5 +1,6 @@
 import { loadBookmarkHistory } from "./lib/bookmark-history.js";
 import { bindBayFactory } from "./lib/bay-factory-controller.js";
+import { bindBayFactoryChipDrag } from "./lib/bay-factory-chip-drag.js";
 import { renderChipToolSelector } from "./lib/chip-tool-selector-view.js";
 import { bindChipToolBayDrag } from "./lib/chip-tool-bay-drag.js";
 import { bindChipToolTooltip } from "./lib/chip-tool-tooltip.js";
@@ -139,6 +140,9 @@ bindChipToolTooltip(
 );
 bindChipToolBayDrag(chipToolList, bayFactoryEditor, () => {
   // DB-7でdrop結果を編集中ドラフトへ反映する。
+});
+bindBayFactoryChipDrag(bayFactoryEditor, () => {
+  // DB-7で並べ替え・削除結果を編集中ドラフトへ反映する。
 });
 
 function currentDragMode(): ReturnType<typeof resolveViewDragMode> {
