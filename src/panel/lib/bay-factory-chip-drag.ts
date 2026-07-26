@@ -8,7 +8,7 @@ interface BayFactoryChipDragConnection {
 
 type ChipDragEditor = Pick<
   HTMLElement,
-  "addEventListener" | "removeEventListener" | "contains" | "querySelectorAll"
+  "addEventListener" | "removeEventListener" | "contains" | "querySelectorAll" | "classList"
 >;
 
 /** 配置済み文字チップの横並べ替えとベイ枠外dropによる削除を通知する。 */
@@ -18,6 +18,7 @@ export function bindBayFactoryChipDrag(
 ): BayFactoryChipDragConnection {
   let draggedChip: HTMLElement | null = null;
   let instanceId: string | null = null;
+  let markedEnd: Element | null = null;
 
   const onDragStart = (event: Event): void => {
     const dragEvent = event as DragEvent;
@@ -41,6 +42,10 @@ export function bindBayFactoryChipDrag(
   const onDragOver = (event: Event): void => {
     if (instanceId === null || !isInsideEditor(editor, event.target)) return;
     event.preventDefault();
+    clearDropMarks();
+    const frame = bayFrameOf(event.target);
+    if (frame) markInsertion(frame, insertionIndex(editor, (event as DragEvent).clientX));
+    else editor.classList.add("delete-drop-target");
     const dragEvent = event as DragEvent;
     if (dragEvent.dataTransfer) dragEvent.dataTransfer.dropEffect = "move";
   };
@@ -73,6 +78,27 @@ export function bindBayFactoryChipDrag(
     draggedChip?.classList.remove("dragging");
     draggedChip = null;
     instanceId = null;
+    clearDropMarks();
+  }
+
+  /** 挿入境界と削除候補表示をすべて解除する。 */
+  function clearDropMarks(): void {
+    for (const chip of editor.querySelectorAll<HTMLElement>(".bay-factory-chip")) {
+      chip.classList.remove("drop-before");
+    }
+    markedEnd?.classList.remove("drop-at-end");
+    markedEnd = null;
+    editor.classList.remove("delete-drop-target");
+  }
+
+  /** 算出した挿入位置をチップ左辺またはベイ右端へ表示する。 */
+  function markInsertion(frame: Element, index: number): void {
+    const chips = [...editor.querySelectorAll<HTMLElement>(".bay-factory-chip")];
+    if (index < chips.length) chips[index].classList.add("drop-before");
+    else {
+      frame.classList.add("drop-at-end");
+      markedEnd = frame;
+    }
   }
 
   editor.addEventListener("dragstart", onDragStart);

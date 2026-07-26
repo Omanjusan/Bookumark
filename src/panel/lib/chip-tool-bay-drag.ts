@@ -24,6 +24,7 @@ export function bindChipToolBayDrag(
   let chipType: string | null = null;
   let draggedTool: HTMLElement | null = null;
   let preview: HTMLElement | null = null;
+  let markedEnd: Element | null = null;
 
   const onDragStart = (event: Event): void => {
     const dragEvent = event as DragEvent;
@@ -47,14 +48,17 @@ export function bindChipToolBayDrag(
   };
 
   const onDragOver = (event: Event): void => {
-    if (chipType === null || !isInsideEditor(editor, event.target)) return;
+    const zone = dropZoneOf(event.target);
+    if (chipType === null || zone === null || !isInsideEditor(editor, event.target)) return;
     event.preventDefault();
+    markInsertion(zone, insertionIndex(editor, (event as DragEvent).clientX));
     const dragEvent = event as DragEvent;
     if (dragEvent.dataTransfer) dragEvent.dataTransfer.dropEffect = "copy";
   };
 
   const onDrop = (event: Event): void => {
-    if (chipType === null || !isInsideEditor(editor, event.target)) return;
+    const zone = dropZoneOf(event.target);
+    if (chipType === null || zone === null || !isInsideEditor(editor, event.target)) return;
     event.preventDefault();
     const index = insertionIndex(editor, (event as DragEvent).clientX);
     const droppedChipType = chipType;
@@ -71,6 +75,27 @@ export function bindChipToolBayDrag(
     draggedTool = null;
     preview = null;
     chipType = null;
+    clearDropMarks();
+  }
+
+  /** 挿入境界の表示をすべて解除する。 */
+  function clearDropMarks(): void {
+    for (const chip of editor.querySelectorAll<HTMLElement>(".bay-factory-chip")) {
+      chip.classList.remove("drop-before");
+    }
+    markedEnd?.classList.remove("drop-at-end");
+    markedEnd = null;
+  }
+
+  /** 算出した挿入位置をチップ左辺またはベイ右端へ表示する。 */
+  function markInsertion(zone: Element, index: number): void {
+    clearDropMarks();
+    const chips = [...editor.querySelectorAll<HTMLElement>(".bay-factory-chip")];
+    if (index < chips.length) chips[index].classList.add("drop-before");
+    else {
+      zone.classList.add("drop-at-end");
+      markedEnd = zone;
+    }
   }
 
   toolRoot.addEventListener("dragstart", onDragStart);
@@ -87,6 +112,12 @@ export function bindChipToolBayDrag(
       clearState();
     },
   };
+}
+
+/** イベント対象が属する横ベイdrop領域を取得する。 */
+function dropZoneOf(target: EventTarget | null): Element | null {
+  const closest = (target as { closest?: (selector: string) => Element | null } | null)?.closest;
+  return closest?.call(target, ".bay-factory-bay-preview, .bay-factory-empty") ?? null;
 }
 
 /** ドラッグ画像として使う短い文字チップをbody直下へ生成する。 */

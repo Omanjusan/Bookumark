@@ -38,12 +38,31 @@ test("allows repeated drops of the same tool and ignores external drags", () => 
   fake.start("refresh", "再読込");
   fake.drop(0);
   fake.start("refresh", "再読込");
+  fake.dropOutsideBay();
+  fake.end();
+  fake.start("refresh", "再読込");
   fake.drop(0);
 
   assert.deepEqual(drops, [
     { chipType: "refresh", index: 0 },
     { chipType: "refresh", index: 0 },
   ]);
+});
+
+test("shows and clears insertion markers while dragging a tool", () => {
+  const fake = harness([{ left: 20, width: 40 }, { left: 80, width: 40 }]);
+  bindChipToolBayDrag(fake.tools, fake.editor, () => {}, fake.options);
+
+  fake.start("search", "検索");
+  fake.over(10);
+  assert.equal(fake.chips[0].classList.has("drop-before"), true);
+
+  fake.over(140);
+  assert.equal(fake.chips[0].classList.has("drop-before"), false);
+  assert.equal(fake.zone.classList.has("drop-at-end"), true);
+
+  fake.end();
+  assert.equal(fake.zone.classList.has("drop-at-end"), false);
 });
 
 test("creates a text drag preview and clears state on dragend or disconnect", () => {
@@ -68,7 +87,10 @@ test("creates a text drag preview and clears state on dragend or disconnect", ()
 function harness(rects) {
   const toolListeners = new Map();
   const editorListeners = new Map();
-  const chips = rects.map((rect) => ({ getBoundingClientRect: () => rect }));
+  const chips = rects.map((rect) => ({
+    classList: classList(),
+    getBoundingClientRect: () => rect,
+  }));
   let currentTool;
   let preview;
   let dragImage;
@@ -80,10 +102,17 @@ function harness(rects) {
     },
   });
   const tools = makeRoot(toolListeners);
+  const zone = {
+    classList: classList(),
+    closest(selector) {
+      return selector === ".bay-factory-bay-preview, .bay-factory-empty" ? this : null;
+    },
+  };
+  const outsideTarget = { closest: () => null };
   const editor = {
     ...makeRoot(editorListeners),
-    contains(target) { return target === this || target === this.target; },
-    target: {},
+    contains(target) { return target === zone || target === outsideTarget; },
+    target: zone,
     querySelectorAll(selector) { return selector === ".bay-factory-chip" ? chips : []; },
   };
   const document = {
@@ -118,13 +147,21 @@ function harness(rects) {
     clientX,
     preventDefault() { prevented += 1; },
   });
+  const emitOutside = (type) => editorListeners.get(type)?.({
+    target: outsideTarget,
+    clientX: 0,
+    preventDefault() { prevented += 1; },
+  });
   return {
     tools,
     editor,
+    chips,
+    zone,
     options: { document },
     start,
     over: (clientX) => emitEditor("dragover", clientX),
     drop: (clientX) => emitEditor("drop", clientX),
+    dropOutsideBay: () => emitOutside("drop"),
     end: () => toolListeners.get("dragend")?.({}),
     listenerCount: () => toolListeners.size + editorListeners.size,
     get preview() { return preview; },

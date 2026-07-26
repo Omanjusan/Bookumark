@@ -691,6 +691,10 @@ header h1 {
 }
 .bay-factory-chip[draggable="true"] { cursor: grab; }
 .bay-factory-chip.dragging { opacity: 0.45; }
+.bay-factory-chip.drop-before { box-shadow: -4px 0 0 var(--text-faint); }
+.bay-factory-bay-preview.drop-at-end { box-shadow: inset -4px 0 0 var(--text-faint); }
+.bay-factory-empty.drop-at-end { box-shadow: inset 0 0 0 2px var(--text-faint); }
+.bay-factory-editor.delete-drop-target { background: var(--hover); }
 .bay-factory-empty {
   display: grid;
   place-content: center;

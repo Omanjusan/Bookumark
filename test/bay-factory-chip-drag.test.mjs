@@ -1,7 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 
 import { bindBayFactoryChipDrag } from "../dist/panel/lib/bay-factory-chip-drag.js";
+
+const css = await readFile(new URL("../panel/panel.css", import.meta.url), "utf8");
 
 test("reorders a placed chip using horizontal midpoint boundaries", () => {
   const fake = harness();
@@ -58,6 +61,29 @@ test("ignores external drags and clears classes and listeners on disconnect", ()
   assert.equal(fake.listenerCount(), 0);
 });
 
+test("switches between insertion and delete markers without leaving residue", () => {
+  const fake = harness();
+  const connection = bindBayFactoryChipDrag(fake.editor, () => {});
+
+  fake.start(0);
+  fake.overInBay(90);
+  assert.equal(fake.chips[1].classList.has("drop-before"), true);
+  assert.equal(fake.editor.classList.has("delete-drop-target"), false);
+
+  fake.overOutsideBay();
+  assert.equal(fake.chips[1].classList.has("drop-before"), false);
+  assert.equal(fake.editor.classList.has("delete-drop-target"), true);
+
+  connection.disconnect();
+  assert.equal(fake.editor.classList.has("delete-drop-target"), false);
+});
+
+test("styles insertion boundaries and the delete candidate region", () => {
+  assert.match(css, /\.bay-factory-chip\.drop-before\s*\{[^}]*box-shadow:/s);
+  assert.match(css, /\.bay-factory-bay-preview\.drop-at-end\s*\{[^}]*box-shadow:/s);
+  assert.match(css, /\.bay-factory-editor\.delete-drop-target\s*\{[^}]*background:/s);
+});
+
 function harness() {
   const listeners = new Map();
   const frameTarget = {};
@@ -78,8 +104,10 @@ function harness() {
     },
   }));
   frameTarget.closest = (selector) => selector === ".bay-factory-bay-preview" ? frameTarget : null;
+  frameTarget.classList = classList();
   outsideTarget.closest = () => null;
   const editor = {
+    classList: classList(),
     addEventListener(type, listener) { listeners.set(type, listener); },
     removeEventListener(type, listener) {
       if (listeners.get(type) === listener) listeners.delete(type);
@@ -97,6 +125,8 @@ function harness() {
     editor,
     chips,
     start: (index) => emit("dragstart", chips[index]),
+    overInBay: (clientX) => emit("dragover", frameTarget, clientX),
+    overOutsideBay: () => emit("dragover", outsideTarget),
     dropInBay: (clientX) => emit("drop", frameTarget, clientX),
     dropOutsideBay: () => emit("drop", outsideTarget),
     end: () => emit("dragend", outsideTarget),
