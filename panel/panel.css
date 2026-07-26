@@ -12,6 +12,7 @@
   --badge-l: 88%;
   --badge-fg-s: 45%;
   --badge-fg-l: 28%;
+  --dock-vertical-chip-width: 40px;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -146,7 +147,10 @@ header h1 {
   min-width: 0;
   min-height: 0;
 }
-#docking-rail-right { grid-area: right; }
+#docking-rail-right {
+  grid-area: right;
+  justify-self: end;
+}
 #docking-rail-bottom { grid-area: bottom; }
 
 .dock-rail {
@@ -181,6 +185,22 @@ header h1 {
   display: flex;
   flex: none;
   min-width: 0;
+}
+.dock-bay--vertical {
+  flex-direction: column;
+  align-items: flex-start;
+  width: calc(var(--dock-vertical-chip-width) + 12px);
+}
+.dock-bay--right { direction: ltr; }
+.dock-chip--vertical-viewport {
+  overflow: hidden;
+  width: var(--dock-vertical-chip-width);
+}
+.dock-chip__horizontal-body {
+  display: flex;
+  width: max-content;
+  transform: none;
+  transform-origin: left top;
 }
 
 #search {
