@@ -7,6 +7,7 @@ interface BayEditTransactionElements {
   readonly undo: HTMLButtonElement;
   readonly redo: HTMLButtonElement;
   readonly save: HTMLButtonElement;
+  readonly name?: HTMLInputElement;
 }
 
 interface BayEditTransactionOptions {
@@ -14,6 +15,7 @@ interface BayEditTransactionOptions {
   readonly render: (model: BayFactoryViewModel) => void;
   readonly onSaved?: () => void;
   readonly onSaveError?: (error: unknown) => void;
+  readonly onNameError?: (error: unknown) => void;
 }
 
 export interface BayEditTransactionConnection {
@@ -48,6 +50,10 @@ export function bindBayEditTransaction(
     elements.undo.disabled = session.saving || !session.canUndo;
     elements.redo.disabled = session.saving || !session.canRedo;
     elements.save.disabled = session.saving || !session.dirty;
+    if (elements.name) {
+      elements.name.value = session.draftBay().name;
+      elements.name.disabled = session.saving;
+    }
   };
 
   /** ツールからのdropを新規チップ追加として反映する。 */
@@ -79,10 +85,20 @@ export function bindBayEditTransaction(
       (error: unknown) => options.onSaveError?.(error),
     ).finally(refresh);
   };
+  const onNameChange = (): void => {
+    if (!elements.name) return;
+    try {
+      session.renameBay(elements.name.value);
+    } catch (error: unknown) {
+      options.onNameError?.(error);
+    }
+    refresh();
+  };
 
   elements.undo.addEventListener("click", onUndo);
   elements.redo.addEventListener("click", onRedo);
   elements.save.addEventListener("click", onSave);
+  elements.name?.addEventListener("change", onNameChange);
   refresh();
 
   return {
@@ -93,6 +109,7 @@ export function bindBayEditTransaction(
       elements.undo.removeEventListener("click", onUndo);
       elements.redo.removeEventListener("click", onRedo);
       elements.save.removeEventListener("click", onSave);
+      elements.name?.removeEventListener("change", onNameChange);
     },
   };
 }

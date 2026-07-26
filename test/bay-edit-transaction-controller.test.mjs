@@ -75,9 +75,29 @@ test("reports save success, clears history controls, and stays connected", async
   assert.equal(session.dirty, true);
 });
 
+test("connects the name input to history and restores invalid input", () => {
+  const errors = [];
+  const session = createBayEditSession(fixture(), "bay-1");
+  const fake = harness(session, { onNameError: (error) => errors.push(error) });
+
+  fake.elements.name.value = "  調査用  ";
+  fake.elements.name.emit("change");
+  assert.equal(session.draftBay().name, "調査用");
+  assert.equal(fake.elements.name.value, "調査用");
+
+  fake.elements.name.value = "   ";
+  fake.elements.name.emit("change");
+  assert.equal(errors.length, 1);
+  assert.equal(session.draftBay().name, "調査用");
+  assert.equal(fake.elements.name.value, "調査用");
+
+  fake.elements.undo.emit("click");
+  assert.equal(fake.elements.name.value, "表示設定");
+});
+
 function harness(session, options = {}) {
   const renders = [];
-  const elements = { undo: button(), redo: button(), save: button() };
+  const elements = { undo: button(), redo: button(), save: button(), name: button() };
   const connection = bindBayEditTransaction(session, elements, {
     chipLabels: new Map([["search", "検索"], ["sort", "ソート"]]),
     render: (model) => renders.push(structuredClone(model)),

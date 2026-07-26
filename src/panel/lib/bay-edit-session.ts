@@ -5,6 +5,7 @@ import type {
 } from "./docking-persistence-model.js";
 import { issueChipId } from "./docking-persistence-model.js";
 import { saveBayConfigurations } from "./docking-storage.js";
+import { renameUserBay } from "./bay-management.js";
 
 export interface BayEditSession {
   readonly bayId: string;
@@ -19,6 +20,7 @@ export interface BayEditSession {
   deleteChip(instanceId: string): void;
   reorderChip(instanceId: string, index: number): boolean;
   updateChipSettings(instanceId: string, settings: JsonObject): void;
+  renameBay(name: string): boolean;
   undo(): boolean;
   redo(): boolean;
   markSaved(): void;
@@ -129,6 +131,15 @@ export function createBayEditSession(
     commitMutation(nextDraft);
   };
 
+  /** ベイ名を検証済みの値へ変更し、実際に変化したか返す。 */
+  const renameBay = (name: string): boolean => {
+    assertNotSaving();
+    const nextDraft = renameUserBay(draft, name);
+    if (nextDraft.name === draft.name) return false;
+    commitMutation(nextDraft);
+    return true;
+  };
+
   /** 直前の操作を戻し、保存境界では変更なしを返す。 */
   const undo = (): boolean => {
     assertNotSaving();
@@ -226,6 +237,7 @@ export function createBayEditSession(
     deleteChip,
     reorderChip,
     updateChipSettings,
+    renameBay,
     undo,
     redo,
     markSaved,
