@@ -182,6 +182,81 @@ test("rejects an unknown bay or out-of-range insertion without partial changes",
   assert.deepEqual(draft.documents(), before);
 });
 
+test("records each successful placement mutation as one undo and redo step", () => {
+  const draft = createBayPlacementDraft(positionFixture());
+  const initial = draft.documents();
+
+  assert.equal(draft.dirty, false);
+  assert.equal(draft.canUndo, false);
+  assert.equal(draft.canRedo, false);
+
+  draft.moveToRailPosition("bay-4", "top", 1);
+  const afterInsert = draft.documents();
+  draft.moveToRailPosition("bay-1", "left", 1);
+  const afterMove = draft.documents();
+
+  assert.equal(draft.dirty, true);
+  assert.equal(draft.canUndo, true);
+  assert.equal(draft.undo(), true);
+  assert.deepEqual(draft.documents(), afterInsert);
+  assert.equal(draft.undo(), true);
+  assert.deepEqual(draft.documents(), initial);
+  assert.equal(draft.dirty, false);
+  assert.equal(draft.canUndo, false);
+  assert.equal(draft.canRedo, true);
+
+  assert.equal(draft.redo(), true);
+  assert.deepEqual(draft.documents(), afterInsert);
+  assert.equal(draft.redo(), true);
+  assert.deepEqual(draft.documents(), afterMove);
+  assert.equal(draft.canRedo, false);
+});
+
+test("records click auto-placement and rough rail drop while keeping history snapshots isolated", () => {
+  const draft = createBayPlacementDraft(fixture());
+  draft.autoPlace("bay-3", capacity());
+  const autoPlaced = draft.documents();
+  draft.moveToRailEnd("bay-3", "left");
+
+  assert.equal(draft.undo(), true);
+  assert.deepEqual(draft.documents(), autoPlaced);
+  const exposed = draft.documents();
+  exposed.mainLayouts.layouts[1].placements.at(-1).rail = "right";
+  assert.deepEqual(draft.documents(), autoPlaced);
+  assert.equal(draft.undo(), true);
+  assert.deepEqual(draft.documents(), fixture());
+});
+
+test("does not add history or clear redo for a no-op placement", () => {
+  const draft = createBayPlacementDraft(positionFixture());
+  draft.moveToRailPosition("bay-1", "left", 1);
+  draft.undo();
+
+  assert.equal(draft.canRedo, true);
+  draft.moveToRailPosition("bay-2", "top", 1);
+  draft.moveToRailEnd("bay-3", "top");
+
+  assert.equal(draft.dirty, false);
+  assert.equal(draft.canUndo, false);
+  assert.equal(draft.canRedo, true);
+});
+
+test("clears redo after a new mutation and resets history when discarded", () => {
+  const draft = createBayPlacementDraft(positionFixture());
+  draft.moveToRailPosition("bay-4", "top", 0);
+  draft.undo();
+  draft.moveToRailPosition("bay-4", "left", 0);
+
+  assert.equal(draft.canRedo, false);
+  assert.equal(draft.redo(), false);
+  draft.discard();
+  assert.equal(draft.dirty, false);
+  assert.equal(draft.canUndo, false);
+  assert.equal(draft.canRedo, false);
+  assert.equal(draft.undo(), false);
+  assert.deepEqual(draft.documents(), positionFixture());
+});
+
 function capacity(overrides = {}) {
   const result = {
     top: { available: 100, existingExtents: [40], candidateExtent: 20 },

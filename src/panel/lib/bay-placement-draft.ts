@@ -20,17 +20,26 @@ export type BayAutoPlacementResult =
   };
 
 export interface BayPlacementDraft {
+  readonly dirty: boolean;
+  readonly canUndo: boolean;
+  readonly canRedo: boolean;
   documents(): DockingDocuments;
   picker(): BayPickerModel;
   autoPlace(bayId: string, measurements: BayAutoPlacementMeasurements): BayAutoPlacementResult;
   moveToRailEnd(bayId: string, rail: RailId): BayRailEndPlacementResult;
   moveToRailPosition(bayId: string, rail: RailId, index: number): BayRailPositionResult;
+  undo(): boolean;
+  redo(): boolean;
   discard(): void;
 }
 
 export type BayRailEndPlacementResult =
   | { readonly status: "moved"; readonly bayId: string; readonly rail: RailId; readonly order: number }
-  | { readonly status: "unchanged"; readonly bayId: string; readonly reason: "unknown-bay" };
+  | {
+    readonly status: "unchanged";
+    readonly bayId: string;
+    readonly reason: "unknown-bay" | "same-position";
+  };
 
 export type BayRailPositionResult =
   | { readonly status: "moved"; readonly bayId: string; readonly rail: RailId; readonly order: number }
@@ -48,8 +57,19 @@ const MINIMUM_GAP = 2;
 export function createBayPlacementDraft(savedDocuments: DockingDocuments): BayPlacementDraft {
   const saved = structuredClone(savedDocuments);
   let draft = structuredClone(savedDocuments);
+  const undoStack: DockingDocuments[] = [];
+  const redoStack: DockingDocuments[] = [];
+
+  /** 変更直前の状態を1履歴として積み、新しい変更時はRedo枝を破棄する。 */
+  function recordMutation(before: DockingDocuments): void {
+    undoStack.push(structuredClone(before));
+    redoStack.length = 0;
+  }
 
   return {
+    get dirty(): boolean { return !documentsEqual(draft, saved); },
+    get canUndo(): boolean { return undoStack.length > 0; },
+    get canRedo(): boolean { return redoStack.length > 0; },
     documents: () => structuredClone(draft),
     picker: () => buildBayPickerModel(draft),
     autoPlace(bayId, measurements) {
@@ -67,19 +87,28 @@ export function createBayPlacementDraft(savedDocuments: DockingDocuments): BayPl
         .filter((placement) => placement.rail === rail)
         .map(({ order }) => order);
       const order = Math.max(0, ...orders) + 1;
+      const before = structuredClone(draft);
       active.placements.push({ bayId, rail, order });
+      recordMutation(before);
       return { status: "placed", bayId, rail, order };
     },
     moveToRailEnd(bayId, rail) {
       const bay = draft.bayConfigurations.bays.find(({ id }) => id === bayId);
       if (bay === undefined) return { status: "unchanged", bayId, reason: "unknown-bay" };
       const active = resolveActiveLayout(draft);
+      const source = active.placements.find((placement) => placement.bayId === bayId);
+      const targetBayIds = orderedRailBayIds(active.placements, rail)
+        .filter((candidateBayId) => candidateBayId !== bayId);
+      if (source?.rail === rail && source.order > Math.max(0, ...active.placements
+        .filter((placement) => placement.rail === rail && placement.bayId !== bayId)
+        .map(({ order }) => order))) {
+        return { status: "unchanged", bayId, reason: "same-position" };
+      }
+      const before = structuredClone(draft);
       active.placements = active.placements.filter((placement) => placement.bayId !== bayId);
-      const orders = active.placements
-        .filter((placement) => placement.rail === rail)
-        .map(({ order }) => order);
-      const order = Math.max(0, ...orders) + 1;
+      const order = targetBayIds.length + 1;
       active.placements.push({ bayId, rail, order });
+      recordMutation(before);
       return { status: "moved", bayId, rail, order };
     },
     moveToRailPosition(bayId, rail, index) {
@@ -102,6 +131,7 @@ export function createBayPlacementDraft(savedDocuments: DockingDocuments): BayPl
         }
       }
 
+      const before = structuredClone(draft);
       targetBayIds.splice(index, 0, bayId);
       const railBayIds = new Map<RailId, string[]>();
       for (const candidateRail of RAIL_ORDER) {
@@ -121,12 +151,34 @@ export function createBayPlacementDraft(savedDocuments: DockingDocuments): BayPl
         rail: candidateRail,
         order: placementIndex + 1,
       })));
+      recordMutation(before);
       return { status: "moved", bayId, rail, order: index + 1 };
+    },
+    undo(): boolean {
+      const previous = undoStack.pop();
+      if (previous === undefined) return false;
+      redoStack.push(structuredClone(draft));
+      draft = structuredClone(previous);
+      return true;
+    },
+    redo(): boolean {
+      const next = redoStack.pop();
+      if (next === undefined) return false;
+      undoStack.push(structuredClone(draft));
+      draft = structuredClone(next);
+      return true;
     },
     discard(): void {
       draft = structuredClone(saved);
+      undoStack.length = 0;
+      redoStack.length = 0;
     },
   };
+}
+
+/** 防御的コピーだけで構成される文書同士が同じ保存候補か判定する。 */
+function documentsEqual(left: DockingDocuments, right: DockingDocuments): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
 }
 
 /** レール内の配置をorder順へ並べ、ベイIDの配列として返す。 */
