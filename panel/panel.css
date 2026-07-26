@@ -176,6 +176,12 @@ header h1 {
 }
 .dock-bay--search { width: 100%; }
 .dock-bay--history { margin-right: auto; }
+.dock-bay--horizontal { flex-direction: row; }
+.dock-chip--horizontal {
+  display: flex;
+  flex: none;
+  min-width: 0;
+}
 
 #search {
   width: 100%;
