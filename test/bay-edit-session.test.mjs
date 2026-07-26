@@ -124,6 +124,90 @@ test("keeps the draft unchanged when a chip id cannot be issued", () => {
   assert.deepEqual(session.draftBay(), document.bays[1]);
 });
 
+test("deletes a chip and renumbers the remaining draft order", () => {
+  const document = fixtureWithThreeChips();
+  const session = createBayEditSession(document, "bay-2");
+
+  session.deleteChip("chip-3");
+
+  assert.equal(session.dirty, true);
+  assert.deepEqual(
+    session.draftBay().chips.map(({ instanceId, order }) => ({ instanceId, order })),
+    [
+      { instanceId: "chip-2", order: 1 },
+      { instanceId: "chip-4", order: 2 },
+    ],
+  );
+  assert.equal(session.savedBay().chips.length, 3);
+});
+
+test("reorders a chip using the index after removing its source", () => {
+  const session = createBayEditSession(fixtureWithThreeChips(), "bay-2");
+
+  assert.equal(session.reorderChip("chip-2", 2), true);
+  assert.deepEqual(
+    session.draftBay().chips.map(({ instanceId, order }) => ({ instanceId, order })),
+    [
+      { instanceId: "chip-3", order: 1 },
+      { instanceId: "chip-4", order: 2 },
+      { instanceId: "chip-2", order: 3 },
+    ],
+  );
+});
+
+test("treats a reorder to the current index as a no-op", () => {
+  const session = createBayEditSession(fixtureWithThreeChips(), "bay-2");
+
+  assert.equal(session.reorderChip("chip-3", 1), false);
+
+  assert.equal(session.dirty, false);
+  assert.deepEqual(session.draftBay(), session.savedBay());
+});
+
+test("replaces settings without sharing the caller's object", () => {
+  const session = createBayEditSession(fixture(), "bay-2");
+  const settings = { query: "firefox", nested: { exact: true } };
+
+  session.updateChipSettings("chip-2", settings);
+  settings.query = "changed";
+  settings.nested.exact = false;
+
+  assert.equal(session.dirty, true);
+  assert.deepEqual(session.draftBay().chips[0].settings, {
+    query: "firefox",
+    nested: { exact: true },
+  });
+  assert.deepEqual(session.savedBay().chips[0].settings, { query: "book" });
+});
+
+test("rejects invalid chip mutations without partially changing the draft", () => {
+  const session = createBayEditSession(fixtureWithThreeChips(), "bay-2");
+  const before = session.draftBay();
+
+  assert.throws(() => session.deleteChip("chip-404"), /chip was not found: chip-404/);
+  assert.throws(() => session.reorderChip("chip-404", 0), /chip was not found: chip-404/);
+  for (const index of [-1, 3, 0.5]) {
+    assert.throws(() => session.reorderChip("chip-2", index), /index must be a chip position/);
+  }
+  assert.throws(
+    () => session.updateChipSettings("chip-404", {}),
+    /chip was not found: chip-404/,
+  );
+
+  assert.equal(session.dirty, false);
+  assert.deepEqual(session.draftBay(), before);
+});
+
+test("does not reuse an id after deleting a newly added chip in the same session", () => {
+  const session = createBayEditSession(fixture(), "bay-2");
+
+  assert.equal(session.addChip("sort", 1), "chip-3");
+  session.deleteChip("chip-3");
+
+  assert.equal(session.addChip("view-type", 1), "chip-4");
+  assert.equal(session.nextChipSequence, 5);
+});
+
 function fixture() {
   return {
     schemaVersion: 1,
@@ -151,4 +235,24 @@ function fixture() {
       },
     ],
   };
+}
+
+function fixtureWithThreeChips() {
+  const document = fixture();
+  document.nextChipSequence = 5;
+  document.bays[1].chips.push(
+    {
+      instanceId: "chip-3",
+      chipType: "visit-status",
+      order: 2,
+      settings: {},
+    },
+    {
+      instanceId: "chip-4",
+      chipType: "view-type",
+      order: 3,
+      settings: { value: "panel" },
+    },
+  );
+  return document;
 }

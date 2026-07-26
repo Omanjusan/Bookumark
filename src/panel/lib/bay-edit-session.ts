@@ -12,6 +12,9 @@ export interface BayEditSession {
   savedBay(): BayConfiguration;
   draftBay(): BayConfiguration;
   addChip(chipType: string, index: number): string;
+  deleteChip(instanceId: string): void;
+  reorderChip(instanceId: string, index: number): boolean;
+  updateChipSettings(instanceId: string, settings: JsonObject): void;
 }
 
 interface BayEditSessionOptions {
@@ -67,6 +70,44 @@ export function createBayEditSession(
     return issued.id;
   };
 
+  /** 指定したチップをドラフトから削除し、残ったorderを正規化する。 */
+  const deleteChip = (instanceId: string): void => {
+    const sourceIndex = chipIndex(draft, instanceId);
+    const chips = draft.chips
+      .filter((_, index) => index !== sourceIndex)
+      .map((chip) => structuredClone(chip));
+    normalizeChipOrder(chips);
+    draft.chips = chips;
+    dirty = true;
+  };
+
+  /** 移動元を除いた後の最終添字へチップを移し、変更の有無を返す。 */
+  const reorderChip = (instanceId: string, index: number): boolean => {
+    const sourceIndex = chipIndex(draft, instanceId);
+    if (!Number.isInteger(index) || index < 0 || index >= draft.chips.length) {
+      throw new RangeError("index must be a chip position in the draft");
+    }
+    if (sourceIndex === index) return false;
+
+    const chips = draft.chips.map((chip) => structuredClone(chip));
+    const [moved] = chips.splice(sourceIndex, 1);
+    chips.splice(index, 0, moved);
+    normalizeChipOrder(chips);
+    draft.chips = chips;
+    dirty = true;
+    return true;
+  };
+
+  /** 指定したチップの設定を呼び出し元と共有しない値へ置き換える。 */
+  const updateChipSettings = (instanceId: string, settings: JsonObject): void => {
+    const index = chipIndex(draft, instanceId);
+    const nextSettings = structuredClone(settings);
+    const chips = draft.chips.map((chip) => structuredClone(chip));
+    chips[index].settings = nextSettings;
+    draft.chips = chips;
+    dirty = true;
+  };
+
   return {
     bayId,
     get dirty(): boolean {
@@ -80,5 +121,22 @@ export function createBayEditSession(
     /** 現在の編集ドラフトの変更可能なスナップショットを返す。 */
     draftBay: (): BayConfiguration => structuredClone(draft),
     addChip,
+    deleteChip,
+    reorderChip,
+    updateChipSettings,
   };
+}
+
+/** ドラフト内のチップ位置を返し、存在しなければ操作を拒否する。 */
+function chipIndex(draft: BayConfiguration, instanceId: string): number {
+  const index = draft.chips.findIndex((chip) => chip.instanceId === instanceId);
+  if (index < 0) throw new Error(`chip was not found: ${instanceId}`);
+  return index;
+}
+
+/** 現在の配列順を1始まりの連続orderへ反映する。 */
+function normalizeChipOrder(chips: BayConfiguration["chips"]): void {
+  chips.forEach((chip, index) => {
+    chip.order = index + 1;
+  });
 }
