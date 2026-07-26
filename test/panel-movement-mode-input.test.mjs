@@ -4,21 +4,16 @@ import { readFile } from "node:fs/promises";
 
 const html = await readFile(new URL("../panel/panel.html", import.meta.url), "utf8");
 const css = await readFile(new URL("../panel/panel.css", import.meta.url), "utf8");
+const runtime = await readFile(new URL("../src/panel/lib/docking-basic-chip-runtime.ts", import.meta.url), "utf8");
 
-test("provides one accessible three-choice movement mode group", () => {
-  assert.match(html, /<fieldset[^>]+id="movement-mode"[^>]+class="movement-mode"/);
-  assert.match(html, /<legend[^>]*>移動モード<\/legend>/);
-
+test("provides accessible movement mode groups dynamically", () => {
+  assert.doesNotMatch(html, /id="movement-mode"/);
+  assert.match(runtime, /fieldset\.className = "movement-mode"/);
   for (const value of ["custom-order", "normal", "directory-move"]) {
-    assert.match(
-      html,
-      new RegExp(`<input[^>]+type="radio"[^>]+name="movement-mode"[^>]+value="${value}"`),
-    );
+    assert.match(runtime, new RegExp(`"${value}"`));
   }
-  const normal = html.match(/<input[^>]+value="normal"[^>]*>/)?.[0] ?? "";
-  assert.match(normal, /\bchecked\b/);
-  assert.match(html, /公式整理/);
-  assert.match(html, /Firefox本体へ反映/);
+  assert.match(runtime, /公式整理/);
+  assert.match(runtime, /Firefox本体へ反映/);
 });
 
 test("styles the choices as one segmented control with distinct mode colors", () => {

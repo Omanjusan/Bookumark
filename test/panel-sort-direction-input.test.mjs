@@ -3,15 +3,12 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const html = await readFile(new URL("../panel/panel.html", import.meta.url), "utf8");
+const runtime = await readFile(new URL("../src/panel/lib/docking-basic-chip-runtime.ts", import.meta.url), "utf8");
 
-test("provides an enabled direction button showing the initial descending direction", () => {
-  assert.match(
-    html,
-    /<button[^>]+id="sort-direction"[^>]+type="button"[^>]+data-direction="desc"[^>]*>\s*降順\s*<\/button>/,
-  );
-  const button = html.match(/<button[^>]+id="sort-direction"[^>]*>/)?.[0] ?? "";
-  assert.doesNotMatch(button, /\bdisabled\b/);
-  assert.ok(html.indexOf('id="sort-axis"') < html.indexOf('id="sort-direction"'));
+test("provides the direction button through the dynamic sort renderer", () => {
+  assert.doesNotMatch(html, /id="sort-direction"/);
+  assert.match(runtime, /snapshot\.sortDirection === "asc" \? "昇順" : "降順"/);
+  assert.match(runtime, /direction\.dataset\.direction = snapshot\.sortDirection/);
 });
 
 test("delivers each direction-button activation and can disconnect", async () => {

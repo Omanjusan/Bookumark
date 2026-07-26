@@ -4,28 +4,20 @@ import { readFile } from "node:fs/promises";
 
 const html = await readFile(new URL("../panel/panel.html", import.meta.url), "utf8");
 const css = await readFile(new URL("../panel/panel.css", import.meta.url), "utf8");
+const runtime = await readFile(new URL("../src/panel/lib/docking-basic-chip-runtime.ts", import.meta.url), "utf8");
 
-test("places the search control in one fixed top bay", () => {
-  assert.match(
-    html,
-    /<div[^>]+class="dock-rail dock-rail--top"[^>]+aria-label="上レール"[^>]*>[\s\S]*?<section[^>]+class="dock-bay dock-bay--search"[^>]+aria-label="検索ベイ"[^>]*>[\s\S]*?id="search"[\s\S]*?<\/section>[\s\S]*?<\/div>/,
-  );
+test("keeps four rail roots free of fixed control DOM", () => {
+  assert.match(html, /id="docking-rail-top"[^>]*><\/div>/);
+  assert.match(html, /id="docking-rail-left"[^>]*><\/div>/);
+  assert.match(html, /id="docking-rail-right"[^>]*><\/div>/);
+  assert.match(html, /id="docking-rail-bottom"[^>]*><\/footer>/);
+  assert.doesNotMatch(html, /id="(?:search|visit-status-filter|folder-back|sort-axis|view-type|movement-mode)"/);
 });
 
-test("places history, sort, and movement controls in separate fixed bottom bays", () => {
-  const bottomRail = html.match(
-    /<footer[^>]+class="panel-tools dock-rail dock-rail--bottom"[^>]+aria-label="下レール"[^>]*>([\s\S]*?)<\/footer>/,
-  )?.[1] ?? "";
-
-  const historyAt = bottomRail.indexOf('aria-label="フォルダ履歴ベイ"');
-  const sortAt = bottomRail.indexOf('aria-label="ソートベイ"');
-  const movementAt = bottomRail.indexOf('aria-label="移動モードベイ"');
-  assert.ok(historyAt >= 0 && historyAt < sortAt && sortAt < movementAt);
-  assert.ok(bottomRail.indexOf('id="folder-back"', historyAt) < sortAt);
-  assert.ok(bottomRail.indexOf('id="folder-forward"', historyAt) < sortAt);
-  assert.ok(bottomRail.indexOf('id="sort-axis"', sortAt) < movementAt);
-  assert.ok(bottomRail.indexOf('id="sort-direction"', sortAt) < movementAt);
-  assert.ok(bottomRail.indexOf('id="movement-mode"', movementAt) > movementAt);
+test("registers the six former fixed controls as dynamic renderers", () => {
+  for (const chipType of ["search", "visit-status", "folder-history", "sort", "view-type", "movement-mode"]) {
+    assert.match(runtime, new RegExp(`(?:"${chipType}"|${chipType}):\\s*render`));
+  }
 });
 
 test("fixed bays have visible boundaries and wrap on narrow panels", () => {

@@ -23,36 +23,7 @@
       <button id="bay-factory-open" type="button" disabled>選択したベイを編集</button>
     </div>
     <div id="docking-grid" class="docking-grid">
-    <div id="docking-rail-top" class="dock-rail dock-rail--top" aria-label="上レール">
-      <section class="dock-bay dock-bay--search" aria-label="検索ベイ">
-        <input
-          id="search"
-          type="search"
-          aria-label="ブックマークを検索"
-          placeholder="ブックマークを検索"
-          autocomplete="off"
-        >
-      </section>
-      <section class="dock-bay dock-bay--filter" aria-label="訪問状態フィルタベイ">
-        <fieldset id="visit-status-filter" class="visit-status-filter">
-          <legend>訪問状態</legend>
-          <div class="visit-status-options">
-            <label class="visit-status-option">
-              <input type="radio" name="visit-status" value="all" checked>
-              <span>すべて</span>
-            </label>
-            <label class="visit-status-option">
-              <input type="radio" name="visit-status" value="visited">
-              <span>訪問あり</span>
-            </label>
-            <label class="visit-status-option">
-              <input type="radio" name="visit-status" value="unvisited">
-              <span>未訪問</span>
-            </label>
-          </div>
-        </fieldset>
-      </section>
-    </div>
+    <div id="docking-rail-top" class="dock-rail dock-rail--top" aria-label="上レール"></div>
     <div id="docking-rail-left" class="dock-rail dock-rail--left" aria-label="左レール"></div>
     <div id="docking-center" class="docking-center">
     <nav id="folders" class="folder-region" aria-label="フォルダ" hidden></nav>
@@ -71,90 +42,7 @@
     </main>
     </div>
     <div id="docking-rail-right" class="dock-rail dock-rail--right" aria-label="右レール"></div>
-    <footer id="docking-rail-bottom" class="panel-tools dock-rail dock-rail--bottom" aria-label="下レール">
-      <section class="dock-bay dock-bay--history" aria-label="フォルダ履歴ベイ">
-        <div class="folder-navigation" role="group" aria-label="フォルダ履歴">
-          <button
-            id="folder-back"
-            type="button"
-            aria-label="前のフォルダへ戻る"
-            title="前のフォルダへ戻る"
-            disabled
-          >&lt;</button>
-          <button
-            id="folder-forward"
-            type="button"
-            aria-label="次のフォルダへ進む"
-            title="次のフォルダへ進む"
-            disabled
-          >&gt;</button>
-        </div>
-      </section>
-      <section class="dock-bay dock-bay--sort" aria-label="ソートベイ">
-        <label>
-          並び順
-          <select id="sort-axis" aria-label="並び順">
-            <option value="title">タイトル</option>
-            <option value="dateAdded">追加日時</option>
-            <option value="visitCount" selected>訪問回数</option>
-            <option value="lastVisitTime">最終訪問日時</option>
-          </select>
-        </label>
-        <button
-          id="sort-direction"
-          type="button"
-          data-direction="desc"
-          aria-label="並び方向を切り替え"
-        >降順</button>
-      </section>
-      <section class="dock-bay dock-bay--view" aria-label="表示形式ベイ">
-        <fieldset id="view-type" class="view-type">
-          <legend>表示形式</legend>
-          <div class="view-type-options">
-            <label class="view-type-option">
-              <input type="radio" name="view-type" value="panel" checked>
-              <span>パネル</span>
-            </label>
-            <label class="view-type-option">
-              <input type="radio" name="view-type" value="icon">
-              <span>アイコン</span>
-            </label>
-            <label class="view-type-option">
-              <input type="radio" name="view-type" value="card">
-              <span>カード</span>
-            </label>
-            <label class="view-type-option">
-              <input type="radio" name="view-type" value="list">
-              <span>一覧</span>
-            </label>
-          </div>
-        </fieldset>
-      </section>
-      <section class="dock-bay dock-bay--movement" aria-label="移動モードベイ">
-        <fieldset
-          id="movement-mode"
-          class="movement-mode"
-          aria-describedby="movement-mode-note"
-        >
-          <legend>移動モード</legend>
-          <div class="movement-mode-options">
-            <label class="movement-option movement-option--custom">
-              <input type="radio" name="movement-mode" value="custom-order">
-              <span class="movement-segment">カスタム配置</span>
-            </label>
-            <label class="movement-option movement-option--normal">
-              <input type="radio" name="movement-mode" value="normal" checked>
-              <span class="movement-segment">通常</span>
-            </label>
-            <label class="movement-option movement-option--directory">
-              <input type="radio" name="movement-mode" value="directory-move">
-              <span class="movement-segment">公式整理</span>
-            </label>
-          </div>
-          <span id="movement-mode-note" class="movement-mode-note">公式整理はFirefox本体へ反映</span>
-        </fieldset>
-      </section>
-    </footer>
+    <footer id="docking-rail-bottom" class="panel-tools dock-rail dock-rail--bottom" aria-label="下レール"></footer>
     </div>
   </div>
   <dialog id="layout-dialog" class="layout-dialog" aria-labelledby="layout-dialog-title">

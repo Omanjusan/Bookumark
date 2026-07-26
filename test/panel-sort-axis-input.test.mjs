@@ -3,15 +3,14 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const html = await readFile(new URL("../panel/panel.html", import.meta.url), "utf8");
+const runtime = await readFile(new URL("../src/panel/lib/docking-basic-chip-runtime.ts", import.meta.url), "utf8");
 
-test("provides a labelled sort-axis select enabled in the initial normal mode", () => {
-  const select = html.match(/<select[^>]+id="sort-axis"[^>]*>/)?.[0] ?? "";
-  assert.match(select, /aria-label="並び順"/);
-  assert.doesNotMatch(select, /\bdisabled\b/);
+test("provides a labelled sort-axis select through the dynamic renderer", () => {
+  assert.doesNotMatch(html, /id="sort-axis"/);
+  assert.match(runtime, /select\.setAttribute\("aria-label", "並び順"\)/);
   for (const axis of ["title", "dateAdded", "visitCount", "lastVisitTime"]) {
-    assert.match(html, new RegExp(`<option[^>]+value="${axis}"`));
+    assert.match(runtime, new RegExp(`"${axis}"`));
   }
-  assert.ok(html.indexOf('id="app"') < html.indexOf('id="sort-axis"'));
 });
 
 test("delivers valid sort-axis changes and can disconnect", async () => {

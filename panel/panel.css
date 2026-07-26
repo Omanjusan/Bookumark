@@ -216,7 +216,7 @@ header h1 {
   transform-origin: left top;
 }
 
-#search {
+.dock-search {
   width: 100%;
   margin: 0;
   padding: 8px 10px;
@@ -226,7 +226,7 @@ header h1 {
   color: var(--text);
   font: inherit;
 }
-#search:focus-visible {
+.dock-search:focus-visible {
   outline: 2px solid var(--text-faint);
   outline-offset: 1px;
 }

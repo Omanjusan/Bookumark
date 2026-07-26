@@ -3,28 +3,13 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const html = await readFile(new URL("../panel/panel.html", import.meta.url), "utf8");
+const runtime = await readFile(new URL("../src/panel/lib/docking-basic-chip-runtime.ts", import.meta.url), "utf8");
 
-test("places one accessible visit filter bay after the search bay", () => {
-  const searchAt = html.indexOf('aria-label="検索ベイ"');
-  const filterAt = html.indexOf('aria-label="訪問状態フィルタベイ"');
-  const foldersAt = html.indexOf('id="folders"');
-  assert.ok(searchAt >= 0 && searchAt < filterAt && filterAt < foldersAt);
-  assert.match(
-    html,
-    /<fieldset[^>]+id="visit-status-filter"[^>]+class="visit-status-filter"[^>]*>[\s\S]*?<legend>訪問状態<\/legend>/,
-  );
-  for (const [value, label] of [
-    ["all", "すべて"],
-    ["visited", "訪問あり"],
-    ["unvisited", "未訪問"],
-  ]) {
-    assert.match(
-      html,
-      new RegExp(`<input[^>]+type="radio"[^>]+name="visit-status"[^>]+value="${value}"[^>]*>[\\s\\S]*?${label}`),
-    );
-  }
-  const all = html.match(/<input[^>]+value="all"[^>]*>/)?.[0] ?? "";
-  assert.match(all, /\bchecked\b/);
+test("provides accessible visit choices through the dynamic renderer", () => {
+  assert.doesNotMatch(html, /id="visit-status-filter"/);
+  assert.match(runtime, /fieldset\.className = "visit-status-filter"/);
+  for (const value of ["all", "visited", "unvisited"]) assert.match(runtime, new RegExp(`"${value}"`));
+  for (const label of ["すべて", "訪問あり", "未訪問"]) assert.match(runtime, new RegExp(label));
 });
 
 test("delivers valid changes, keeps choices exclusive, and synchronizes state", async () => {

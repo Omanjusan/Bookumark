@@ -1,4 +1,9 @@
 import { loadBookmarkHistory } from "./lib/bookmark-history.js";
+import {
+  createActiveDockingLayoutController,
+  createDockingTransientState,
+} from "./lib/active-docking-layout-controller.js";
+import type { ActiveDockingLayoutController } from "./lib/active-docking-layout-controller.js";
 import { bindBayFactory } from "./lib/bay-factory-controller.js";
 import { bindBayFactoryChipDrag } from "./lib/bay-factory-chip-drag.js";
 import { renderBayFactoryEditor } from "./lib/bay-factory-static-view.js";
@@ -22,8 +27,16 @@ import {
 import { reorderItemsForTileDrop } from "./lib/custom-order-items.js";
 import { persistCustomOrder } from "./lib/custom-order-persistence.js";
 import type { DisplayBookmarkItem } from "./lib/display-item.js";
+import type { MovementMode, StandardSortAxisId } from "./lib/display-state.js";
 import { INITIAL_FIXED_DISPLAY_STATE, reduceFixedDisplayState } from "./lib/fixed-display-controller.js";
 import { directFolderContents } from "./lib/folder-contents.js";
+import { createDockingBasicChipRuntime } from "./lib/docking-basic-chip-runtime.js";
+import type { DockingBasicChipRuntime } from "./lib/docking-basic-chip-runtime.js";
+import { createDockingChipRendererRegistry } from "./lib/docking-chip-renderer-registry.js";
+import { renderHorizontalDockingRail } from "./lib/docking-horizontal-rail-view.js";
+import { planDockingRailOverflow } from "./lib/docking-rail-overflow.js";
+import { renderVerticalDockingRail } from "./lib/docking-vertical-rail-view.js";
+import type { DockingDocuments } from "./lib/docking-persistence-model.js";
 import {
   migrateLegacyOrder,
   orderDirectFolderContents,
@@ -45,9 +58,7 @@ import {
 import { createFolderNavigationHistory } from "./lib/folder-navigation-history.js";
 import type { FolderNavigationHistory } from "./lib/folder-navigation-history.js";
 import { renderListView } from "./lib/list-view.js";
-import { bindPanelFolderHistoryInput } from "./lib/panel-folder-history-input.js";
 import type { FolderHistoryDirection } from "./lib/panel-folder-history-input.js";
-import { bindMovementModeInput } from "./lib/panel-movement-mode-input.js";
 import { bindLayoutManagement } from "./lib/layout-management-controller.js";
 import { createLayoutManagementCoordinator } from "./lib/layout-management-coordinator.js";
 import {
@@ -65,34 +76,29 @@ import {
   bindOfficialMoveUndo,
   renderOfficialMoveNotice,
 } from "./lib/panel-official-move-notice.js";
-import { bindPanelSearchInput } from "./lib/panel-search-input.js";
-import { bindPanelSortAxisInput } from "./lib/panel-sort-axis-input.js";
-import { bindPanelSortDirectionInput } from "./lib/panel-sort-direction-input.js";
 import { renderPanelStatus } from "./lib/panel-status-view.js";
 import { bindPanelTileOpen } from "./lib/panel-tile-open.js";
 import { bindPanelTileDrag } from "./lib/panel-tile-drag.js";
-import { bindVisitStatusFilterInput } from "./lib/panel-visit-filter-input.js";
-import { bindViewTypeInput } from "./lib/panel-view-type-input.js";
 import {
   loadFolderOrders,
   loadOrder,
   saveFolderOrders,
 } from "./lib/overlay.js";
 import { createVisitStatusFilters } from "./lib/visit-status-filter.js";
+import type { VisitStatusFilterValue } from "./lib/visit-status-filter.js";
 import { presentSelectedView } from "./lib/selected-view-presenter.js";
 import { resolveViewDragMode } from "./lib/view-drag-policy.js";
+import type { ViewType } from "./lib/view-type.js";
 
 const root = document.getElementById("app") as HTMLElement;
 const folderRoot = document.getElementById("folders") as HTMLElement;
-const folderBackButton = document.getElementById("folder-back") as HTMLButtonElement;
-const folderForwardButton = document.getElementById("folder-forward") as HTMLButtonElement;
 const countEl = document.getElementById("count") as HTMLElement;
-const searchInput = document.getElementById("search") as HTMLInputElement;
-const visitStatusFilterRoot = document.getElementById("visit-status-filter") as HTMLElement;
-const viewTypeRoot = document.getElementById("view-type") as HTMLElement;
-const movementModeRoot = document.getElementById("movement-mode") as HTMLElement;
-const sortAxisSelect = document.getElementById("sort-axis") as HTMLSelectElement;
-const sortDirectionButton = document.getElementById("sort-direction") as HTMLButtonElement;
+const dockingRailRoots = {
+  top: document.getElementById("docking-rail-top") as HTMLElement,
+  left: document.getElementById("docking-rail-left") as HTMLElement,
+  right: document.getElementById("docking-rail-right") as HTMLElement,
+  bottom: document.getElementById("docking-rail-bottom") as HTMLElement,
+};
 const officialMoveNoticeRoot = document.getElementById("official-move-notice") as HTMLElement;
 const officialMoveMessage = document.getElementById("official-move-message") as HTMLElement;
 const officialMoveUndoButton = document.getElementById("official-move-undo") as HTMLButtonElement;
@@ -158,8 +164,11 @@ let folderHistory: FolderNavigationHistory | null = null;
 let folderNavigationPending = false;
 let gridCells = { columns: 0, rows: 0 };
 let fixedDisplayState = INITIAL_FIXED_DISPLAY_STATE;
+let visitStatusValue: VisitStatusFilterValue = "all";
 let officialMovePending = false;
 let lastOfficialMove: BookmarkMoveSnapshot | null = null;
+let activeChipRuntime: DockingBasicChipRuntime | null = null;
+let activeDockingController: ActiveDockingLayoutController | null = null;
 const dragClickGuard = createPanelDragClickGuard();
 
 // 永続ユーザーベイとの接続はDB-8で行い、現段階では偽データを注入しない。
@@ -217,26 +226,16 @@ function dragEnabled(): boolean {
 }
 
 function syncSortDirectionButton(): void {
-  const direction = fixedDisplayState.display.lastStandardSort.direction;
-  sortDirectionButton.disabled = fixedDisplayState.display.movementMode !== "normal";
-  sortDirectionButton.dataset.direction = direction;
-  sortDirectionButton.textContent = direction === "asc" ? "昇順" : "降順";
+  activeChipRuntime?.sync();
 }
 
 function syncMovementControls(): void {
-  movementModeConnection.setMode(fixedDisplayState.display.movementMode);
-  sortAxisSelect.disabled = fixedDisplayState.display.movementMode !== "normal";
-  sortAxisSelect.value = fixedDisplayState.display.lastStandardSort.axisId;
-  syncSortDirectionButton();
+  activeChipRuntime?.sync();
 }
 
 function redraw(): void {
   root.dataset.viewType = fixedDisplayState.activeViewType;
-  folderHistoryConnection.render({
-    canGoBack: (folderHistory?.backDestination() ?? null) !== null,
-    canGoForward: (folderHistory?.forwardDestination() ?? null) !== null,
-    pending: folderNavigationPending,
-  });
+  activeChipRuntime?.sync();
   renderPanelFolders(folderRoot, currentFolders, { draggable: dragEnabled() });
   if (currentItems === null) {
     renderPanelStatus(root, { status: "loading" });
@@ -272,7 +271,8 @@ function redraw(): void {
   });
 }
 
-const movementModeConnection = bindMovementModeInput(movementModeRoot, (mode) => {
+/** 動的な移動モードチップから共有表示状態を更新する。 */
+function setMovementMode(mode: MovementMode): void {
   fixedDisplayState = reduceFixedDisplayState(fixedDisplayState, {
     type: "setMovementMode",
     mode,
@@ -283,9 +283,10 @@ const movementModeConnection = bindMovementModeInput(movementModeRoot, (mode) =>
   } else {
     void showFolder(currentFolderGuid).catch(showLoadError);
   }
-});
+}
 
-bindPanelSearchInput(searchInput, (nextQuery) => {
+/** 動的な検索チップから共有検索状態を更新する。 */
+function setSearchQuery(nextQuery: string): void {
   const previousMode = fixedDisplayState.display.movementMode;
   fixedDisplayState = reduceFixedDisplayState(fixedDisplayState, {
     type: "setQuery",
@@ -293,9 +294,11 @@ bindPanelSearchInput(searchInput, (nextQuery) => {
   });
   if (fixedDisplayState.display.movementMode !== previousMode) syncMovementControls();
   redraw();
-});
+}
 
-bindVisitStatusFilterInput(visitStatusFilterRoot, (value) => {
+/** 動的な訪問状態チップから共有フィルター状態を更新する。 */
+function setVisitStatus(value: VisitStatusFilterValue): void {
+  visitStatusValue = value;
   const previousMode = fixedDisplayState.display.movementMode;
   fixedDisplayState = reduceFixedDisplayState(fixedDisplayState, {
     type: "setFilters",
@@ -303,18 +306,19 @@ bindVisitStatusFilterInput(visitStatusFilterRoot, (value) => {
   });
   if (fixedDisplayState.display.movementMode !== previousMode) syncMovementControls();
   redraw();
-});
+}
 
-const viewTypeConnection = bindViewTypeInput(viewTypeRoot, (viewType) => {
+/** 動的な表示形式チップから共有ビュー状態を更新する。 */
+function setViewType(viewType: ViewType): void {
   fixedDisplayState = reduceFixedDisplayState(fixedDisplayState, {
     type: "selectView",
     viewType,
   });
-  viewTypeConnection.setValue(fixedDisplayState.activeViewType);
   redraw();
-});
+}
 
-bindPanelSortAxisInput(sortAxisSelect, (axisId) => {
+/** 動的なソートチップから共有ソート軸を更新する。 */
+function setSortAxis(axisId: StandardSortAxisId): void {
   fixedDisplayState = reduceFixedDisplayState(fixedDisplayState, {
     type: "selectSort",
     axisId,
@@ -322,15 +326,16 @@ bindPanelSortAxisInput(sortAxisSelect, (axisId) => {
   });
   syncMovementControls();
   redraw();
-});
+}
 
-bindPanelSortDirectionInput(sortDirectionButton, () => {
+/** 動的なソートチップから共有ソート方向を反転する。 */
+function toggleSortDirection(): void {
   fixedDisplayState = reduceFixedDisplayState(fixedDisplayState, {
     type: "toggleDirection",
   });
   syncSortDirectionButton();
   redraw();
-});
+}
 
 bindPanelTileOpen(root, {
   createTab: (details) => browser.tabs.create(details),
@@ -374,11 +379,6 @@ bindPanelFolderNavigation(
   folderRoot,
   (folderGuid) => void visitFolder(folderGuid).catch(showLoadError),
   { consumeSuppressedClick: dragClickGuard.consumeClick },
-);
-
-const folderHistoryConnection = bindPanelFolderHistoryInput(
-  { backward: folderBackButton, forward: folderForwardButton },
-  (direction) => void moveFolderHistory(direction).catch(showLoadError),
 );
 
 bindPanelFolderDrag(
@@ -643,6 +643,103 @@ function showLoadError(error: unknown): void {
   });
 }
 
+/** 現在の共有状態と操作callbackへ接続した基本6チップruntimeを生成する。 */
+function createPanelChipRuntime(): DockingBasicChipRuntime {
+  return createDockingBasicChipRuntime({
+    snapshot: () => ({
+      query: fixedDisplayState.query,
+      visitStatus: visitStatusValue,
+      folderHistory: {
+        canGoBack: (folderHistory?.backDestination() ?? null) !== null,
+        canGoForward: (folderHistory?.forwardDestination() ?? null) !== null,
+        pending: folderNavigationPending,
+      },
+      sortAxis: fixedDisplayState.display.lastStandardSort.axisId,
+      sortDirection: fixedDisplayState.display.lastStandardSort.direction,
+      sortDisabled: fixedDisplayState.display.movementMode !== "normal",
+      viewType: fixedDisplayState.activeViewType,
+      movementMode: fixedDisplayState.display.movementMode,
+    }),
+    onSearch: setSearchQuery,
+    onVisitStatus: setVisitStatus,
+    onFolderHistory: (direction) => void moveFolderHistory(direction).catch(showLoadError),
+    onSortAxis: setSortAxis,
+    onSortDirection: toggleSortDirection,
+    onViewType: setViewType,
+    onMovementMode: setMovementMode,
+  });
+}
+
+/** 描画済みベイ寸法からレールの間隔とスクロール状態をDOMへ反映する。 */
+function applyDockingRailOverflow(
+  rail: HTMLElement,
+  orientation: "horizontal" | "vertical",
+): void {
+  const available = orientation === "horizontal" ? rail.clientWidth : rail.clientHeight;
+  const extents = Array.from(rail.children).map((child) => {
+    const rect = child.getBoundingClientRect();
+    return orientation === "horizontal" ? rect.width : rect.height;
+  });
+  const overflow = planDockingRailOverflow(available, extents);
+  rail.dataset.gap = String(overflow.gap);
+  rail.dataset.scroll = String(overflow.scroll);
+}
+
+/** 動的4レールのライフサイクルコントローラーを遅延生成する。 */
+function dockingLayoutController(): ActiveDockingLayoutController {
+  if (activeDockingController !== null) return activeDockingController;
+  activeDockingController = createActiveDockingLayoutController({
+    clearDynamicRails: () => {
+      for (const rail of Object.values(dockingRailRoots)) {
+        rail.replaceChildren();
+        delete rail.dataset.gap;
+        delete rail.dataset.scroll;
+      }
+    },
+    resetTransientState: () => {
+      if (currentFolderGuid === null) throw new Error("current folder is required for layout rebuild");
+      const transient = createDockingTransientState(currentFolderGuid);
+      fixedDisplayState = transient.fixedDisplayState;
+      visitStatusValue = "all";
+      folderHistory = transient.folderHistory;
+      lastOfficialMove = transient.officialUndo;
+      officialMovePending = transient.officialMovePending;
+      folderNavigationPending = transient.folderNavigationPending;
+    },
+    render: (plan) => {
+      const runtime = createPanelChipRuntime();
+      activeChipRuntime = runtime;
+      const registry = createDockingChipRendererRegistry(runtime.renderers);
+      for (const railPlan of plan.rails) {
+        const rail = dockingRailRoots[railPlan.rail];
+        const result = railPlan.orientation === "horizontal"
+          ? renderHorizontalDockingRail(rail, railPlan, registry)
+          : renderVerticalDockingRail(rail, railPlan, registry);
+        if (result.skippedChips.length > 0) {
+          console.warn("docking chips were skipped:", result.skippedChips);
+        }
+        applyDockingRailOverflow(rail, railPlan.orientation);
+      }
+      runtime.sync();
+      redraw();
+      return {
+        disconnect(): void {
+          runtime.disconnect();
+          if (activeChipRuntime === runtime) activeChipRuntime = null;
+        },
+      };
+    },
+  });
+  return activeDockingController;
+}
+
+/** 正常化済み文書のactiveレイアウトを動的4レールへ再構築する。 */
+function rebuildActiveDockingLayout(documents: DockingDocuments): void {
+  if (currentFolderGuid === null) return;
+  const plan = dockingLayoutController().rebuild(documents);
+  root.dataset.activeLayoutId = plan.activeLayoutId;
+}
+
 async function main(): Promise<void> {
   try {
     const dockingState = await loadPanelDockingState();
@@ -671,6 +768,7 @@ async function main(): Promise<void> {
       onStateChange: (documents) => {
         root.dataset.activeLayoutId = documents.dockingMetadata.activeLayoutId;
         bayFactoryConnection.replaceBays(buildPanelBayModels(documents));
+        rebuildActiveDockingLayout(documents);
       },
     });
     treeItems = await getBookmarkTreeItems();
@@ -696,6 +794,7 @@ async function main(): Promise<void> {
       ...restoredFolder.ancestorGuids,
       restoredFolder.guid,
     ]);
+    rebuildActiveDockingLayout(dockingState.documents);
     redraw();
   } catch (error) {
     showLoadError(error);

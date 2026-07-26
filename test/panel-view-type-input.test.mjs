@@ -3,29 +3,13 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const html = await readFile(new URL("../panel/panel.html", import.meta.url), "utf8");
+const runtime = await readFile(new URL("../src/panel/lib/docking-basic-chip-runtime.ts", import.meta.url), "utf8");
 
-test("places an accessible four-choice view bay between sort and movement", () => {
-  const sortAt = html.indexOf('aria-label="ソートベイ"');
-  const viewAt = html.indexOf('aria-label="表示形式ベイ"');
-  const movementAt = html.indexOf('aria-label="移動モードベイ"');
-  assert.ok(sortAt >= 0 && sortAt < viewAt && viewAt < movementAt);
-  assert.match(
-    html,
-    /<fieldset[^>]+id="view-type"[^>]+class="view-type"[^>]*>[\s\S]*?<legend>表示形式<\/legend>/,
-  );
-  for (const [value, label] of [
-    ["panel", "パネル"],
-    ["icon", "アイコン"],
-    ["card", "カード"],
-    ["list", "一覧"],
-  ]) {
-    assert.match(
-      html,
-      new RegExp(`<input[^>]+type="radio"[^>]+name="view-type"[^>]+value="${value}"[^>]*>[\\s\\S]*?${label}`),
-    );
-  }
-  const panel = html.match(/<input[^>]+value="panel"[^>]*>/)?.[0] ?? "";
-  assert.match(panel, /\bchecked\b/);
+test("provides accessible four-choice view controls dynamically", () => {
+  assert.doesNotMatch(html, /id="view-type"/);
+  assert.match(runtime, /fieldset\.className = "view-type"/);
+  for (const value of ["panel", "icon", "card", "list"]) assert.match(runtime, new RegExp(`"${value}"`));
+  for (const label of ["パネル", "アイコン", "カード", "一覧"]) assert.match(runtime, new RegExp(label));
 });
 
 test("delivers valid view changes and synchronizes multiple controls", async () => {

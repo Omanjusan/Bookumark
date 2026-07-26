@@ -4,11 +4,12 @@ import { readFile } from "node:fs/promises";
 import { bindPanelFolderHistoryInput } from "../dist/panel/lib/panel-folder-history-input.js";
 
 const html = await readFile(new URL("../panel/panel.html", import.meta.url), "utf8");
+const runtime = await readFile(new URL("../src/panel/lib/docking-basic-chip-runtime.ts", import.meta.url), "utf8");
 
-test("provides accessible backward and forward folder buttons", () => {
-  assert.match(html, /id="folder-back"[^>]+aria-label="前のフォルダへ戻る"[^>]+disabled/);
-  assert.match(html, /id="folder-forward"[^>]+aria-label="次のフォルダへ進む"[^>]+disabled/);
-  assert.ok(html.indexOf('id="folder-back"') < html.indexOf('id="folder-forward"'));
+test("provides accessible dynamic backward and forward folder buttons", () => {
+  assert.doesNotMatch(html, /id="folder-(?:back|forward)"/);
+  assert.match(runtime, /"前のフォルダへ戻る"/);
+  assert.match(runtime, /"次のフォルダへ進む"/);
 });
 
 test("delivers button activations, synchronizes state, and disconnects", () => {

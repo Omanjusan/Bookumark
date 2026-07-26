@@ -3,11 +3,12 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const html = await readFile(new URL("../panel/panel.html", import.meta.url), "utf8");
+const runtime = await readFile(new URL("../src/panel/lib/docking-basic-chip-runtime.ts", import.meta.url), "utf8");
 
-test("provides a labelled search input outside the drawing root", () => {
-  assert.match(html, /<input[^>]+id="search"[^>]+type="search"/);
-  assert.match(html, /id="search"[^>]+aria-label="ブックマークを検索"/);
-  assert.ok(html.indexOf('id="search"') < html.indexOf('id="app"'));
+test("provides labelled search inputs through the dynamic renderer", () => {
+  assert.doesNotMatch(html, /id="search"/);
+  assert.match(runtime, /input\.type = "search"/);
+  assert.match(runtime, /"aria-label", "ブックマークを検索"/);
 });
 
 test("delivers every changed search query immediately and can disconnect", async () => {
