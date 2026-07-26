@@ -1,3 +1,10 @@
+import type {
+  BayConfigurationsDocument,
+  DockingDocuments,
+  DockingMetadataDocument,
+  MainLayoutsDocument,
+} from "./docking-persistence-model.js";
+
 export const DOCKING_STORAGE_KEYS = {
   bayConfigurations: "bayConfigurations.v1",
   mainLayouts: "mainLayouts.v1",
@@ -26,30 +33,32 @@ export async function loadDockingDocuments(): Promise<StoredDockingDocuments> {
 export async function saveBayConfigurations(
   document: BayConfigurationsDocument,
 ): Promise<void> {
-  await saveDockingDocument(DOCKING_STORAGE_KEYS.bayConfigurations, document);
+  await saveDockingDocuments({ bayConfigurations: document });
 }
 
 /** メインレイアウト文書だけを対応する固定キーへ保存する。 */
 export async function saveMainLayouts(document: MainLayoutsDocument): Promise<void> {
-  await saveDockingDocument(DOCKING_STORAGE_KEYS.mainLayouts, document);
+  await saveDockingDocuments({ mainLayouts: document });
 }
 
 /** ドッキングメタデータ文書だけを対応する固定キーへ保存する。 */
 export async function saveDockingMetadata(
   document: DockingMetadataDocument,
 ): Promise<void> {
-  await saveDockingDocument(DOCKING_STORAGE_KEYS.dockingMetadata, document);
+  await saveDockingDocuments({ dockingMetadata: document });
 }
 
-/** 文書を呼び出し元と状態共有しない値へ複製して単独保存する。 */
-async function saveDockingDocument(
-  key: typeof DOCKING_STORAGE_KEYS[keyof typeof DOCKING_STORAGE_KEYS],
-  document: BayConfigurationsDocument | MainLayoutsDocument | DockingMetadataDocument,
+/** 指定されたドッキング文書を防御的コピーし、1回の要求で一括保存する。 */
+export async function saveDockingDocuments(
+  documents: Partial<DockingDocuments>,
 ): Promise<void> {
-  await browser.storage.local.set({ [key]: structuredClone(document) });
+  const stored: Record<string, unknown> = {};
+  for (const field of Object.keys(DOCKING_STORAGE_KEYS) as Array<keyof DockingDocuments>) {
+    const document = documents[field];
+    if (document !== undefined) {
+      stored[DOCKING_STORAGE_KEYS[field]] = structuredClone(document);
+    }
+  }
+  if (Object.keys(stored).length === 0) return;
+  await browser.storage.local.set(stored);
 }
-import type {
-  BayConfigurationsDocument,
-  DockingMetadataDocument,
-  MainLayoutsDocument,
-} from "./docking-persistence-model.js";
