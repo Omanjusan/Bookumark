@@ -3,6 +3,10 @@ import type { DockingRecovery } from "./docking-bay-normalization.js";
 import { normalizeMainLayoutsDocument } from "./docking-layout-normalization.js";
 import { normalizeDockingMetadataDocument } from "./docking-metadata-normalization.js";
 import type { DockingDocuments } from "./docking-persistence-model.js";
+import {
+  loadDockingDocuments,
+  saveDockingDocuments,
+} from "./docking-storage.js";
 import type { StoredDockingDocuments } from "./docking-storage.js";
 
 export interface DockingDocumentsNormalizationResult {
@@ -50,4 +54,28 @@ export function normalizeDockingDocuments(
     recoveries,
     changedDocuments,
   };
+}
+
+/** 3文書を一括読込・正常化し、変更文書だけを保存してから結果を返す。 */
+export async function loadNormalizedDockingDocuments(
+  fallback: DockingDocuments,
+): Promise<DockingDocumentsNormalizationResult> {
+  const stored = await loadDockingDocuments();
+  const result = normalizeDockingDocuments(stored, fallback);
+  const repaired: Partial<DockingDocuments> = {};
+  for (const field of result.changedDocuments) {
+    // 正常な文書を暗黙に書き換えず、補正・復旧した文書だけを再保存する。
+    assignDocument(repaired, field, result.documents[field]);
+  }
+  await saveDockingDocuments(repaired);
+  return result;
+}
+
+/** 文書フィールドと値の対応を保ったまま保存パッチへ代入する。 */
+function assignDocument<Field extends keyof DockingDocuments>(
+  target: Partial<DockingDocuments>,
+  field: Field,
+  document: DockingDocuments[Field],
+): void {
+  target[field] = document;
 }
