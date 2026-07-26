@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 
 import { normalizeMainLayoutsDocument } from "../dist/panel/lib/docking-layout-normalization.js";
 
+const validBayIds = new Set(["bay-1", "bay-2", "bay-3"]);
+
 const fallback = {
   schemaVersion: 1,
   nextLayoutSequence: 2,
@@ -24,11 +26,11 @@ test("keeps the first canonical layout id and drops malformed entries", () => {
       null,
       { id: "layout-3", name: "末尾", systemDefault: false, placements: [] },
     ],
-  }, fallback);
+  }, fallback, validBayIds);
 
   assert.deepEqual(result.document.layouts, [
     fallback.layouts[0],
-    { id: "layout-2", name: "先頭", systemDefault: false, placements: [{ bayId: "bay-1" }] },
+    { id: "layout-2", name: "先頭", systemDefault: false, placements: [] },
     { id: "layout-3", name: "末尾", systemDefault: false, placements: [] },
   ]);
   assert.equal(result.recovery, "normalized");
@@ -43,7 +45,7 @@ test("repairs empty names and derives systemDefault only from the injected id", 
       { id: "layout-2", name: "  余白名  ", systemDefault: true, placements: [] },
       { id: "layout-3", systemDefault: "yes", placements: [] },
     ],
-  }, fallback);
+  }, fallback, validBayIds);
 
   assert.deepEqual(result.document.layouts, [
     { id: "layout-1", name: "名称未設定", systemDefault: true, placements: [] },
@@ -60,7 +62,7 @@ test("does not rename duplicate non-empty layout names during recovery", () => {
       fallback.layouts[0],
       { id: "layout-2", name: "内部デフォルト", systemDefault: false, placements: [] },
     ],
-  }, fallback);
+  }, fallback, validBayIds);
 
   assert.equal(result.document.layouts[1].name, "内部デフォルト");
 });

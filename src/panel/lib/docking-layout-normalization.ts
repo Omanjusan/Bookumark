@@ -1,11 +1,14 @@
 import { DOCKING_SCHEMA_VERSION } from "./docking-persistence-model.js";
 import type {
+  BayPlacement,
   LayoutConfiguration,
   MainLayoutsDocument,
+  RailId,
 } from "./docking-persistence-model.js";
 
 const UNNAMED_LAYOUT = "名称未設定";
 const LAYOUT_ID_PATTERN = /^layout-([1-9]\d*)$/;
+const RAILS: readonly RailId[] = ["top", "left", "right", "bottom"];
 
 export type LayoutRecovery = "unchanged" | "normalized" | "fallback";
 
@@ -19,16 +22,24 @@ export interface MainLayoutsNormalizationResult {
 export function normalizeMainLayoutsDocument(
   value: unknown,
   fallback: MainLayoutsDocument,
+  validBayIds: ReadonlySet<string>,
 ): MainLayoutsNormalizationResult {
   if (!isRecord(value)) return fallbackResult(fallback);
   if (value.schemaVersion !== DOCKING_SCHEMA_VERSION) return fallbackResult(fallback);
   if (!Array.isArray(value.layouts)) return fallbackResult(fallback);
   if (isSequenceOverflow(value.nextLayoutSequence)) return fallbackResult(fallback);
 
-  const systemDefaultId = fallback.layouts.find((layout) => layout.systemDefault)?.id;
-  if (!systemDefaultId) return fallbackResult(fallback);
-  const layouts = normalizeLayouts(value.layouts, systemDefaultId);
-  if (!layouts.hasSystemDefault || layouts.sequenceOverflow) return fallbackResult(fallback);
+  const systemDefault = fallback.layouts.find((layout) => layout.systemDefault);
+  if (!systemDefault) return fallbackResult(fallback);
+  const layouts = normalizeLayouts(
+    value.layouts,
+    systemDefault.id,
+    systemDefault.placements,
+    validBayIds,
+  );
+  if (!layouts.hasSystemDefault
+    || layouts.systemDefaultPlacementsChanged
+    || layouts.sequenceOverflow) return fallbackResult(fallback);
 
   const normalizedSequence = normalizeSequence(value.nextLayoutSequence);
   const nextLayoutSequence = Math.max(normalizedSequence, layouts.maxSequence + 1);
@@ -57,10 +68,13 @@ function fallbackResult(fallback: MainLayoutsDocument): MainLayoutsNormalization
 function normalizeLayouts(
   values: unknown[],
   systemDefaultId: string,
+  systemDefaultPlacements: BayPlacement[],
+  validBayIds: ReadonlySet<string>,
 ): {
   value: LayoutConfiguration[];
   changed: boolean;
   hasSystemDefault: boolean;
+  systemDefaultPlacementsChanged: boolean;
   maxSequence: number;
   sequenceOverflow: boolean;
 } {
@@ -68,6 +82,7 @@ function normalizeLayouts(
   const layouts: LayoutConfiguration[] = [];
   let changed = false;
   let hasSystemDefault = false;
+  let systemDefaultPlacementsChanged = false;
   let maxSequence = 0;
   let sequenceOverflow = false;
 
@@ -94,13 +109,18 @@ function normalizeLayouts(
     const systemDefault = id === systemDefaultId;
     hasSystemDefault ||= systemDefault;
     if (name !== candidate.name || systemDefault !== candidate.systemDefault) changed = true;
+    const placements = normalizePlacements(candidate.placements, validBayIds);
+    changed ||= placements.changed;
+    if (systemDefault
+      && (placements.changed || !placementsEqual(placements.value, systemDefaultPlacements))) {
+      systemDefaultPlacementsChanged = true;
+    }
 
     layouts.push({
       id,
       name,
       systemDefault,
-      // 配置内容の検証はDB-4C-2で行う。
-      placements: structuredClone(candidate.placements) as LayoutConfiguration["placements"],
+      placements: placements.value,
     });
   }
 
@@ -108,9 +128,83 @@ function normalizeLayouts(
     value: layouts,
     changed,
     hasSystemDefault,
+    systemDefaultPlacementsChanged,
     maxSequence,
     sequenceOverflow,
   };
+}
+
+/** 配置を検証し、レール順とレール内orderを正規化する。 */
+function normalizePlacements(
+  value: unknown,
+  validBayIds: ReadonlySet<string>,
+): { value: BayPlacement[]; changed: boolean } {
+  if (!Array.isArray(value)) return { value: [], changed: true };
+
+  const bayIds = new Set<string>();
+  const placements: Array<BayPlacement & { sourceIndex: number; sourceOrder: number | null }> = [];
+  let changed = false;
+
+  for (const [sourceIndex, candidate] of value.entries()) {
+    if (!isRecord(candidate)
+      || typeof candidate.bayId !== "string"
+      || !validBayIds.has(candidate.bayId)
+      || bayIds.has(candidate.bayId)
+      || !isRailId(candidate.rail)) {
+      changed = true;
+      continue;
+    }
+
+    bayIds.add(candidate.bayId);
+    placements.push({
+      bayId: candidate.bayId,
+      rail: candidate.rail,
+      order: 0,
+      sourceIndex,
+      sourceOrder: isPositiveSafeInteger(candidate.order) ? candidate.order : null,
+    });
+  }
+
+  // レールを適用順にまとめ、有効orderを優先して保存順で安定化する。
+  placements.sort((left, right) => {
+    const railDifference = RAILS.indexOf(left.rail) - RAILS.indexOf(right.rail);
+    if (railDifference !== 0) return railDifference;
+    if (left.sourceOrder === null && right.sourceOrder === null) {
+      return left.sourceIndex - right.sourceIndex;
+    }
+    if (left.sourceOrder === null) return 1;
+    if (right.sourceOrder === null) return -1;
+    return left.sourceOrder - right.sourceOrder || left.sourceIndex - right.sourceIndex;
+  });
+
+  const nextOrder = new Map<RailId, number>();
+  const normalized = placements.map(({ sourceIndex, sourceOrder, ...placement }, index) => {
+    const order = (nextOrder.get(placement.rail) ?? 0) + 1;
+    nextOrder.set(placement.rail, order);
+    if (sourceIndex !== index || sourceOrder !== order) changed = true;
+    return { ...placement, order };
+  });
+  return { value: normalized, changed };
+}
+
+/** 2つの配置配列が同じベイ、レール、orderを持つか判定する。 */
+function placementsEqual(left: BayPlacement[], right: BayPlacement[]): boolean {
+  return left.length === right.length && left.every((placement, index) => {
+    const other = right[index];
+    return placement.bayId === other?.bayId
+      && placement.rail === other.rail
+      && placement.order === other.order;
+  });
+}
+
+/** 値が4つの配置レールのいずれかか判定する。 */
+function isRailId(value: unknown): value is RailId {
+  return typeof value === "string" && (RAILS as readonly string[]).includes(value);
+}
+
+/** 値が1以上の安全整数か判定する。 */
+function isPositiveSafeInteger(value: unknown): value is number {
+  return Number.isSafeInteger(value) && (value as number) >= 1;
 }
 
 /** 正規形のレイアウトIDから安全整数の連番を取り出す。 */

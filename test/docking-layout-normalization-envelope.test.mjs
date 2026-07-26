@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 
 import { normalizeMainLayoutsDocument } from "../dist/panel/lib/docking-layout-normalization.js";
 
+const validBayIds = new Set(["bay-1", "bay-2", "bay-3"]);
+
 const fallback = {
   schemaVersion: 1,
   nextLayoutSequence: 3,
@@ -14,7 +16,7 @@ const fallback = {
 
 test("keeps a valid layout envelope as a defensive copy", () => {
   const input = structuredClone(fallback);
-  const result = normalizeMainLayoutsDocument(input, fallback);
+  const result = normalizeMainLayoutsDocument(input, fallback, validBayIds);
 
   assert.deepEqual(result, { document: input, changed: false, recovery: "unchanged" });
   assert.notEqual(result.document, input);
@@ -30,7 +32,7 @@ test("falls back for an invalid envelope or missing injected system default", ()
     { schemaVersion: 1, nextLayoutSequence: 3, layouts: {} },
     { schemaVersion: 1, nextLayoutSequence: 3, layouts: [fallback.layouts[1]] },
   ]) {
-    const result = normalizeMainLayoutsDocument(input, fallback);
+    const result = normalizeMainLayoutsDocument(input, fallback, validBayIds);
     assert.deepEqual(result.document, fallback);
     assert.equal(result.recovery, "fallback");
     assert.notEqual(result.document, fallback);
@@ -45,7 +47,7 @@ test("normalizes invalid counters and raises them above retained layout ids", ()
       fallback.layouts[0],
       { id: "layout-8", name: "八", systemDefault: false, placements: [] },
     ],
-  }, fallback);
+  }, fallback, validBayIds);
 
   assert.equal(result.document.nextLayoutSequence, 9);
   assert.equal(result.recovery, "normalized");
@@ -72,6 +74,6 @@ test("falls back if the counter or retained id cannot advance safely", () => {
       ],
     },
   ]) {
-    assert.equal(normalizeMainLayoutsDocument(input, fallback).recovery, "fallback");
+    assert.equal(normalizeMainLayoutsDocument(input, fallback, validBayIds).recovery, "fallback");
   }
 });
