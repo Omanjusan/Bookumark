@@ -43,7 +43,7 @@ test("places the static menu actions in the agreed order and disables editing", 
 test("reserves a chip tool area beside exactly one horizontal bay editor", () => {
   assert.match(
     html,
-    /<aside[^>]+class="bay-factory-tools"[^>]+aria-label="チップツール"[^>]*>[\s\S]*?<span[^>]*>チップ<\/span>[\s\S]*?<\/aside>/,
+    /<aside[^>]+id="bay-factory-tools"[^>]+class="bay-factory-tools"[^>]+aria-label="チップツール"[^>]*><\/aside>/,
   );
   assert.equal((html.match(/id="bay-factory-editor"/g) ?? []).length, 1);
   assert.match(
