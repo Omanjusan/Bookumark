@@ -140,6 +140,40 @@
       </section>
     </footer>
   </div>
+  <dialog id="bay-factory-dialog" class="bay-factory-dialog" aria-labelledby="bay-factory-title">
+    <div class="bay-factory-heading">
+      <h2 id="bay-factory-title">ベイ工場</h2>
+      <button
+        id="bay-factory-close"
+        type="button"
+        aria-label="ベイ工場を閉じる"
+        title="ベイ工場を閉じる"
+      >×</button>
+    </div>
+    <div class="bay-factory-menu">
+      <input
+        id="bay-factory-name"
+        type="text"
+        aria-label="ベイ名"
+        placeholder="ベイ名"
+        disabled
+      >
+      <button id="bay-factory-undo" type="button" disabled>元に戻す</button>
+      <button id="bay-factory-redo" type="button" disabled>やり直す</button>
+      <button id="bay-factory-save" type="button" disabled>保存</button>
+      <button id="bay-factory-delete" type="button" disabled>削除</button>
+    </div>
+    <div class="bay-factory-workspace">
+      <aside class="bay-factory-tools" aria-label="チップツール">
+        <span>チップ</span>
+      </aside>
+      <section
+        id="bay-factory-editor"
+        class="bay-factory-editor"
+        aria-label="横ベイ編集領域"
+      ></section>
+    </div>
+  </dialog>
   <script type="module" src="panel.js"></script>
 </body>
 </html>
