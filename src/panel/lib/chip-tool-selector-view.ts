@@ -35,7 +35,7 @@ export function buildChipToolSelectorPlan(
   });
 }
 
-/** 分類済みのチップツールを非ドラッグの文字ボタンとして描画する。 */
+/** 分類済みのチップツールをドラッグ可能な文字ボタンとして描画する。 */
 export function renderChipToolSelector(
   root: HTMLElement,
   tools: readonly ChipToolViewModel[],
@@ -60,7 +60,7 @@ export function renderChipToolSelector(
       button.className = "chip-tool-button";
       button.dataset.chipType = tool.chipType;
       button.dataset.description = tool.description;
-      button.draggable = false;
+      button.draggable = true;
       button.textContent = tool.label;
       list.appendChild(button);
     }

@@ -46,7 +46,7 @@ test("omits empty categories while preserving injected order within a category",
   assert.deepEqual(buildChipToolSelectorPlan([]), []);
 });
 
-test("renders non-draggable text buttons with chip type and description metadata", () => {
+test("renders draggable text buttons with chip type and description metadata", () => {
   const fake = createFakeDocument();
   const root = fake.element("aside");
 
@@ -66,22 +66,22 @@ test("renders non-draggable text buttons with chip type and description metadata
       kind: "condition",
       heading: "条件",
       tools: [
-        { text: "検索", chipType: "search", description: "文字で絞り込み", draggable: false },
-        { text: "訪問状態", chipType: "visit", description: "訪問状態で絞り込み", draggable: false },
+        { text: "検索", chipType: "search", description: "文字で絞り込み", draggable: true },
+        { text: "訪問状態", chipType: "visit", description: "訪問状態で絞り込み", draggable: true },
       ],
     },
     {
       kind: "control",
       heading: "操作",
       tools: [
-        { text: "表示形式", chipType: "view", description: "表示形式を選択", draggable: false },
+        { text: "表示形式", chipType: "view", description: "表示形式を選択", draggable: true },
       ],
     },
     {
       kind: "action",
       heading: "アクション",
       tools: [
-        { text: "再読込", chipType: "refresh", description: "一覧を再読込", draggable: false },
+        { text: "再読込", chipType: "refresh", description: "一覧を再読込", draggable: true },
       ],
     },
   ]);

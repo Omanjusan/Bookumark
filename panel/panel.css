@@ -623,6 +623,21 @@ header h1 {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.chip-tool-button[draggable="true"] { cursor: grab; }
+.chip-tool-button.dragging { opacity: 0.45; }
+.chip-tool-drag-preview {
+  position: fixed;
+  top: -1000px;
+  left: -1000px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  white-space: nowrap;
+  pointer-events: none;
+}
 .chip-tool-tooltip {
   position: absolute;
   z-index: 2;
