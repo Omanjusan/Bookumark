@@ -278,6 +278,29 @@ header h1 {
   user-select: none;
 }
 .dock-bay--preview.dock-bay--drag-source { opacity: 0.35; }
+.dock-bay--drop-before-horizontal,
+.dock-bay--drop-after-horizontal,
+.dock-bay--drop-before-vertical,
+.dock-bay--drop-after-vertical { position: relative; }
+.dock-bay--drop-before-horizontal::before,
+.dock-bay--drop-after-horizontal::after,
+.dock-bay--drop-before-vertical::before,
+.dock-bay--drop-after-vertical::after {
+  position: absolute;
+  z-index: 2;
+  content: "";
+  border-radius: 2px;
+  background: var(--mode-custom);
+  pointer-events: none;
+}
+.dock-bay--drop-before-horizontal::before { top: 0; bottom: 0; left: -3px; width: 3px; }
+.dock-bay--drop-after-horizontal::after { top: 0; right: -3px; bottom: 0; width: 3px; }
+.dock-bay--drop-before-vertical::before { top: -3px; right: 0; left: 0; height: 3px; }
+.dock-bay--drop-after-vertical::after { right: 0; bottom: -3px; left: 0; height: 3px; }
+.dock-rail--bay-drop-empty {
+  outline: 2px dashed var(--mode-custom);
+  outline-offset: 2px;
+}
 .dock-chip-preview-control {
   display: inline-flex;
   align-items: center;
