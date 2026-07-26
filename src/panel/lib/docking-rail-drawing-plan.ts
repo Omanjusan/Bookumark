@@ -50,6 +50,11 @@ const RAILS: ReadonlyArray<{
   { rail: "bottom", orientation: "horizontal" },
 ];
 
+/** レールIDからベイ描画の向きを一意に解決する。 */
+export function dockingOrientationForRail(rail: RailId): BayOrientation {
+  return rail === "top" || rail === "bottom" ? "horizontal" : "vertical";
+}
+
 /** activeレイアウトの配置を適用順どおりの4レール描画計画へ変換する。 */
 export function buildDockingRailDrawingPlan(
   documents: DockingDocuments,

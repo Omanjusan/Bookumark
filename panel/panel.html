@@ -13,9 +13,25 @@
       <select id="layout-select" aria-label="名前付きレイアウト"></select>
       <button id="layout-default" type="button">デフォルトに戻す</button>
       <button id="layout-manage" type="button">レイアウト管理</button>
+      <button id="layout-edit-entry" type="button" disabled>レイアウト編集</button>
+      <small id="layout-edit-unavailable" class="layout-edit-unavailable" role="status" hidden></small>
       <button id="bay-factory-add" type="button">ベイを追加</button>
       <button id="bay-factory-entry" type="button">ベイを編集</button>
     </header>
+    <div id="layout-edit-bar" class="layout-edit-bar" hidden>
+      <strong id="layout-edit-name"></strong>
+      <button id="layout-edit-exit" type="button">編集を終了</button>
+    </div>
+    <section id="bay-picker" class="bay-picker" aria-label="ベイピッカー" hidden>
+      <section class="bay-picker-section" aria-labelledby="bay-picker-unplaced-title">
+        <h2 id="bay-picker-unplaced-title">未配置</h2>
+        <div id="bay-picker-unplaced" class="bay-picker-row"></div>
+      </section>
+      <section class="bay-picker-section" aria-labelledby="bay-picker-placed-title">
+        <h2 id="bay-picker-placed-title">配置済み</h2>
+        <div id="bay-picker-placed" class="bay-picker-row"></div>
+      </section>
+    </section>
     <div id="bay-factory-selection" class="bay-factory-selection" hidden>
       <select id="bay-factory-select" aria-label="編集するベイ">
         <option value="">編集するベイを選択</option>

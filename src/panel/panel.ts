@@ -61,6 +61,16 @@ import { renderListView } from "./lib/list-view.js";
 import type { FolderHistoryDirection } from "./lib/panel-folder-history-input.js";
 import { bindLayoutManagement } from "./lib/layout-management-controller.js";
 import { createLayoutManagementCoordinator } from "./lib/layout-management-coordinator.js";
+import { bindLayoutEditMode } from "./lib/layout-edit-mode-controller.js";
+import { renderBayPicker } from "./lib/bay-picker-view.js";
+import { bindBayPickerDrag } from "./lib/bay-picker-drag.js";
+import { bindBayRailDrop } from "./lib/bay-rail-drop.js";
+import { createBayPlacementDraft } from "./lib/bay-placement-draft.js";
+import type { BayPlacementDraft } from "./lib/bay-placement-draft.js";
+import {
+  measureBayAutoPlacementCandidate,
+  renderBayPlacementPreviews,
+} from "./lib/bay-placement-preview.js";
 import {
   planOfficialFolderMove,
   planOfficialSiblingMove,
@@ -91,6 +101,7 @@ import { resolveViewDragMode } from "./lib/view-drag-policy.js";
 import type { ViewType } from "./lib/view-type.js";
 
 const root = document.getElementById("app") as HTMLElement;
+const frameRoot = document.querySelector(".frame") as HTMLElement;
 const folderRoot = document.getElementById("folders") as HTMLElement;
 const countEl = document.getElementById("count") as HTMLElement;
 const dockingRailRoots = {
@@ -124,6 +135,14 @@ const layoutPreferred = document.getElementById("layout-preferred") as HTMLButto
 const layoutDelete = document.getElementById("layout-delete") as HTMLButtonElement;
 const layoutRetry = document.getElementById("layout-retry") as HTMLButtonElement;
 const layoutStatus = document.getElementById("layout-status") as HTMLElement;
+const layoutEditEntry = document.getElementById("layout-edit-entry") as HTMLButtonElement;
+const layoutEditUnavailable = document.getElementById("layout-edit-unavailable") as HTMLElement;
+const layoutEditBar = document.getElementById("layout-edit-bar") as HTMLElement;
+const layoutEditName = document.getElementById("layout-edit-name") as HTMLElement;
+const layoutEditExit = document.getElementById("layout-edit-exit") as HTMLButtonElement;
+const bayPicker = document.getElementById("bay-picker") as HTMLElement;
+const bayPickerUnplaced = document.getElementById("bay-picker-unplaced") as HTMLElement;
+const bayPickerPlaced = document.getElementById("bay-picker-placed") as HTMLElement;
 const bayFactoryAdd = document.getElementById("bay-factory-add") as HTMLButtonElement;
 const bayFactoryEntry = document.getElementById("bay-factory-entry") as HTMLButtonElement;
 const bayFactorySelection = document.getElementById("bay-factory-selection") as HTMLElement;
@@ -169,7 +188,45 @@ let officialMovePending = false;
 let lastOfficialMove: BookmarkMoveSnapshot | null = null;
 let activeChipRuntime: DockingBasicChipRuntime | null = null;
 let activeDockingController: ActiveDockingLayoutController | null = null;
+let activePlacementDraft: BayPlacementDraft | null = null;
 const dragClickGuard = createPanelDragClickGuard();
+const bayPickerDrag = bindBayPickerDrag(
+  bayPicker,
+  Object.values(dockingRailRoots),
+  { isEnabled: () => activePlacementDraft !== null },
+);
+const bayRailDrop = bindBayRailDrop(dockingRailRoots, bayPickerDrag, ({ bayId, rail }) => {
+  if (activePlacementDraft === null) return;
+  const result = activePlacementDraft.moveToRailEnd(bayId, rail);
+  if (result.status !== "moved") return;
+  renderBayPlacementPreviews(dockingRailRoots, activePlacementDraft.documents());
+  renderBayPicker({
+    root: bayPicker,
+    unplaced: bayPickerUnplaced,
+    placed: bayPickerPlaced,
+  }, activePlacementDraft.picker());
+});
+void bayRailDrop;
+
+bayPicker.addEventListener("click", (event) => {
+  const tag = (event.target as Element).closest<HTMLElement>(".bay-picker-tag");
+  if (tag === null || activePlacementDraft === null) return;
+  const bayId = tag.dataset.bayId;
+  if (bayId === undefined) return;
+  const measurements = measureBayAutoPlacementCandidate(
+    dockingRailRoots,
+    activePlacementDraft.documents(),
+    bayId,
+  );
+  const result = activePlacementDraft.autoPlace(bayId, measurements);
+  if (result.status !== "placed") return;
+  renderBayPlacementPreviews(dockingRailRoots, activePlacementDraft.documents());
+  renderBayPicker({
+    root: bayPicker,
+    unplaced: bayPickerUnplaced,
+    placed: bayPickerPlaced,
+  }, activePlacementDraft.picker());
+});
 
 // 永続ユーザーベイとの接続はDB-8で行い、現段階では偽データを注入しない。
 const bayFactoryConnection = bindBayFactory({
@@ -747,6 +804,48 @@ async function main(): Promise<void> {
     // 後続の動的レール描画が同じactiveレイアウトを参照できる境界として保持する。
     root.dataset.activeLayoutId = dockingState.activeLayout.id;
     const layoutCoordinator = createLayoutManagementCoordinator(dockingState.documents);
+    const layoutEditMode = bindLayoutEditMode({
+      root: frameRoot,
+      entry: layoutEditEntry,
+      unavailableReason: layoutEditUnavailable,
+      editBar: layoutEditBar,
+      layoutName: layoutEditName,
+      exit: layoutEditExit,
+      guardedControls: [
+        layoutSelect,
+        layoutDefault,
+        layoutManage,
+        bayFactoryAdd,
+        bayFactoryEntry,
+      ],
+      guardedRegions: [
+        document.getElementById("docking-center") as HTMLElement,
+        bayFactorySelection,
+      ],
+    }, dockingState.documents, {
+      initiallyReady: false,
+      onEnter: (documents) => {
+        // レール自体は後続の配置操作に使うため、通常チップの接続だけを停止する。
+        activeChipRuntime?.disconnect();
+        activeChipRuntime = null;
+        activePlacementDraft = createBayPlacementDraft(documents);
+        renderBayPlacementPreviews(dockingRailRoots, activePlacementDraft.documents());
+        renderBayPicker({
+          root: bayPicker,
+          unplaced: bayPickerUnplaced,
+          placed: bayPickerPlaced,
+        }, activePlacementDraft.picker());
+        bayPicker.hidden = false;
+      },
+      onExit: (documents) => {
+        bayRailDrop.clear();
+        bayPickerDrag.cancel();
+        activePlacementDraft?.discard();
+        activePlacementDraft = null;
+        bayPicker.hidden = true;
+        rebuildActiveDockingLayout(documents);
+      },
+    });
     bindLayoutManagement({
       select: layoutSelect,
       restoreDefault: layoutDefault,
@@ -766,6 +865,7 @@ async function main(): Promise<void> {
       status: layoutStatus,
     }, layoutCoordinator, {
       onStateChange: (documents) => {
+        layoutEditMode.replaceDocuments(documents);
         root.dataset.activeLayoutId = documents.dockingMetadata.activeLayoutId;
         bayFactoryConnection.replaceBays(buildPanelBayModels(documents));
         rebuildActiveDockingLayout(documents);
@@ -795,6 +895,7 @@ async function main(): Promise<void> {
       restoredFolder.guid,
     ]);
     rebuildActiveDockingLayout(dockingState.documents);
+    layoutEditMode.setReady();
     redraw();
   } catch (error) {
     showLoadError(error);
