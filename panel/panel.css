@@ -158,8 +158,21 @@ header h1 {
   gap: 8px;
 }
 .dock-rail:empty { display: none; }
+.dock-rail[data-gap] { flex-wrap: nowrap; }
+.dock-rail[data-gap="8"] { gap: 8px; }
+.dock-rail[data-gap="4"] { gap: 4px; }
+.dock-rail[data-gap="2"] { gap: 2px; }
+.dock-rail--top,
+.dock-rail--bottom {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
 .dock-rail--left,
-.dock-rail--right { flex-direction: column; }
+.dock-rail--right {
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
 .dock-rail--top {
   flex-wrap: wrap;
   margin: 0 0 10px;
