@@ -1,6 +1,7 @@
 import { loadBookmarkHistory } from "./lib/bookmark-history.js";
 import { bindBayFactory } from "./lib/bay-factory-controller.js";
 import { renderChipToolSelector } from "./lib/chip-tool-selector-view.js";
+import { bindChipToolTooltip } from "./lib/chip-tool-tooltip.js";
 import { getBookmarkTreeItems, moveBookmark } from "./lib/bookmarks.js";
 import type {
   BookmarkItem,
@@ -93,7 +94,12 @@ const bayFactoryDialog = document.getElementById("bay-factory-dialog") as HTMLDi
 const bayFactoryClose = document.getElementById("bay-factory-close") as HTMLButtonElement;
 const bayFactoryName = document.getElementById("bay-factory-name") as HTMLInputElement;
 const bayFactoryEditor = document.getElementById("bay-factory-editor") as HTMLElement;
-const bayFactoryTools = document.getElementById("bay-factory-tools") as HTMLElement;
+const chipToolList = document.getElementById("chip-tool-list") as HTMLElement;
+const chipToolTooltip = document.getElementById("chip-tool-tooltip") as HTMLElement;
+const chipToolTooltipTitle = document.getElementById("chip-tool-tooltip-title") as HTMLElement;
+const chipToolTooltipDescription = document.getElementById(
+  "chip-tool-tooltip-description",
+) as HTMLElement;
 const officialMoveNoticeElements = {
   root: officialMoveNoticeRoot,
   message: officialMoveMessage,
@@ -123,7 +129,13 @@ bindBayFactory({
   name: bayFactoryName,
   editor: bayFactoryEditor,
 }, []);
-renderChipToolSelector(bayFactoryTools, []);
+renderChipToolSelector(chipToolList, []);
+bindChipToolTooltip(
+  chipToolList,
+  chipToolTooltip,
+  chipToolTooltipTitle,
+  chipToolTooltipDescription,
+);
 
 function currentDragMode(): ReturnType<typeof resolveViewDragMode> {
   return resolveViewDragMode({

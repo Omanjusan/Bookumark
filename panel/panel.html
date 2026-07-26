@@ -171,7 +171,13 @@
       <button id="bay-factory-delete" type="button" disabled>削除</button>
     </div>
     <div class="bay-factory-workspace">
-      <aside id="bay-factory-tools" class="bay-factory-tools" aria-label="チップツール"></aside>
+      <aside id="bay-factory-tools" class="bay-factory-tools" aria-label="チップツール">
+        <div id="chip-tool-list"></div>
+      </aside>
+      <div id="chip-tool-tooltip" class="chip-tool-tooltip" role="tooltip" hidden>
+        <strong id="chip-tool-tooltip-title"></strong>
+        <span id="chip-tool-tooltip-description"></span>
+      </div>
       <section
         id="bay-factory-editor"
         class="bay-factory-editor"

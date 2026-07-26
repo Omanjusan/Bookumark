@@ -91,7 +91,7 @@ test("provides one selector root and category styling in the factory tool column
   assert.equal((html.match(/id="bay-factory-tools"/g) ?? []).length, 1);
   assert.match(
     html,
-    /<aside[^>]+id="bay-factory-tools"[^>]+class="bay-factory-tools"[^>]+aria-label="チップツール"[^>]*><\/aside>/,
+    /<aside[^>]+id="bay-factory-tools"[^>]+class="bay-factory-tools"[^>]+aria-label="チップツール"[^>]*>[\s\S]*?id="chip-tool-list"[\s\S]*?<\/aside>/,
   );
   assert.match(css, /\.chip-tool-category\s*\{[^}]*border-bottom:/s);
   assert.match(css, /\.chip-tool-button\s*\{[^}]*width:\s*100%[^}]*text-align:\s*left/s);

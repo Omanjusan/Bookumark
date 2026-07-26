@@ -575,6 +575,7 @@ header h1 {
 }
 #bay-factory-delete { margin-left: auto; }
 .bay-factory-workspace {
+  position: relative;
   display: grid;
   grid-template-columns: 92px minmax(0, 1fr);
   min-height: 220px;
@@ -621,6 +622,29 @@ header h1 {
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.chip-tool-tooltip {
+  position: absolute;
+  z-index: 2;
+  left: 100px;
+  width: min(240px, calc(100% - 112px));
+  padding: 8px 9px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.24);
+  color: var(--text);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+.chip-tool-tooltip[hidden] { display: none; }
+.chip-tool-tooltip strong,
+.chip-tool-tooltip span { display: block; }
+.chip-tool-tooltip span {
+  margin-top: 3px;
+  color: var(--text-muted);
+  font-size: 11px;
 }
 .bay-factory-editor {
   min-width: 0;
@@ -674,6 +698,10 @@ header h1 {
   }
   .bay-factory-workspace {
     grid-template-columns: 72px minmax(0, 1fr);
+  }
+  .chip-tool-tooltip {
+    left: 80px;
+    width: calc(100% - 92px);
   }
   .bay-factory-editor { padding: 12px; }
 }
