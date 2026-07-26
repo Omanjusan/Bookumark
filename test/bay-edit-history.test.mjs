@@ -104,6 +104,21 @@ test("makes a saved state the new irreversible history boundary", () => {
   assert.equal(session.undo(), false);
 });
 
+test("discards changes back to the last saved boundary without reusing ids", () => {
+  const session = createBayEditSession(fixture(), "bay-1");
+  session.addChip("sort", 2);
+  session.deleteChip("chip-1");
+
+  session.discardChanges();
+
+  assert.equal(session.dirty, false);
+  assert.equal(session.canUndo, false);
+  assert.equal(session.canRedo, false);
+  assert.deepEqual(session.draftBay(), session.savedBay());
+  assert.equal(session.nextChipSequence, 4);
+  assert.equal(session.addChip("view-type", 2), "chip-4");
+});
+
 function fixture() {
   return {
     schemaVersion: 1,

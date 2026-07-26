@@ -99,6 +99,52 @@ test("routes the close button and Escape cancel through the same close contract"
   assert.equal(closes, 2);
 });
 
+test("shows the specified discard confirmation for unsaved close and Escape", () => {
+  const fake = harness();
+  bindBayFactory(fake.elements, bays, {
+    document: fake.document,
+    hasUnsavedChanges: () => true,
+  });
+  fake.elements.select.value = "bay-2";
+  fake.elements.select.emit("change");
+  fake.elements.open.emit("click");
+
+  fake.elements.close.emit("click");
+  assert.equal(fake.elements.discardConfirmation.hidden, false);
+  assert.equal(fake.elements.dialog.closeCalls, 0);
+
+  fake.elements.discardConfirmation.hidden = true;
+  const cancel = fake.elements.dialog.emit("cancel");
+  assert.equal(cancel.defaultPrevented, true);
+  assert.equal(fake.elements.discardConfirmation.hidden, false);
+  assert.equal(fake.elements.dialog.closeCalls, 0);
+});
+
+test("continues editing or discards through the confirmation actions", () => {
+  const fake = harness();
+  let dirty = true;
+  let discards = 0;
+  bindBayFactory(fake.elements, bays, {
+    document: fake.document,
+    hasUnsavedChanges: () => dirty,
+    onDiscard: () => { discards += 1; dirty = false; },
+  });
+  fake.elements.select.value = "bay-2";
+  fake.elements.select.emit("change");
+  fake.elements.open.emit("click");
+
+  fake.elements.close.emit("click");
+  fake.elements.continueEditing.emit("click");
+  assert.equal(fake.elements.discardConfirmation.hidden, true);
+  assert.equal(fake.elements.dialog.open, true);
+
+  fake.elements.close.emit("click");
+  fake.elements.discardChanges.emit("click");
+  assert.equal(discards, 1);
+  assert.equal(fake.elements.discardConfirmation.hidden, true);
+  assert.equal(fake.elements.dialog.open, false);
+});
+
 function harness() {
   const element = (tagName) => ({
     tagName: tagName.toUpperCase(),
@@ -115,6 +161,7 @@ function harness() {
     appendChild(child) { this.children.push(child); return child; },
     addEventListener(type, listener) { (this.listeners[type] ??= []).push(listener); },
     setAttribute(name, value) { this.attributes[name] = value; },
+    focus() { this.focused = true; },
     emit(type, details = {}) {
       const event = {
         type,
@@ -135,8 +182,12 @@ function harness() {
     close: element("button"),
     name: element("input"),
     editor: element("section"),
+    discardConfirmation: element("section"),
+    continueEditing: element("button"),
+    discardChanges: element("button"),
   };
   elements.selection.hidden = true;
+  elements.discardConfirmation.hidden = true;
   elements.dialog.showModalCalls = 0;
   elements.dialog.closeCalls = 0;
   elements.dialog.showModal = function () { this.open = true; this.showModalCalls += 1; };

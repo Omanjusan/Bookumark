@@ -18,12 +18,17 @@ export interface BayFactoryElements {
   readonly close: HTMLButtonElement;
   readonly name: HTMLInputElement;
   readonly editor: HTMLElement;
+  readonly discardConfirmation: HTMLElement;
+  readonly continueEditing: HTMLButtonElement;
+  readonly discardChanges: HTMLButtonElement;
 }
 
 interface BayFactoryControllerOptions {
   readonly document?: Pick<Document, "createElement">;
   readonly onSelectionChange?: (bayId: string | null) => void;
   readonly onClose?: () => void;
+  readonly hasUnsavedChanges?: () => boolean;
+  readonly onDiscard?: () => void;
 }
 
 /** ユーザーベイの対象選択と静的ベイ工場の開閉をDOMへ接続する。 */
@@ -70,12 +75,26 @@ export function bindBayFactory(
   });
 
   const closeFactory = (): void => {
+    if (options.hasUnsavedChanges?.() === true) {
+      elements.discardConfirmation.hidden = false;
+      elements.continueEditing.focus();
+      return;
+    }
+    elements.discardConfirmation.hidden = true;
     if (elements.dialog.open) elements.dialog.close();
     options.onClose?.();
   };
   elements.close.addEventListener("click", closeFactory);
   elements.dialog.addEventListener("cancel", (event) => {
     event.preventDefault();
+    closeFactory();
+  });
+  elements.continueEditing.addEventListener("click", () => {
+    elements.discardConfirmation.hidden = true;
+  });
+  elements.discardChanges.addEventListener("click", () => {
+    options.onDiscard?.();
+    elements.discardConfirmation.hidden = true;
     closeFactory();
   });
 }

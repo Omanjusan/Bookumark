@@ -22,6 +22,7 @@ export interface BayEditSession {
   undo(): boolean;
   redo(): boolean;
   markSaved(): void;
+  discardChanges(): void;
   save(): Promise<void>;
 }
 
@@ -164,6 +165,15 @@ export function createBayEditSession(
     applySavedBoundary();
   };
 
+  /** 未保存変更と履歴を破棄し、最後の保存成功状態へ戻す。 */
+  const discardChanges = (): void => {
+    assertNotSaving();
+    draft = structuredClone(saved);
+    undoStack.length = 0;
+    redoStack.length = 0;
+    dirty = false;
+  };
+
   /** 対象ベイと採番値だけを反映したベイ文書を保存する。 */
   const save = async (): Promise<void> => {
     if (saving) throw new Error("save is already in progress");
@@ -219,6 +229,7 @@ export function createBayEditSession(
     undo,
     redo,
     markSaved,
+    discardChanges,
     save,
   };
 }
