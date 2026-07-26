@@ -129,10 +129,33 @@ header h1 {
   cursor: not-allowed;
 }
 
+.docking-grid {
+  display: grid;
+  grid-template-areas:
+    "top top top"
+    "left center right"
+    "bottom bottom bottom";
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-width: 0;
+}
+#docking-rail-top { grid-area: top; }
+#docking-rail-left { grid-area: left; }
+#docking-center {
+  grid-area: center;
+  min-width: 0;
+  min-height: 0;
+}
+#docking-rail-right { grid-area: right; }
+#docking-rail-bottom { grid-area: bottom; }
+
 .dock-rail {
   display: flex;
   gap: 8px;
 }
+.dock-rail:empty { display: none; }
+.dock-rail--left,
+.dock-rail--right { flex-direction: column; }
 .dock-rail--top {
   flex-wrap: wrap;
   margin: 0 0 10px;
