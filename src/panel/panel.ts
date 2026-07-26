@@ -38,6 +38,7 @@ import { renderPanelGrid } from "./lib/panel-grid-view.js";
 import { bindPanelFolderNavigation } from "./lib/panel-folder-navigation.js";
 import { bindPanelFolderDrag } from "./lib/panel-folder-drag.js";
 import { renderPanelFolders } from "./lib/panel-folder-view.js";
+import { loadPanelDockingState } from "./lib/panel-docking-bootstrap.js";
 import { createFolderNavigationHistory } from "./lib/folder-navigation-history.js";
 import type { FolderNavigationHistory } from "./lib/folder-navigation-history.js";
 import { renderListView } from "./lib/list-view.js";
@@ -135,7 +136,7 @@ let lastOfficialMove: BookmarkMoveSnapshot | null = null;
 const dragClickGuard = createPanelDragClickGuard();
 
 // 永続ユーザーベイとの接続はDB-8で行い、現段階では偽データを注入しない。
-bindBayFactory({
+const bayFactoryConnection = bindBayFactory({
   entry: bayFactoryEntry,
   selection: bayFactorySelection,
   select: bayFactorySelect,
@@ -617,6 +618,10 @@ function showLoadError(error: unknown): void {
 
 async function main(): Promise<void> {
   try {
+    const dockingState = await loadPanelDockingState();
+    bayFactoryConnection.replaceBays(dockingState.bays);
+    // 後続の動的レール描画が同じactiveレイアウトを参照できる境界として保持する。
+    root.dataset.activeLayoutId = dockingState.activeLayout.id;
     treeItems = await getBookmarkTreeItems();
     const savedFolderOrders = await loadFolderOrders();
     if (savedFolderOrders === null) {
