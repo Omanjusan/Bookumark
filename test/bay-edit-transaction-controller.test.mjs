@@ -95,9 +95,28 @@ test("connects the name input to history and restores invalid input", () => {
   assert.equal(fake.elements.name.value, "表示設定");
 });
 
+test("routes explicit duplicate and delete menu actions to management sessions", () => {
+  let duplicates = 0;
+  let deletions = 0;
+  const session = createBayEditSession(fixture(), "bay-1");
+  const fake = harness(session, {
+    onDuplicate: () => { duplicates += 1; },
+    onDelete: () => { deletions += 1; },
+  });
+
+  fake.elements.duplicate.emit("click");
+  fake.elements.delete.emit("click");
+
+  assert.equal(duplicates, 1);
+  assert.equal(deletions, 1);
+});
+
 function harness(session, options = {}) {
   const renders = [];
-  const elements = { undo: button(), redo: button(), save: button(), name: button() };
+  const elements = {
+    undo: button(), redo: button(), save: button(), name: button(),
+    duplicate: button(), delete: button(),
+  };
   const connection = bindBayEditTransaction(session, elements, {
     chipLabels: new Map([["search", "検索"], ["sort", "ソート"]]),
     render: (model) => renders.push(structuredClone(model)),

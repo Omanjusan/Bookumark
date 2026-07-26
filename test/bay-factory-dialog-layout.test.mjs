@@ -29,6 +29,7 @@ test("places the static menu actions in the agreed order and disables editing", 
     "bay-factory-undo",
     "bay-factory-redo",
     "bay-factory-save",
+    "bay-factory-duplicate",
     "bay-factory-delete",
   ];
   let previous = -1;

@@ -98,6 +98,7 @@ const bayFactoryOpen = document.getElementById("bay-factory-open") as HTMLButton
 const bayFactoryDialog = document.getElementById("bay-factory-dialog") as HTMLDialogElement;
 const bayFactoryClose = document.getElementById("bay-factory-close") as HTMLButtonElement;
 const bayFactoryName = document.getElementById("bay-factory-name") as HTMLInputElement;
+const bayFactoryDuplicate = document.getElementById("bay-factory-duplicate") as HTMLButtonElement;
 const bayFactoryEditor = document.getElementById("bay-factory-editor") as HTMLElement;
 const bayFactoryDiscardConfirmation = document.getElementById(
   "bay-factory-discard-confirmation",
@@ -108,6 +109,7 @@ const bayFactoryContinueEditing = document.getElementById(
 const bayFactoryDiscardChanges = document.getElementById(
   "bay-factory-discard-changes",
 ) as HTMLButtonElement;
+void bayFactoryDuplicate;
 const chipToolList = document.getElementById("chip-tool-list") as HTMLElement;
 const chipToolTooltip = document.getElementById("chip-tool-tooltip") as HTMLElement;
 const chipToolTooltipTitle = document.getElementById("chip-tool-tooltip-title") as HTMLElement;

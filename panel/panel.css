@@ -577,6 +577,13 @@ header h1 {
   cursor: not-allowed;
 }
 #bay-factory-delete { margin-left: auto; }
+.bay-factory-management-status {
+  min-height: 160px;
+  padding: 24px;
+  color: var(--text-muted);
+  text-align: center;
+}
+.bay-factory-management-status[hidden] { display: none; }
 .bay-factory-workspace {
   position: relative;
   display: grid;

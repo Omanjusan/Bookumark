@@ -145,11 +145,59 @@ test("continues editing or discards through the confirmation actions", () => {
   assert.equal(fake.elements.dialog.open, false);
 });
 
+test("refreshes loaded user bays after add, rename, duplicate, and delete", () => {
+  const fake = harness();
+  const selections = [];
+  const connection = bindBayFactory(fake.elements, bays, {
+    document: fake.document,
+    onSelectionChange: (bayId) => selections.push(bayId),
+  });
+  fake.elements.select.value = "bay-2";
+  fake.elements.select.emit("change");
+
+  connection.replaceBays([
+    bays[0],
+    { ...bays[1], name: "表示ツール" },
+    { bayId: "bay-3", name: "表示ツール 2", permanent: false, chips: [] },
+  ]);
+  assert.equal(fake.elements.select.value, "bay-2");
+  assert.deepEqual(
+    fake.elements.select.children.map(({ value, textContent }) => [value, textContent]),
+    [["", "編集するベイを選択"], ["bay-2", "表示ツール"], ["bay-3", "表示ツール 2"]],
+  );
+
+  connection.replaceBays([bays[0], {
+    bayId: "bay-3", name: "表示ツール 2", permanent: false, chips: [],
+  }]);
+  assert.equal(fake.elements.select.value, "");
+  assert.equal(fake.elements.open.disabled, true);
+  assert.deepEqual(selections, ["bay-2", null]);
+});
+
+test("reports which loaded user bay is opened for transaction wiring", () => {
+  const fake = harness();
+  const opened = [];
+  bindBayFactory(fake.elements, bays, {
+    document: fake.document,
+    onOpen: (bayId) => opened.push(bayId),
+  });
+  fake.elements.select.value = "bay-2";
+  fake.elements.select.emit("change");
+  fake.elements.open.emit("click");
+
+  assert.deepEqual(opened, ["bay-2"]);
+});
+
 function harness() {
   const element = (tagName) => ({
     tagName: tagName.toUpperCase(),
     className: "",
-    textContent: "",
+    _textContent: "",
+    get textContent() { return this._textContent; },
+    set textContent(value) {
+      this._textContent = value;
+      if (value === "") this.children.length = 0;
+    },
     value: "",
     disabled: false,
     hidden: false,

@@ -29,6 +29,11 @@ interface BayFactoryControllerOptions {
   readonly onClose?: () => void;
   readonly hasUnsavedChanges?: () => boolean;
   readonly onDiscard?: () => void;
+  readonly onOpen?: (bayId: string) => void;
+}
+
+export interface BayFactoryConnection {
+  replaceBays(bays: readonly SelectableBayFactoryViewModel[]): void;
 }
 
 /** ユーザーベイの対象選択と静的ベイ工場の開閉をDOMへ接続する。 */
@@ -36,10 +41,10 @@ export function bindBayFactory(
   elements: BayFactoryElements,
   bays: readonly SelectableBayFactoryViewModel[],
   options: BayFactoryControllerOptions = {},
-): void {
+): BayFactoryConnection {
   const documentRef = options.document ?? document;
-  const editableBays = bays.filter((bay) => !bay.permanent);
-  const bayById = new Map(editableBays.map((bay) => [bay.bayId, bay]));
+  let editableBays = bays.filter((bay) => !bay.permanent);
+  let bayById = new Map(editableBays.map((bay) => [bay.bayId, bay]));
   renderBayOptions(elements.select, editableBays, documentRef);
   elements.open.disabled = true;
 
@@ -64,6 +69,7 @@ export function bindBayFactory(
     elements.name.value = bay.name;
     renderBayFactoryEditor(elements.editor, bay, { document: documentRef });
     if (!elements.dialog.open) elements.dialog.showModal();
+    options.onOpen?.(bay.bayId);
   };
   elements.open.addEventListener("click", openSelected);
   elements.select.addEventListener("dblclick", openSelected);
@@ -97,6 +103,24 @@ export function bindBayFactory(
     elements.discardConfirmation.hidden = true;
     closeFactory();
   });
+
+  return {
+    /** ロード・保存後のベイ一覧へ置換し、有効な選択IDだけを維持する。 */
+    replaceBays(nextBays: readonly SelectableBayFactoryViewModel[]): void {
+      const previousId = elements.select.value;
+      editableBays = nextBays.filter((bay) => !bay.permanent);
+      bayById = new Map(editableBays.map((bay) => [bay.bayId, bay]));
+      renderBayOptions(elements.select, editableBays, documentRef);
+      if (bayById.has(previousId)) {
+        elements.select.value = previousId;
+        elements.open.disabled = false;
+      } else {
+        elements.select.value = "";
+        elements.open.disabled = true;
+        if (previousId !== "") options.onSelectionChange?.(null);
+      }
+    },
+  };
 }
 
 /** 空の初期選択肢と編集可能なユーザーベイだけをselectへ描画する。 */

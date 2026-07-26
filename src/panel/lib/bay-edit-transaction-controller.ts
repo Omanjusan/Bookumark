@@ -8,6 +8,8 @@ interface BayEditTransactionElements {
   readonly redo: HTMLButtonElement;
   readonly save: HTMLButtonElement;
   readonly name?: HTMLInputElement;
+  readonly duplicate?: HTMLButtonElement;
+  readonly delete?: HTMLButtonElement;
 }
 
 interface BayEditTransactionOptions {
@@ -16,6 +18,8 @@ interface BayEditTransactionOptions {
   readonly onSaved?: () => void;
   readonly onSaveError?: (error: unknown) => void;
   readonly onNameError?: (error: unknown) => void;
+  readonly onDuplicate?: () => void;
+  readonly onDelete?: () => void;
 }
 
 export interface BayEditTransactionConnection {
@@ -54,6 +58,8 @@ export function bindBayEditTransaction(
       elements.name.value = session.draftBay().name;
       elements.name.disabled = session.saving;
     }
+    if (elements.duplicate) elements.duplicate.disabled = session.saving;
+    if (elements.delete) elements.delete.disabled = session.saving;
   };
 
   /** ツールからのdropを新規チップ追加として反映する。 */
@@ -94,11 +100,15 @@ export function bindBayEditTransaction(
     }
     refresh();
   };
+  const onDuplicate = (): void => options.onDuplicate?.();
+  const onDelete = (): void => options.onDelete?.();
 
   elements.undo.addEventListener("click", onUndo);
   elements.redo.addEventListener("click", onRedo);
   elements.save.addEventListener("click", onSave);
   elements.name?.addEventListener("change", onNameChange);
+  elements.duplicate?.addEventListener("click", onDuplicate);
+  elements.delete?.addEventListener("click", onDelete);
   refresh();
 
   return {
@@ -110,6 +120,8 @@ export function bindBayEditTransaction(
       elements.redo.removeEventListener("click", onRedo);
       elements.save.removeEventListener("click", onSave);
       elements.name?.removeEventListener("change", onNameChange);
+      elements.duplicate?.removeEventListener("click", onDuplicate);
+      elements.delete?.removeEventListener("click", onDelete);
     },
   };
 }
