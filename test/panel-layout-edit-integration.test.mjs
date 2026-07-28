@@ -19,3 +19,10 @@ test("routes edit-bar deletion through named-layout deletion and finishes with i
   assert.match(source, /layoutManagementConnection\.replaceDocuments\(deletedDocuments\)/);
   assert.match(source, /layoutEditMode\.finishWithDocuments\(deletedDocuments\)/);
 });
+
+test("hands a pending deletion retry to layout management when editing exits", () => {
+  assert.match(
+    source,
+    /onExit:[\s\S]*?layoutCoordinator\.pending[\s\S]*?layoutManagementConnection\.showPendingRetry/,
+  );
+});

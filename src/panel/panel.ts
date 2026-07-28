@@ -970,6 +970,9 @@ async function main(): Promise<void> {
         }
       },
       onExit: (documents) => {
+        if (layoutCoordinator.pending) {
+          layoutManagementConnection.showPendingRetry("削除の保存を再試行してください");
+        }
         bayRailDrop.clear();
         layoutBayTrashConnection.clear();
         bayPickerDrag.cancel();

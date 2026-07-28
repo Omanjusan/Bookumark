@@ -27,6 +27,7 @@ interface LayoutManagementControllerOptions {
 
 export interface LayoutManagementConnection {
   replaceDocuments(documents: DockingDocuments): void;
+  showPendingRetry(message: string): void;
 }
 
 /** 名前付きレイアウト管理操作をDOMと保存コーディネーターへ接続する。 */
@@ -128,6 +129,10 @@ export function bindLayoutManagement(
   render(coordinator.state());
   return {
     replaceDocuments: (documents): void => render(structuredClone(documents)),
+    showPendingRetry(message): void {
+      elements.status.textContent = message;
+      elements.retry.hidden = false;
+    },
   };
 }
 
