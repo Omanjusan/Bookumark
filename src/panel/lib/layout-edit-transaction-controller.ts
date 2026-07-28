@@ -3,6 +3,7 @@ export interface LayoutEditTransactionSession {
   readonly canUndo: boolean;
   readonly canRedo: boolean;
   readonly saving: boolean;
+  readonly retryPending: boolean;
   undo(): boolean;
   redo(): boolean;
 }
@@ -35,29 +36,29 @@ export function bindLayoutEditTransaction(
 ): LayoutEditTransactionConnection {
   /** 現在の履歴、未保存、保存中状態から全ボタン表示を更新する。 */
   const refresh = (): void => {
-    elements.undo.disabled = session.saving || !session.canUndo;
-    elements.redo.disabled = session.saving || !session.canRedo;
-    elements.save.disabled = session.saving || !session.dirty;
-    elements.delete.disabled = session.saving;
+    elements.undo.disabled = session.saving || session.retryPending || !session.canUndo;
+    elements.redo.disabled = session.saving || session.retryPending || !session.canRedo;
+    elements.save.disabled = session.saving || session.retryPending || !session.dirty;
+    elements.delete.disabled = session.saving || session.retryPending;
     elements.exit.disabled = session.saving;
     elements.unsaved.hidden = !session.dirty;
   };
   const onUndo = (): void => {
-    if (session.saving || !session.canUndo || !session.undo()) return;
+    if (session.saving || session.retryPending || !session.canUndo || !session.undo()) return;
     options.onStateChange();
     refresh();
   };
   const onRedo = (): void => {
-    if (session.saving || !session.canRedo || !session.redo()) return;
+    if (session.saving || session.retryPending || !session.canRedo || !session.redo()) return;
     options.onStateChange();
     refresh();
   };
   const onSave = (): void => {
-    if (session.saving || !session.dirty) return;
+    if (session.saving || session.retryPending || !session.dirty) return;
     options.onSave();
   };
   const onDelete = (): void => {
-    if (session.saving) return;
+    if (session.saving || session.retryPending) return;
     options.onDelete();
   };
 

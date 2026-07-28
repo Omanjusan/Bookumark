@@ -51,6 +51,12 @@ export function createLayoutPlacementEditSession(
     if (saveSession.saving) throw new Error("save is in progress");
   }
 
+  /** 失敗候補の再試行前にドラフトが保存候補から分岐することを防ぐ。 */
+  function assertEditable(): void {
+    assertNotSaving();
+    if (saveSession.pending) throw new Error("failed layout save must be retried");
+  }
+
   /** ステージ済み候補を保存し、成功時だけ現在ドラフトを新しい基準にする。 */
   async function persistPending(): Promise<DockingDocuments> {
     const committed = await saveSession.save();
@@ -68,27 +74,27 @@ export function createLayoutPlacementEditSession(
     picker: () => draft.picker(),
     retryCandidate: () => saveSession.stagedDocuments(),
     autoPlace(bayId, measurements) {
-      assertNotSaving();
+      assertEditable();
       return draft.autoPlace(bayId, measurements);
     },
     moveToRailEnd(bayId, rail) {
-      assertNotSaving();
+      assertEditable();
       return draft.moveToRailEnd(bayId, rail);
     },
     moveToRailPosition(bayId, rail, index) {
-      assertNotSaving();
+      assertEditable();
       return draft.moveToRailPosition(bayId, rail, index);
     },
     unplace(bayId) {
-      assertNotSaving();
+      assertEditable();
       return draft.unplace(bayId);
     },
     undo() {
-      assertNotSaving();
+      assertEditable();
       return draft.undo();
     },
     redo() {
-      assertNotSaving();
+      assertEditable();
       return draft.redo();
     },
     discard(): void {

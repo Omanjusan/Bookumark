@@ -884,6 +884,7 @@ async function main(): Promise<void> {
           get canUndo() { return placementDraft.canUndo; },
           get canRedo() { return placementDraft.canRedo; },
           get saving() { return placementDraft.saving || managementOperationPending; },
+          get retryPending() { return placementDraft.pendingRetry || layoutCoordinator.pending; },
           undo: () => placementDraft.undo(),
           redo: () => placementDraft.redo(),
         }, {
@@ -925,8 +926,10 @@ async function main(): Promise<void> {
             layoutEditRetry.hidden = !placementDraft.pendingRetry;
             layoutEditStatus.textContent = "保存に失敗しました";
           } finally {
-            bayPicker.inert = false;
-            for (const rail of Object.values(dockingRailRoots)) rail.inert = false;
+            bayPicker.inert = placementDraft.pendingRetry;
+            for (const rail of Object.values(dockingRailRoots)) {
+              rail.inert = placementDraft.pendingRetry;
+            }
             layoutEditRetry.disabled = false;
             layoutEditTransactionConnection?.refresh();
           }
@@ -957,8 +960,10 @@ async function main(): Promise<void> {
             layoutEditStatus.textContent = "削除に失敗しました";
           } finally {
             managementOperationPending = false;
-            bayPicker.inert = false;
-            for (const rail of Object.values(dockingRailRoots)) rail.inert = false;
+            bayPicker.inert = layoutCoordinator.pending;
+            for (const rail of Object.values(dockingRailRoots)) {
+              rail.inert = layoutCoordinator.pending;
+            }
             layoutEditRetry.disabled = false;
             layoutEditTransactionConnection?.refresh();
           }
@@ -971,6 +976,8 @@ async function main(): Promise<void> {
         layoutEditTransactionConnection?.disconnect();
         layoutEditTransactionConnection = null;
         layoutEditRetry.onclick = null;
+        bayPicker.inert = false;
+        for (const rail of Object.values(dockingRailRoots)) rail.inert = false;
         activePlacementDraft?.discard();
         activePlacementDraft = null;
         bayPicker.hidden = true;

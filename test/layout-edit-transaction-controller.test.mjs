@@ -68,6 +68,28 @@ test("blocks every edit-bar action including exit while saving", () => {
   assert.equal(fake.elements.unsaved.hidden, false);
 });
 
+test("blocks mutations but leaves discard exit available while a failed candidate awaits retry", () => {
+  const fake = harness();
+  fake.session.dirty = true;
+  fake.session.canUndo = true;
+  fake.session.canRedo = true;
+  fake.session.retryPending = true;
+  fake.connection.refresh();
+
+  for (const key of ["undo", "redo", "save", "delete"]) {
+    assert.equal(fake.elements[key].disabled, true);
+  }
+  assert.equal(fake.elements.exit.disabled, false);
+  fake.elements.undo.emit("click");
+  fake.elements.redo.emit("click");
+  fake.elements.save.emit("click");
+  fake.elements.delete.emit("click");
+  assert.deepEqual([
+    fake.session.undoCalls, fake.session.redoCalls, fake.saveCalls(), fake.deleteCalls(),
+  ], [0, 0, 0, 0]);
+  assert.equal(fake.elements.unsaved.hidden, false);
+});
+
 test("refreshes external placement changes and disconnects listeners", () => {
   const fake = harness();
   fake.session.dirty = true;
@@ -88,6 +110,7 @@ function harness() {
     canUndo: false,
     canRedo: false,
     saving: false,
+    retryPending: false,
     undoCalls: 0,
     redoCalls: 0,
     undo() {

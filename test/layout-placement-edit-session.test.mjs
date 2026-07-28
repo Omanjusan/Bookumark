@@ -50,6 +50,14 @@ test("keeps draft, history, and the exact candidate after failure for explicit r
   assert.equal(session.canUndo, true);
   assert.equal(session.pendingRetry, true);
   assert.deepEqual(session.retryCandidate(), { mainLayouts: draftBeforeSave.mainLayouts });
+  assert.throws(
+    () => session.moveToRailPosition("bay-1", "right", 0),
+    /failed layout save must be retried/,
+  );
+  assert.throws(() => session.unplace("bay-1"), /failed layout save must be retried/);
+  assert.throws(() => session.undo(), /failed layout save must be retried/);
+  assert.throws(() => session.redo(), /failed layout save must be retried/);
+  assert.deepEqual(session.documents(), draftBeforeSave);
 
   await session.retry();
   assert.deepEqual(requests[0], requests[1]);
