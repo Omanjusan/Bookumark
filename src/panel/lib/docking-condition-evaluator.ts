@@ -9,7 +9,8 @@ export type DockingConditionFailureReason =
   | "definition-mismatch"
   | "clone-failed"
   | "apply-threw"
-  | "invalid-result";
+  | "invalid-result"
+  | "invalid-standard-state";
 
 export interface DockingConditionFailure {
   readonly instanceId: string;
@@ -22,11 +23,16 @@ export interface DockingConditionEvaluation {
   readonly failures: DockingConditionFailure[];
 }
 
+interface DockingConditionEvaluationOptions {
+  readonly validateCandidate?: (candidate: ChipSharedState) => boolean;
+}
+
 /** conditionを1件ずつ原子的に評価し、失敗したチップを除いて後続を継続する。 */
 export function evaluateDockingConditions(
   initialState: ChipSharedState,
   sequence: readonly DockingChipApplicationEntry[],
   definitions: ChipDefinitionRegistry,
+  options: DockingConditionEvaluationOptions = {},
 ): DockingConditionEvaluation {
   let state = initialState;
   const failures: DockingConditionFailure[] = [];
@@ -62,6 +68,10 @@ export function evaluateDockingConditions(
     }
     if (!isSharedState(candidate)) {
       failures.push(failure(instance, "invalid-result"));
+      continue;
+    }
+    if (options.validateCandidate !== undefined && !options.validateCandidate(candidate)) {
+      failures.push(failure(instance, "invalid-standard-state"));
       continue;
     }
     state = candidate;
