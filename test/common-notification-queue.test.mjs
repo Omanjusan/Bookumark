@@ -95,7 +95,7 @@ test("rejects invalid notification contracts without changing state", () => {
 test("returns defensive snapshots and treats unknown completion or dismissal as unchanged", () => {
   const sourceDialog = dialog("dialog");
   const sourceToast = toast("toast", "toast-key", "警告");
-  const queue = createCommonNotificationQueue();
+  const queue = createCommonNotificationQueue(createClock().options);
   queue.enqueueDialog(sourceDialog);
   queue.enqueueToast(sourceToast);
   sourceDialog.message = "mutated input";
