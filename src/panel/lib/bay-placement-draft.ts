@@ -28,6 +28,7 @@ export interface BayPlacementDraft {
   autoPlace(bayId: string, measurements: BayAutoPlacementMeasurements): BayAutoPlacementResult;
   moveToRailEnd(bayId: string, rail: RailId): BayRailEndPlacementResult;
   moveToRailPosition(bayId: string, rail: RailId, index: number): BayRailPositionResult;
+  unplace(bayId: string): BayUnplacementResult;
   undo(): boolean;
   redo(): boolean;
   discard(): void;
@@ -47,6 +48,14 @@ export type BayRailPositionResult =
     readonly status: "unchanged";
     readonly bayId: string;
     readonly reason: "unknown-bay" | "same-position";
+  };
+
+export type BayUnplacementResult =
+  | { readonly status: "unplaced"; readonly bayId: string }
+  | {
+    readonly status: "unchanged";
+    readonly bayId: string;
+    readonly reason: "unknown-bay" | "already-unplaced";
   };
 
 const AUTO_PLACEMENT_ORDER: readonly RailId[] = ["top", "bottom", "left", "right"];
@@ -153,6 +162,21 @@ export function createBayPlacementDraft(savedDocuments: DockingDocuments): BayPl
       })));
       recordMutation(before);
       return { status: "moved", bayId, rail, order: index + 1 };
+    },
+    unplace(bayId) {
+      const bay = draft.bayConfigurations.bays.find(({ id }) => id === bayId);
+      if (bay === undefined) return { status: "unchanged", bayId, reason: "unknown-bay" };
+      const active = resolveActiveLayout(draft);
+      if (!active.placements.some((placement) => placement.bayId === bayId)) {
+        return { status: "unchanged", bayId, reason: "already-unplaced" };
+      }
+      const before = structuredClone(draft);
+      // ベイ定義には触れず、activeレイアウトの配置だけを除外して各レールを再採番する。
+      active.placements = RAIL_ORDER.flatMap((rail) => orderedRailBayIds(active.placements, rail)
+        .filter((candidateBayId) => candidateBayId !== bayId)
+        .map((candidateBayId, index) => ({ bayId: candidateBayId, rail, order: index + 1 })));
+      recordMutation(before);
+      return { status: "unplaced", bayId };
     },
     undo(): boolean {
       const previous = undoStack.pop();

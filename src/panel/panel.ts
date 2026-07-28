@@ -65,6 +65,7 @@ import { bindLayoutEditMode } from "./lib/layout-edit-mode-controller.js";
 import { renderBayPicker } from "./lib/bay-picker-view.js";
 import { bindBayPickerDrag } from "./lib/bay-picker-drag.js";
 import { bindBayRailDrop } from "./lib/bay-rail-drop.js";
+import { bindLayoutBayTrash } from "./lib/layout-bay-trash.js";
 import { createBayPlacementDraft } from "./lib/bay-placement-draft.js";
 import type { BayPlacementDraft } from "./lib/bay-placement-draft.js";
 import {
@@ -143,6 +144,7 @@ const layoutEditExit = document.getElementById("layout-edit-exit") as HTMLButton
 const bayPicker = document.getElementById("bay-picker") as HTMLElement;
 const bayPickerUnplaced = document.getElementById("bay-picker-unplaced") as HTMLElement;
 const bayPickerPlaced = document.getElementById("bay-picker-placed") as HTMLElement;
+const layoutBayTrash = document.getElementById("layout-bay-trash") as HTMLElement;
 const bayFactoryAdd = document.getElementById("bay-factory-add") as HTMLButtonElement;
 const bayFactoryEntry = document.getElementById("bay-factory-entry") as HTMLButtonElement;
 const bayFactorySelection = document.getElementById("bay-factory-selection") as HTMLElement;
@@ -207,6 +209,24 @@ const bayRailDrop = bindBayRailDrop(dockingRailRoots, bayPickerDrag, ({ bayId, r
   }, activePlacementDraft.picker());
 });
 void bayRailDrop;
+const layoutBayTrashConnection = bindLayoutBayTrash(
+  layoutBayTrash,
+  bayPicker,
+  bayPickerDrag,
+  {
+    onUnplace: (bayId) => {
+      if (activePlacementDraft === null) return;
+      const result = activePlacementDraft.unplace(bayId);
+      if (result.status !== "unplaced") return;
+      renderBayPlacementPreviews(dockingRailRoots, activePlacementDraft.documents());
+      renderBayPicker({
+        root: bayPicker,
+        unplaced: bayPickerUnplaced,
+        placed: bayPickerPlaced,
+      }, activePlacementDraft.picker());
+    },
+  },
+);
 
 bayPicker.addEventListener("click", (event) => {
   const tag = (event.target as Element).closest<HTMLElement>(".bay-picker-tag");
@@ -839,6 +859,7 @@ async function main(): Promise<void> {
       },
       onExit: (documents) => {
         bayRailDrop.clear();
+        layoutBayTrashConnection.clear();
         bayPickerDrag.cancel();
         activePlacementDraft?.discard();
         activePlacementDraft = null;

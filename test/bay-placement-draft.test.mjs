@@ -257,6 +257,39 @@ test("clears redo after a new mutation and resets history when discarded", () =>
   assert.deepEqual(draft.documents(), positionFixture());
 });
 
+test("unplaces regular and permanent bays without deleting their definitions or settings", () => {
+  const documents = positionFixture();
+  documents.bayConfigurations.bays[0].chips.push({
+    instanceId: "chip-1", chipType: "search", order: 1, settings: { query: "kept" },
+  });
+  const draft = createBayPlacementDraft(documents);
+
+  assert.deepEqual(draft.unplace("bay-2"), { status: "unplaced", bayId: "bay-2" });
+  assert.deepEqual(draft.unplace("bay-1"), { status: "unplaced", bayId: "bay-1" });
+  assert.deepEqual(placementsByRail(draft, "top"), [{ bayId: "bay-3", order: 1 }]);
+  assert.deepEqual(draft.documents().bayConfigurations.bays[0], documents.bayConfigurations.bays[0]);
+  assert.deepEqual(draft.picker().unplaced.map(({ bayId }) => bayId), ["bay-1", "bay-2", "bay-4"]);
+  assert.equal(draft.canUndo, true);
+  assert.equal(draft.undo(), true);
+  assert.equal(draft.picker().placed.some(({ bayId }) => bayId === "bay-1"), true);
+  assert.equal(draft.undo(), true);
+  assert.deepEqual(draft.documents(), documents);
+  assert.equal(draft.dirty, false);
+});
+
+test("does not add history when unplacing an unknown or already unplaced bay", () => {
+  const draft = createBayPlacementDraft(positionFixture());
+
+  assert.deepEqual(draft.unplace("bay-4"), {
+    status: "unchanged", bayId: "bay-4", reason: "already-unplaced",
+  });
+  assert.deepEqual(draft.unplace("bay-404"), {
+    status: "unchanged", bayId: "bay-404", reason: "unknown-bay",
+  });
+  assert.equal(draft.dirty, false);
+  assert.equal(draft.canUndo, false);
+});
+
 function capacity(overrides = {}) {
   const result = {
     top: { available: 100, existingExtents: [40], candidateExtent: 20 },

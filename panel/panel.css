@@ -8,6 +8,7 @@
   --hover: #eaecf0;
   --mode-custom: #2f6fca;
   --mode-directory: #a65f00;
+  --danger: #b3261e;
   --badge-s: 60%;
   --badge-l: 88%;
   --badge-fg-s: 45%;
@@ -25,6 +26,7 @@
     --hover: #262a33;
     --mode-custom: #75a7ee;
     --mode-directory: #e1a64f;
+    --danger: #ff8a80;
     --badge-s: 28%;
     --badge-l: 26%;
     --badge-fg-s: 40%;
@@ -198,6 +200,7 @@ header h1 {
 }
 
 .docking-grid {
+  position: relative;
   display: grid;
   grid-template-areas:
     "top top top"
@@ -219,6 +222,28 @@ header h1 {
   justify-self: end;
 }
 #docking-rail-bottom { grid-area: bottom; }
+
+.layout-bay-trash {
+  position: absolute;
+  z-index: 20;
+  top: 50%;
+  left: 50%;
+  width: min(240px, calc(100% - 32px));
+  padding: 22px 16px;
+  transform: translate(-50%, -50%);
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  color: var(--text-muted);
+  text-align: center;
+  pointer-events: auto;
+}
+.layout-bay-trash[hidden] { display: none; }
+.layout-bay-trash--active {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 12%, var(--surface));
+  color: var(--danger);
+}
 
 .dock-rail {
   display: flex;
