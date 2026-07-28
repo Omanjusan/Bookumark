@@ -34,6 +34,14 @@ test("evaluates Docking shared state before rebuilding the panel runtime", () =>
   assert.match(source, /docking condition evaluation failed/);
 });
 
+test("connects startup recovery and condition failures to common notifications", () => {
+  assert.match(source, /runPanelDockingStartup/);
+  assert.match(source, /presentStartupDialog/);
+  assert.match(source, /createDockingConditionFailureNotification/);
+  assert.match(source, /notificationQueue\.enqueueToast/);
+  assert.match(source, /saveDockingDocuments/);
+});
+
 test("routes basic chip changes through the validated shared control store", () => {
   assert.match(source, /createDockingBasicControlStore/);
   assert.match(source, /updateDockingControl\("search", nextQuery\)/);

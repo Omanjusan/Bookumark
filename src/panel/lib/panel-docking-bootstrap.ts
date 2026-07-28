@@ -1,6 +1,6 @@
 import type { SelectableBayFactoryViewModel } from "./bay-factory-controller.js";
 import type { DockingDocumentsNormalizationResult } from "./docking-documents-normalization.js";
-import { loadNormalizedDockingDocuments } from "./docking-documents-normalization.js";
+import { loadUnpersistedNormalizedDockingDocuments } from "./docking-documents-normalization.js";
 import { createInternalDefaultDockingDocuments } from "./docking-internal-defaults.js";
 import {
   PRODUCTION_DOCKING_CHIP_CATALOG,
@@ -18,6 +18,7 @@ interface PanelDockingBootstrapOptions {
 }
 
 export interface PanelDockingState {
+  readonly normalization: DockingDocumentsNormalizationResult;
   readonly documents: DockingDocuments;
   readonly bays: SelectableBayFactoryViewModel[];
   readonly activeLayout: LayoutConfiguration;
@@ -27,8 +28,15 @@ export interface PanelDockingState {
 export async function loadPanelDockingState(
   options: PanelDockingBootstrapOptions = {},
 ): Promise<PanelDockingState> {
-  const loadNormalized = options.loadNormalized ?? loadNormalizedDockingDocuments;
+  const loadNormalized = options.loadNormalized ?? loadUnpersistedNormalizedDockingDocuments;
   const result = await loadNormalized(createInternalDefaultDockingDocuments());
+  return buildPanelDockingState(result);
+}
+
+/** 正常化結果から復旧後にも再利用できるパネル接続状態を構築する。 */
+export function buildPanelDockingState(
+  result: DockingDocumentsNormalizationResult,
+): PanelDockingState {
   const documents = structuredClone(result.documents);
   const activeLayout = documents.mainLayouts.layouts.find(
     (layout) => layout.id === documents.dockingMetadata.activeLayoutId,
@@ -39,6 +47,7 @@ export async function loadPanelDockingState(
 
   const bays = buildPanelBayModels(documents);
   return {
+    normalization: structuredClone(result),
     documents,
     bays: structuredClone(bays),
     activeLayout: structuredClone(activeLayout),

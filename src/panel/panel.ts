@@ -18,6 +18,9 @@ import type {
   BookmarkTreeItem,
 } from "./lib/bookmarks.js";
 import { renderCardView } from "./lib/card-view.js";
+import { createCommonNotificationQueue } from "./lib/common-notification-queue.js";
+import type { CommonDialogNotification } from "./lib/common-notification-queue.js";
+import { bindCommonNotificationView } from "./lib/common-notification-view.js";
 import {
   createStoredCurrentFolder,
   loadCurrentFolder,
@@ -43,6 +46,9 @@ import {
   buildDockingChipApplicationOrder,
 } from "./lib/docking-chip-application-order.js";
 import { createDockingChipRendererRegistry } from "./lib/docking-chip-renderer-registry.js";
+import { PRODUCTION_DOCKING_CHIP_CATALOG } from "./lib/docking-chip-catalog.js";
+import { createDockingConditionFailureNotification } from "./lib/docking-condition-failure-notification.js";
+import type { DockingConditionFailure } from "./lib/docking-condition-evaluator.js";
 import {
   createDockingEditRuntimeCoordinator,
 } from "./lib/docking-edit-runtime-coordinator.js";
@@ -64,6 +70,7 @@ import {
   evaluateDockingSharedStateConditions,
 } from "./lib/docking-shared-state.js";
 import type { DockingSharedState } from "./lib/docking-shared-state.js";
+import { saveDockingDocuments } from "./lib/docking-storage.js";
 import {
   migrateLegacyOrder,
   orderDirectFolderContents,
@@ -79,9 +86,11 @@ import { bindPanelFolderNavigation } from "./lib/panel-folder-navigation.js";
 import { bindPanelFolderDrag } from "./lib/panel-folder-drag.js";
 import { renderPanelFolders } from "./lib/panel-folder-view.js";
 import {
+  buildPanelDockingState,
   buildPanelBayModels,
   loadPanelDockingState,
 } from "./lib/panel-docking-bootstrap.js";
+import { runPanelDockingStartup } from "./lib/panel-docking-startup.js";
 import { createFolderNavigationHistory } from "./lib/folder-navigation-history.js";
 import type { FolderNavigationHistory } from "./lib/folder-navigation-history.js";
 import { renderListView } from "./lib/list-view.js";
@@ -142,6 +151,9 @@ const root = document.getElementById("app") as HTMLElement;
 const frameRoot = document.querySelector(".frame") as HTMLElement;
 const folderRoot = document.getElementById("folders") as HTMLElement;
 const countEl = document.getElementById("count") as HTMLElement;
+const commonNotificationDialog = document.getElementById(
+  "common-notification-dialog",
+) as HTMLDialogElement;
 const dockingRailRoots = {
   top: document.getElementById("docking-rail-top") as HTMLElement,
   left: document.getElementById("docking-rail-left") as HTMLElement,
@@ -225,6 +237,28 @@ const officialMoveNoticeElements = {
   message: officialMoveMessage,
   undoButton: officialMoveUndoButton,
 };
+const notificationQueue = createCommonNotificationQueue({
+  schedule: (callback, delay) => globalThis.setTimeout(() => {
+    callback();
+    renderCommonNotifications();
+  }, delay),
+});
+let activeStartupDialogAction: { id: string; run: () => Promise<void> } | null = null;
+let conditionNotificationSequence = 0;
+const notificationView = bindCommonNotificationView({
+  dialog: commonNotificationDialog,
+  title: document.getElementById("common-notification-title") as HTMLElement,
+  message: document.getElementById("common-notification-message") as HTMLElement,
+  busy: document.getElementById("common-notification-busy") as HTMLElement,
+  primary: document.getElementById("common-notification-primary") as HTMLButtonElement,
+  toastRegion: document.getElementById("common-toast-region") as HTMLElement,
+}, {
+  onDialogPrimary: (id) => { void runActiveStartupDialogAction(id); },
+  onToastDismiss: (id) => {
+    notificationQueue.dismissToast(id);
+    renderCommonNotifications();
+  },
+});
 let currentItems: readonly DisplayBookmarkItem[] | null = null;
 let currentFolders: readonly BookmarkTreeFolderItem[] = [];
 let treeItems: readonly BookmarkTreeItem[] = [];
@@ -903,6 +937,52 @@ function dockingLayoutController(): ActiveDockingLayoutController {
   return activeDockingController;
 }
 
+/** 通知キューの現在値を共通ダイアログとトーストへ同期する。 */
+function renderCommonNotifications(): void {
+  notificationView.render({
+    dialog: notificationQueue.dialogSnapshot(),
+    toasts: notificationQueue.toastSnapshot(),
+  });
+}
+
+/** 起動ダイアログの主操作を保存ゲートとして実行し、失敗時は同じ操作を再試行可能にする。 */
+async function runActiveStartupDialogAction(id: string): Promise<void> {
+  const action = activeStartupDialogAction;
+  if (action === null || action.id !== id || !notificationQueue.beginActiveDialogOperation(id)) {
+    return;
+  }
+  renderCommonNotifications();
+  try {
+    await action.run();
+  } catch (error) {
+    console.warn("docking startup persistence failed:", error);
+    notificationQueue.endActiveDialogOperation(id);
+    renderCommonNotifications();
+  }
+}
+
+/** 保存成功まで閉じない共通ダイアログを表示し、主操作の完了を待つ。 */
+function presentStartupDialog(
+  notification: CommonDialogNotification,
+  operation: () => Promise<void>,
+): Promise<void> {
+  return new Promise((resolve) => {
+    activeStartupDialogAction = {
+      id: notification.id,
+      run: async () => {
+        await operation();
+        notificationQueue.endActiveDialogOperation(notification.id);
+        notificationQueue.completeActiveDialog(notification.id);
+        activeStartupDialogAction = null;
+        renderCommonNotifications();
+        resolve();
+      },
+    };
+    notificationQueue.enqueueDialog(notification);
+    renderCommonNotifications();
+  });
+}
+
 /** active文書をデフォルト状態からcondition評価し、失敗を警告へ隔離する。 */
 function evaluatePanelDockingState(documents: DockingDocuments): DockingSharedState {
   const initial = createDefaultDockingSharedState(documents.dockingMetadata.activeLayoutId);
@@ -912,10 +992,29 @@ function evaluatePanelDockingState(documents: DockingDocuments): DockingSharedSt
     sequence,
     BASIC_DOCKING_CONTROL_DEFINITIONS,
   );
-  if (evaluation.failures.length > 0) {
-    console.warn("docking condition evaluation failed:", evaluation.failures);
-  }
+  notifyDockingConditionFailures(evaluation.failures, documents, sequence);
   return structuredClone(evaluation.state) as DockingSharedState;
+}
+
+/** condition失敗を診断ログと利用者向け集約トーストへ同時に接続する。 */
+function notifyDockingConditionFailures(
+  failures: readonly DockingConditionFailure[],
+  documents: DockingDocuments,
+  sequence = buildDockingChipApplicationOrder(documents),
+): void {
+  if (failures.length === 0) return;
+  conditionNotificationSequence += 1;
+  const notification = createDockingConditionFailureNotification(
+    `docking-condition-failure-${conditionNotificationSequence}`,
+    failures,
+    sequence,
+    documents,
+    PRODUCTION_DOCKING_CHIP_CATALOG,
+  );
+  if (notification === null) return;
+  console.warn("docking condition evaluation failed:", notification.diagnostics);
+  notificationQueue.enqueueToast(notification.toast);
+  renderCommonNotifications();
 }
 
 /** 正常化済み文書と評価済み状態からactiveレイアウトを動的4レールへ再構築する。 */
@@ -935,7 +1034,36 @@ function rebuildActiveDockingLayout(
 
 async function main(): Promise<void> {
   try {
-    const dockingState = await loadPanelDockingState();
+    const loadedDockingState = await loadPanelDockingState();
+    let startupDocuments: DockingDocuments | null = null;
+    await runPanelDockingStartup(
+      loadedDockingState.normalization,
+      PRODUCTION_DOCKING_CHIP_CATALOG,
+      {
+        saveDocuments: saveDockingDocuments,
+        presentRecovery: (snapshot, save) => presentStartupDialog({
+          id: "docking-recovery",
+          severity: "warning",
+          title: "ドッキング設定を復旧します",
+          message: `破損または未対応の設定を安全な状態へ復旧します。対象文書: ${snapshot.changedDocuments.length}件、削除する未対応チップ: ${snapshot.removedUnknown.length}件`,
+          primaryActionLabel: "復旧して続行",
+        }, save),
+        presentDeprecated: (summary, save) => presentStartupDialog({
+          id: "docking-deprecated",
+          severity: "warning",
+          title: "廃止されたチップを削除します",
+          message: summary.map((item) => `${item.displayName}（${item.totalCount}件）`).join("、"),
+          primaryActionLabel: "削除して続行",
+        }, save),
+        startRuntime: (documents) => { startupDocuments = documents; },
+      },
+    );
+    if (startupDocuments === null) throw new Error("Docking startup did not produce documents");
+    const dockingState = buildPanelDockingState({
+      ...loadedDockingState.normalization,
+      documents: startupDocuments,
+      changedDocuments: [],
+    });
     bayFactoryConnection.replaceBays(dockingState.bays);
     // 後続の動的レール描画が同じactiveレイアウトを参照できる境界として保持する。
     root.dataset.activeLayoutId = dockingState.activeLayout.id;
@@ -1040,7 +1168,10 @@ async function main(): Promise<void> {
               console.warn("storage reload failed after Docking save:", reevaluated.warnings);
             }
             if (reevaluated.conditionFailures.length > 0) {
-              console.warn("docking condition evaluation failed:", reevaluated.conditionFailures);
+              notifyDockingConditionFailures(
+                reevaluated.conditionFailures,
+                reevaluated.documents,
+              );
             }
             layoutCoordinator.replaceState(reevaluated.documents);
             layoutEditMode.commitDocuments(reevaluated.documents);

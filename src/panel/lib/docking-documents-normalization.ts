@@ -71,6 +71,14 @@ export async function loadNormalizedDockingDocuments(
   return result;
 }
 
+/** 3文書を読み込んで正常化するが、起動時復旧UIへ委ねるため保存は行わない。 */
+export async function loadUnpersistedNormalizedDockingDocuments(
+  fallback: DockingDocuments,
+): Promise<DockingDocumentsNormalizationResult> {
+  const stored = await loadDockingDocuments();
+  return normalizeDockingDocuments(stored, fallback);
+}
+
 /** 文書フィールドと値の対応を保ったまま保存パッチへ代入する。 */
 function assignDocument<Field extends keyof DockingDocuments>(
   target: Partial<DockingDocuments>,
