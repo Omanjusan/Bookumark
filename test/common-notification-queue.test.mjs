@@ -33,6 +33,20 @@ test("blocks dialog completion and duplicate operations while the active dialog 
   assert.equal(queue.dialogSnapshot().active, null);
 });
 
+test("updates only an idle matching active dialog while preserving queue order", () => {
+  const queue = createCommonNotificationQueue();
+  queue.enqueueDialog(dialog("recovery"));
+  queue.enqueueDialog(dialog("next"));
+  assert.equal(queue.updateActiveDialog({ ...dialog("recovery"), message: "保存失敗", primaryActionLabel: "保存を再試行" }), true);
+  assert.equal(queue.dialogSnapshot().active?.message, "保存失敗");
+  assert.equal(queue.dialogSnapshot().active?.primaryActionLabel, "保存を再試行");
+  assert.deepEqual(queue.dialogSnapshot().pending.map(({ id }) => id), ["next"]);
+
+  queue.beginActiveDialogOperation("recovery");
+  assert.equal(queue.updateActiveDialog(dialog("recovery")), false);
+  assert.equal(queue.updateActiveDialog(dialog("other")), false);
+});
+
 test("keeps different toast aggregation keys as separate notifications", () => {
   const clock = createClock();
   const queue = createCommonNotificationQueue(clock.options);

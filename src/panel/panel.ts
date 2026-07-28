@@ -50,6 +50,10 @@ import { PRODUCTION_DOCKING_CHIP_CATALOG } from "./lib/docking-chip-catalog.js";
 import { createDockingConditionFailureNotification } from "./lib/docking-condition-failure-notification.js";
 import type { DockingConditionFailure } from "./lib/docking-condition-evaluator.js";
 import {
+  createDeprecatedChipDialogNotification,
+  createDockingRecoveryDialogNotification,
+} from "./lib/docking-recovery-notification.js";
+import {
   createDockingEditRuntimeCoordinator,
 } from "./lib/docking-edit-runtime-coordinator.js";
 import type {
@@ -243,7 +247,11 @@ const notificationQueue = createCommonNotificationQueue({
     renderCommonNotifications();
   }, delay),
 });
-let activeStartupDialogAction: { id: string; run: () => Promise<void> } | null = null;
+let activeStartupDialogAction: {
+  id: string;
+  run: () => Promise<void>;
+  retryNotification: CommonDialogNotification;
+} | null = null;
 let conditionNotificationSequence = 0;
 const notificationView = bindCommonNotificationView({
   dialog: commonNotificationDialog,
@@ -957,6 +965,7 @@ async function runActiveStartupDialogAction(id: string): Promise<void> {
   } catch (error) {
     console.warn("docking startup persistence failed:", error);
     notificationQueue.endActiveDialogOperation(id);
+    notificationQueue.updateActiveDialog(action.retryNotification);
     renderCommonNotifications();
   }
 }
@@ -964,11 +973,13 @@ async function runActiveStartupDialogAction(id: string): Promise<void> {
 /** 保存成功まで閉じない共通ダイアログを表示し、主操作の完了を待つ。 */
 function presentStartupDialog(
   notification: CommonDialogNotification,
+  retryNotification: CommonDialogNotification,
   operation: () => Promise<void>,
 ): Promise<void> {
   return new Promise((resolve) => {
     activeStartupDialogAction = {
       id: notification.id,
+      retryNotification,
       run: async () => {
         await operation();
         notificationQueue.endActiveDialogOperation(notification.id);
@@ -1041,20 +1052,16 @@ async function main(): Promise<void> {
       PRODUCTION_DOCKING_CHIP_CATALOG,
       {
         saveDocuments: saveDockingDocuments,
-        presentRecovery: (snapshot, save) => presentStartupDialog({
-          id: "docking-recovery",
-          severity: "warning",
-          title: "ドッキング設定を復旧します",
-          message: `破損または未対応の設定を安全な状態へ復旧します。対象文書: ${snapshot.changedDocuments.length}件、削除する未対応チップ: ${snapshot.removedUnknown.length}件`,
-          primaryActionLabel: "復旧して続行",
-        }, save),
-        presentDeprecated: (summary, save) => presentStartupDialog({
-          id: "docking-deprecated",
-          severity: "warning",
-          title: "廃止されたチップを削除します",
-          message: summary.map((item) => `${item.displayName}（${item.totalCount}件）`).join("、"),
-          primaryActionLabel: "削除して続行",
-        }, save),
+        presentRecovery: (snapshot, save) => presentStartupDialog(
+          createDockingRecoveryDialogNotification(snapshot),
+          createDockingRecoveryDialogNotification(snapshot, true),
+          save,
+        ),
+        presentDeprecated: (summary, save) => presentStartupDialog(
+          createDeprecatedChipDialogNotification(summary),
+          createDeprecatedChipDialogNotification(summary, true),
+          save,
+        ),
         startRuntime: (documents) => { startupDocuments = documents; },
       },
     );

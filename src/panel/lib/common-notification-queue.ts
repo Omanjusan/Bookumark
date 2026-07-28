@@ -35,6 +35,7 @@ interface CommonNotificationClock {
 
 export interface CommonNotificationQueue {
   enqueueDialog(notification: CommonDialogNotification): void;
+  updateActiveDialog(notification: CommonDialogNotification): boolean;
   dialogSnapshot(): CommonDialogSnapshot;
   beginActiveDialogOperation(id: string): boolean;
   endActiveDialogOperation(id: string): boolean;
@@ -81,6 +82,13 @@ export function createCommonNotificationQueue(
         throw new Error(`notification id is already queued: ${notification.id}`);
       }
       dialogs.push({ ...structuredClone(notification), busy: false });
+    },
+    updateActiveDialog(notification): boolean {
+      validateDialog(notification);
+      const active = dialogs[0];
+      if (active === undefined || active.id !== notification.id || active.busy) return false;
+      dialogs[0] = { ...structuredClone(notification), busy: false };
+      return true;
     },
     dialogSnapshot(): CommonDialogSnapshot {
       return structuredClone({
