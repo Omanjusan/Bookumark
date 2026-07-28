@@ -29,6 +29,19 @@
       <button id="layout-edit-exit" type="button">編集を終了</button>
       <span id="layout-edit-status" role="status" aria-live="polite"></span>
     </div>
+    <section
+      id="layout-edit-discard-confirmation"
+      class="layout-edit-discard-confirmation"
+      role="alertdialog"
+      aria-labelledby="layout-edit-discard-title"
+      hidden
+    >
+      <p id="layout-edit-discard-title">未保存の変更があります</p>
+      <div>
+        <button id="layout-edit-continue" type="button">編集を続ける</button>
+        <button id="layout-edit-discard" type="button">変更を破棄</button>
+      </div>
+    </section>
     <section id="bay-picker" class="bay-picker" aria-label="ベイピッカー" hidden>
       <section class="bay-picker-section" aria-labelledby="bay-picker-unplaced-title">
         <h2 id="bay-picker-unplaced-title">未配置</h2>

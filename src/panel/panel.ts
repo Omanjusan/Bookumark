@@ -158,6 +158,11 @@ const layoutEditRetry = document.getElementById("layout-edit-retry") as HTMLButt
 const layoutEditDelete = document.getElementById("layout-edit-delete") as HTMLButtonElement;
 const layoutEditExit = document.getElementById("layout-edit-exit") as HTMLButtonElement;
 const layoutEditStatus = document.getElementById("layout-edit-status") as HTMLElement;
+const layoutEditDiscardConfirmation = document.getElementById(
+  "layout-edit-discard-confirmation",
+) as HTMLElement;
+const layoutEditContinue = document.getElementById("layout-edit-continue") as HTMLButtonElement;
+const layoutEditDiscard = document.getElementById("layout-edit-discard") as HTMLButtonElement;
 const bayPicker = document.getElementById("bay-picker") as HTMLElement;
 const bayPickerUnplaced = document.getElementById("bay-picker-unplaced") as HTMLElement;
 const bayPickerPlaced = document.getElementById("bay-picker-placed") as HTMLElement;
@@ -846,6 +851,9 @@ async function main(): Promise<void> {
       editBar: layoutEditBar,
       layoutName: layoutEditName,
       exit: layoutEditExit,
+      discardConfirmation: layoutEditDiscardConfirmation,
+      continueEditing: layoutEditContinue,
+      discardChanges: layoutEditDiscard,
       guardedControls: [
         layoutSelect,
         layoutDefault,
@@ -859,6 +867,7 @@ async function main(): Promise<void> {
       ],
     }, dockingState.documents, {
       initiallyReady: false,
+      hasUnsavedChanges: () => activePlacementDraft?.dirty === true,
       onEnter: (documents) => {
         // レール自体は後続の配置操作に使うため、通常チップの接続だけを停止する。
         activeChipRuntime?.disconnect();

@@ -7,6 +7,9 @@ export interface LayoutEditModeElements {
   readonly editBar: HTMLElement;
   readonly layoutName: HTMLElement;
   readonly exit: HTMLButtonElement;
+  readonly discardConfirmation: HTMLElement;
+  readonly continueEditing: HTMLButtonElement;
+  readonly discardChanges: HTMLButtonElement;
   readonly guardedControls: readonly (HTMLButtonElement | HTMLInputElement | HTMLSelectElement)[];
   readonly guardedRegions: readonly HTMLElement[];
 }
@@ -22,6 +25,7 @@ interface LayoutEditModeOptions {
   readonly initiallyReady?: boolean;
   readonly onEnter?: (documents: DockingDocuments) => void;
   readonly onExit?: (documents: DockingDocuments) => void;
+  readonly hasUnsavedChanges?: () => boolean;
 }
 
 /** activeレイアウトの編集可否と、編集中に停止する通常操作のライフサイクルを管理する。 */
@@ -61,6 +65,7 @@ export function bindLayoutEditMode(
     elements.entry.hidden = true;
     elements.unavailableReason.hidden = true;
     elements.editBar.hidden = false;
+    elements.discardConfirmation.hidden = true;
     options.onEnter?.(structuredClone(documents));
   };
 
@@ -79,12 +84,36 @@ export function bindLayoutEditMode(
     delete elements.root.dataset.layoutEditing;
     elements.entry.hidden = false;
     elements.editBar.hidden = true;
+    elements.discardConfirmation.hidden = true;
     renderAvailability();
     options.onExit?.(structuredClone(documents));
   };
 
+  /** 未保存なら確認を表示し、クリーンな状態だけを即時終了する。 */
+  const requestExit = (): void => {
+    if (!editing) return;
+    if (options.hasUnsavedChanges?.() === true) {
+      elements.discardConfirmation.hidden = false;
+      return;
+    }
+    exit();
+  };
+
+  /** 確認を閉じ、現在の編集セッションとドラフトをそのまま維持する。 */
+  const continueEditing = (): void => {
+    elements.discardConfirmation.hidden = true;
+  };
+
+  /** 未保存確認を閉じ、既存の終了・破棄経路を実行する。 */
+  const discardChanges = (): void => {
+    elements.discardConfirmation.hidden = true;
+    exit();
+  };
+
   elements.entry.addEventListener("click", enter);
-  elements.exit.addEventListener("click", exit);
+  elements.exit.addEventListener("click", requestExit);
+  elements.continueEditing.addEventListener("click", continueEditing);
+  elements.discardChanges.addEventListener("click", discardChanges);
   renderAvailability();
 
   return {

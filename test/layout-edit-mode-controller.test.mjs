@@ -97,6 +97,46 @@ test("commits a saved placement baseline while editing and returns it on exit", 
   assert.deepEqual(exits[0], saved);
 });
 
+test("asks to continue editing or discard when exit is requested with unsaved changes", () => {
+  const fake = harness();
+  let dirty = true;
+  let exits = 0;
+  const controller = bindLayoutEditMode(fake.elements, fixture(), {
+    hasUnsavedChanges: () => dirty,
+    onExit: () => { exits += 1; },
+  });
+  fake.elements.entry.emit("click");
+
+  fake.elements.exit.emit("click");
+  assert.equal(controller.editing, true);
+  assert.equal(fake.elements.discardConfirmation.hidden, false);
+  assert.equal(exits, 0);
+
+  fake.elements.continueEditing.emit("click");
+  assert.equal(controller.editing, true);
+  assert.equal(fake.elements.discardConfirmation.hidden, true);
+
+  fake.elements.exit.emit("click");
+  fake.elements.discardChanges.emit("click");
+  assert.equal(controller.editing, false);
+  assert.equal(fake.elements.discardConfirmation.hidden, true);
+  assert.equal(exits, 1);
+
+  dirty = false;
+});
+
+test("exits immediately without showing confirmation when the draft is clean", () => {
+  const fake = harness();
+  const controller = bindLayoutEditMode(fake.elements, fixture(), {
+    hasUnsavedChanges: () => false,
+  });
+  fake.elements.entry.emit("click");
+  fake.elements.exit.emit("click");
+
+  assert.equal(controller.editing, false);
+  assert.equal(fake.elements.discardConfirmation.hidden, true);
+});
+
 function harness() {
   const element = (values = {}) => ({
     disabled: false,
@@ -117,6 +157,9 @@ function harness() {
       editBar: element({ hidden: true }),
       layoutName: element(),
       exit: element(),
+      discardConfirmation: element({ hidden: true }),
+      continueEditing: element(),
+      discardChanges: element(),
       guardedControls: [element(), element({ disabled: true })],
       guardedRegions: [element(), element({ inert: true })],
     },

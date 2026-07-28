@@ -25,3 +25,16 @@ test("provides the complete layout edit action bar", () => {
   assert.match(css, /\.layout-edit-unsaved\s*\{[^}]*color:\s*var\(--mode-directory\)/s);
   assert.match(bar, /id="layout-edit-status"[^>]+role="status"[^>]+aria-live="polite"/);
 });
+
+test("provides the specified unsaved-exit confirmation outside the edit bar", () => {
+  assert.match(
+    html,
+    /id="layout-edit-discard-confirmation"[^>]+role="alertdialog"[^>]+hidden[\s\S]*?未保存の変更があります/,
+  );
+  assert.match(html, /id="layout-edit-continue"[^>]*>編集を続ける<\/button>/);
+  assert.match(html, /id="layout-edit-discard"[^>]*>変更を破棄<\/button>/);
+  assert.match(
+    css,
+    /\.layout-edit-discard-confirmation\[hidden\]\s*\{[^}]*display:\s*none/,
+  );
+});

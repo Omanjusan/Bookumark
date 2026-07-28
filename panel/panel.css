@@ -115,6 +115,25 @@ header h1 {
 .layout-edit-bar button[hidden] { display: none; }
 #layout-edit-status { color: var(--text-muted); font-size: 11px; }
 #layout-edit-delete { margin-left: auto; }
+.layout-edit-discard-confirmation {
+  margin: 0 0 10px;
+  padding: 10px;
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.layout-edit-discard-confirmation[hidden] { display: none; }
+.layout-edit-discard-confirmation p { margin: 0 0 8px; }
+.layout-edit-discard-confirmation div { display: flex; gap: 8px; }
+.layout-edit-discard-confirmation button {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 7px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
 .bay-picker {
   display: grid;
   gap: 8px;
