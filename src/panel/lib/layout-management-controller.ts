@@ -25,12 +25,16 @@ interface LayoutManagementControllerOptions {
   readonly onStateChange?: (documents: DockingDocuments) => void;
 }
 
+export interface LayoutManagementConnection {
+  replaceDocuments(documents: DockingDocuments): void;
+}
+
 /** 名前付きレイアウト管理操作をDOMと保存コーディネーターへ接続する。 */
 export function bindLayoutManagement(
   elements: LayoutManagementElements,
   coordinator: LayoutManagementCoordinator,
   options: LayoutManagementControllerOptions = {},
-): void {
+): LayoutManagementConnection {
   const documentRef = options.document ?? document;
 
   /** 保存済み状態から通常選択肢、複製元、管理操作可否を再描画する。 */
@@ -122,6 +126,9 @@ export function bindLayoutManagement(
 
   elements.retry.hidden = true;
   render(coordinator.state());
+  return {
+    replaceDocuments: (documents): void => render(structuredClone(documents)),
+  };
 }
 
 /** selectの内容をプレースホルダーと指定レイアウトへ置換する。 */

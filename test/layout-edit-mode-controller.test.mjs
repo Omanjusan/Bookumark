@@ -137,6 +137,25 @@ test("exits immediately without showing confirmation when the draft is clean", (
   assert.equal(fake.elements.discardConfirmation.hidden, true);
 });
 
+test("finishes after deletion with a restored active layout without an unsaved prompt", () => {
+  const fake = harness();
+  const exits = [];
+  const controller = bindLayoutEditMode(fake.elements, fixture(), {
+    hasUnsavedChanges: () => true,
+    onExit: (documents) => exits.push(documents),
+  });
+  fake.elements.entry.emit("click");
+  const deleted = fixture();
+  deleted.mainLayouts.layouts.pop();
+  deleted.dockingMetadata.activeLayoutId = "layout-1";
+
+  controller.finishWithDocuments(deleted);
+
+  assert.equal(controller.editing, false);
+  assert.deepEqual(exits[0], deleted);
+  assert.equal(fake.elements.discardConfirmation.hidden, true);
+});
+
 function harness() {
   const element = (values = {}) => ({
     disabled: false,

@@ -19,6 +19,7 @@ export interface LayoutEditModeController {
   setReady(): void;
   replaceDocuments(documents: DockingDocuments): void;
   commitDocuments(documents: DockingDocuments): void;
+  finishWithDocuments(documents: DockingDocuments): void;
 }
 
 interface LayoutEditModeOptions {
@@ -136,6 +137,11 @@ export function bindLayoutEditMode(
         throw new Error("active layout cannot change while editing");
       }
       documents = structuredClone(nextDocuments);
+    },
+    finishWithDocuments(nextDocuments): void {
+      if (!editing) throw new Error("layout edit mode is not active");
+      documents = structuredClone(nextDocuments);
+      exit();
     },
   };
 }

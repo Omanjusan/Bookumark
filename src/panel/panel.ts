@@ -70,7 +70,7 @@ import type {
 } from "./lib/layout-edit-transaction-controller.js";
 import { renderBayPicker } from "./lib/bay-picker-view.js";
 import { bindBayPickerDrag } from "./lib/bay-picker-drag.js";
-import { bindBayRailDrop } from "./lib/bay-rail-drop.js";
+import { bindBayRailInsertionDrop } from "./lib/bay-rail-insertion-drop.js";
 import { bindLayoutBayTrash } from "./lib/layout-bay-trash.js";
 import {
   createLayoutPlacementEditSession,
@@ -220,12 +220,16 @@ const bayPickerDrag = bindBayPickerDrag(
   Object.values(dockingRailRoots),
   { isEnabled: () => activePlacementDraft !== null },
 );
-const bayRailDrop = bindBayRailDrop(dockingRailRoots, bayPickerDrag, ({ bayId, rail }) => {
-  if (activePlacementDraft === null) return;
-  const result = activePlacementDraft.moveToRailEnd(bayId, rail);
-  if (result.status !== "moved") return;
-  renderActivePlacementDraft();
-});
+const bayRailDrop = bindBayRailInsertionDrop(
+  dockingRailRoots,
+  bayPickerDrag,
+  ({ bayId, rail, index }) => {
+    if (activePlacementDraft === null) return;
+    const result = activePlacementDraft.moveToRailPosition(bayId, rail, index);
+    if (result.status !== "moved") return;
+    renderActivePlacementDraft();
+  },
+);
 void bayRailDrop;
 const layoutBayTrashConnection = bindLayoutBayTrash(
   layoutBayTrash,
@@ -874,11 +878,12 @@ async function main(): Promise<void> {
         activeChipRuntime = null;
         activePlacementDraft = createLayoutPlacementEditSession(documents);
         const placementDraft = activePlacementDraft;
+        let managementOperationPending = false;
         layoutEditTransactionConnection = bindLayoutEditTransaction({
           get dirty() { return placementDraft.dirty; },
           get canUndo() { return placementDraft.canUndo; },
           get canRedo() { return placementDraft.canRedo; },
-          get saving() { return placementDraft.saving; },
+          get saving() { return placementDraft.saving || managementOperationPending; },
           undo: () => placementDraft.undo(),
           redo: () => placementDraft.redo(),
         }, {
@@ -891,7 +896,7 @@ async function main(): Promise<void> {
         }, {
           onStateChange: renderActivePlacementDraft,
           onSave: () => { void savePlacementDraft(false); },
-          onDelete: () => {},
+          onDelete: () => { void deleteActiveLayout(); },
         });
         layoutEditRetry.onclick = () => { void savePlacementDraft(true); };
         layoutEditRetry.hidden = true;
@@ -926,6 +931,38 @@ async function main(): Promise<void> {
             layoutEditTransactionConnection?.refresh();
           }
         }
+
+        /** 既存の名前付きレイアウト削除・復元規則でactiveレイアウトを削除する。 */
+        async function deleteActiveLayout(retry = false): Promise<void> {
+          managementOperationPending = true;
+          bayPickerDrag.cancel();
+          layoutBayTrashConnection.clear();
+          bayPicker.inert = true;
+          for (const rail of Object.values(dockingRailRoots)) rail.inert = true;
+          layoutEditRetry.disabled = true;
+          layoutEditStatus.textContent = "削除中…";
+          layoutEditTransactionConnection?.refresh();
+          try {
+            const activeLayoutId = placementDraft.documents().dockingMetadata.activeLayoutId;
+            const deletedDocuments = retry
+              ? await layoutCoordinator.retry()
+              : await layoutCoordinator.delete(activeLayoutId);
+            layoutManagementConnection.replaceDocuments(deletedDocuments);
+            root.dataset.activeLayoutId = deletedDocuments.dockingMetadata.activeLayoutId;
+            layoutEditStatus.textContent = "レイアウトを削除しました";
+            layoutEditMode.finishWithDocuments(deletedDocuments);
+          } catch {
+            layoutEditRetry.hidden = !layoutCoordinator.pending;
+            layoutEditRetry.onclick = () => { void deleteActiveLayout(true); };
+            layoutEditStatus.textContent = "削除に失敗しました";
+          } finally {
+            managementOperationPending = false;
+            bayPicker.inert = false;
+            for (const rail of Object.values(dockingRailRoots)) rail.inert = false;
+            layoutEditRetry.disabled = false;
+            layoutEditTransactionConnection?.refresh();
+          }
+        }
       },
       onExit: (documents) => {
         bayRailDrop.clear();
@@ -940,7 +977,7 @@ async function main(): Promise<void> {
         rebuildActiveDockingLayout(documents);
       },
     });
-    bindLayoutManagement({
+    const layoutManagementConnection = bindLayoutManagement({
       select: layoutSelect,
       restoreDefault: layoutDefault,
       manage: layoutManage,
