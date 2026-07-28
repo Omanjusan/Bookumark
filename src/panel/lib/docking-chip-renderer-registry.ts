@@ -1,13 +1,7 @@
 import type { DockingChipDrawingPlan } from "./docking-rail-drawing-plan.js";
+import { CURRENT_DOCKING_CHIP_TYPES } from "./docking-chip-catalog.js";
 
-export const BASIC_DOCKING_CHIP_TYPES = [
-  "search",
-  "visit-status",
-  "folder-history",
-  "sort",
-  "view-type",
-  "movement-mode",
-] as const;
+export const BASIC_DOCKING_CHIP_TYPES = CURRENT_DOCKING_CHIP_TYPES;
 
 export type BasicDockingChipType = typeof BASIC_DOCKING_CHIP_TYPES[number];
 export type DockingChipRenderer = (chip: DockingChipDrawingPlan) => Node;

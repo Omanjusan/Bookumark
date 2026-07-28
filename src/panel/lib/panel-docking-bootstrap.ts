@@ -2,6 +2,10 @@ import type { SelectableBayFactoryViewModel } from "./bay-factory-controller.js"
 import type { DockingDocumentsNormalizationResult } from "./docking-documents-normalization.js";
 import { loadNormalizedDockingDocuments } from "./docking-documents-normalization.js";
 import { createInternalDefaultDockingDocuments } from "./docking-internal-defaults.js";
+import {
+  PRODUCTION_DOCKING_CHIP_CATALOG,
+  classifyDockingChipType,
+} from "./docking-chip-catalog.js";
 import type {
   DockingDocuments,
   LayoutConfiguration,
@@ -18,15 +22,6 @@ export interface PanelDockingState {
   readonly bays: SelectableBayFactoryViewModel[];
   readonly activeLayout: LayoutConfiguration;
 }
-
-const CHIP_LABELS = new Map<string, string>([
-  ["search", "検索"],
-  ["visit-status", "訪問状態"],
-  ["folder-history", "フォルダ履歴"],
-  ["sort", "ソート"],
-  ["view-type", "表示形式"],
-  ["movement-mode", "移動モード"],
-]);
 
 /** 内部デフォルトを注入して永続文書をロードし、パネル接続用の状態へ変換する。 */
 export async function loadPanelDockingState(
@@ -60,7 +55,13 @@ export function buildPanelBayModels(
     permanent: bay.permanent,
     chips: bay.chips.map((chip) => ({
       instanceId: chip.instanceId,
-      label: CHIP_LABELS.get(chip.chipType) ?? chip.chipType,
+      label: displayNameFor(chip.chipType),
     })),
   }));
+}
+
+/** 現行・廃止台帳から表示名を解決し、未知型だけを保存値のまま表示する。 */
+function displayNameFor(chipType: string): string {
+  const classification = classifyDockingChipType(chipType, PRODUCTION_DOCKING_CHIP_CATALOG);
+  return classification.status === "unknown" ? chipType : classification.displayName;
 }
