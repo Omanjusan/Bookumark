@@ -169,6 +169,24 @@
       </div>
     </section>
   </dialog>
+  <dialog
+    id="common-notification-dialog"
+    class="common-notification-dialog"
+    aria-labelledby="common-notification-title"
+    aria-describedby="common-notification-message"
+  >
+    <h2 id="common-notification-title"></h2>
+    <p id="common-notification-message" class="common-notification-message"></p>
+    <p id="common-notification-busy" role="status" hidden>処理中…</p>
+    <button id="common-notification-primary" type="button"></button>
+  </dialog>
+  <section
+    id="common-toast-region"
+    class="common-toast-region"
+    role="status"
+    aria-live="polite"
+    aria-atomic="false"
+  ></section>
   <script type="module" src="panel.js"></script>
 </body>
 </html>

@@ -1251,6 +1251,78 @@ header h1 {
   font-variant-numeric: tabular-nums;
 }
 
+.common-notification-dialog {
+  width: min(520px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  padding: 18px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+}
+.common-notification-dialog::backdrop { background: rgb(0 0 0 / 45%); }
+.common-notification-dialog h2 { margin: 0 0 10px; font-size: 16px; }
+.common-notification-message {
+  margin: 0 0 14px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.common-notification-dialog button {
+  display: block;
+  margin-left: auto;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+.common-notification-dialog button:not(:disabled) { cursor: pointer; }
+.common-notification-dialog button:disabled { color: var(--text-faint); }
+.common-notification-dialog[data-severity="error"] { border-color: var(--danger); }
+#common-notification-busy { color: var(--text-muted); }
+#common-notification-busy[hidden] { display: none; }
+
+.common-toast-region {
+  position: fixed;
+  z-index: 20;
+  right: 12px;
+  bottom: 12px;
+  display: grid;
+  gap: 8px;
+  width: min(360px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  pointer-events: none;
+}
+.common-toast {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: start;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 20%);
+  pointer-events: auto;
+}
+.common-toast[data-severity="error"] { border-color: var(--danger); }
+.common-toast-message {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.common-toast-occurrences { color: var(--text-muted); font-size: 11px; }
+.common-toast-dismiss {
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  cursor: pointer;
+}
+
 .panel-title {
   font-weight: 600;
 }
