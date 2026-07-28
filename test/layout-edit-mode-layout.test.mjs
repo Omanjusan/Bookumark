@@ -11,10 +11,15 @@ test("provides the layout edit entry and internal-default explanation in the hea
   assert.match(header, /id="layout-edit-unavailable"[^>]+role="status"[^>]+hidden/);
 });
 
-test("provides an edit bar containing only the active name and exit action", () => {
+test("provides the complete layout edit action bar", () => {
   const bar = html.match(/<div[^>]+id="layout-edit-bar"[\s\S]*?<\/div>/)?.[0] ?? "";
   assert.match(bar, /id="layout-edit-name"/);
+  assert.match(bar, /id="layout-edit-unsaved"[^>]+hidden[^>]*>未保存<\/span>/);
+  assert.match(bar, /<button[^>]+id="layout-edit-undo"[^>]+disabled[^>]*>元に戻す<\/button>/);
+  assert.match(bar, /<button[^>]+id="layout-edit-redo"[^>]+disabled[^>]*>やり直す<\/button>/);
+  assert.match(bar, /<button[^>]+id="layout-edit-save"[^>]+disabled[^>]*>保存<\/button>/);
+  assert.match(bar, /<button[^>]+id="layout-edit-delete"[^>]*>削除<\/button>/);
   assert.match(bar, /<button[^>]+id="layout-edit-exit"[^>]*>編集を終了<\/button>/);
-  assert.doesNotMatch(bar, /保存|元に戻す|やり直す|削除/);
   assert.match(css, /\.layout-edit-bar\[hidden\]\s*\{[^}]*display:\s*none/);
+  assert.match(css, /\.layout-edit-unsaved\s*\{[^}]*color:\s*var\(--mode-directory\)/s);
 });

@@ -97,6 +97,22 @@ header h1 {
   background: var(--surface);
 }
 .layout-edit-bar[hidden] { display: none; }
+.layout-edit-bar button {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 7px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+.layout-edit-bar button:not(:disabled) { cursor: pointer; }
+.layout-edit-bar button:disabled { color: var(--text-faint); }
+.layout-edit-unsaved {
+  color: var(--mode-directory);
+  font-size: 11px;
+}
+.layout-edit-unsaved[hidden] { display: none; }
+#layout-edit-delete { margin-left: auto; }
 .bay-picker {
   display: grid;
   gap: 8px;

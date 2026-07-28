@@ -62,6 +62,12 @@ import type { FolderHistoryDirection } from "./lib/panel-folder-history-input.js
 import { bindLayoutManagement } from "./lib/layout-management-controller.js";
 import { createLayoutManagementCoordinator } from "./lib/layout-management-coordinator.js";
 import { bindLayoutEditMode } from "./lib/layout-edit-mode-controller.js";
+import {
+  bindLayoutEditTransaction,
+} from "./lib/layout-edit-transaction-controller.js";
+import type {
+  LayoutEditTransactionConnection,
+} from "./lib/layout-edit-transaction-controller.js";
 import { renderBayPicker } from "./lib/bay-picker-view.js";
 import { bindBayPickerDrag } from "./lib/bay-picker-drag.js";
 import { bindBayRailDrop } from "./lib/bay-rail-drop.js";
@@ -140,6 +146,11 @@ const layoutEditEntry = document.getElementById("layout-edit-entry") as HTMLButt
 const layoutEditUnavailable = document.getElementById("layout-edit-unavailable") as HTMLElement;
 const layoutEditBar = document.getElementById("layout-edit-bar") as HTMLElement;
 const layoutEditName = document.getElementById("layout-edit-name") as HTMLElement;
+const layoutEditUnsaved = document.getElementById("layout-edit-unsaved") as HTMLElement;
+const layoutEditUndo = document.getElementById("layout-edit-undo") as HTMLButtonElement;
+const layoutEditRedo = document.getElementById("layout-edit-redo") as HTMLButtonElement;
+const layoutEditSave = document.getElementById("layout-edit-save") as HTMLButtonElement;
+const layoutEditDelete = document.getElementById("layout-edit-delete") as HTMLButtonElement;
 const layoutEditExit = document.getElementById("layout-edit-exit") as HTMLButtonElement;
 const bayPicker = document.getElementById("bay-picker") as HTMLElement;
 const bayPickerUnplaced = document.getElementById("bay-picker-unplaced") as HTMLElement;
@@ -191,6 +202,7 @@ let lastOfficialMove: BookmarkMoveSnapshot | null = null;
 let activeChipRuntime: DockingBasicChipRuntime | null = null;
 let activeDockingController: ActiveDockingLayoutController | null = null;
 let activePlacementDraft: BayPlacementDraft | null = null;
+let layoutEditTransactionConnection: LayoutEditTransactionConnection | null = null;
 const dragClickGuard = createPanelDragClickGuard();
 const bayPickerDrag = bindBayPickerDrag(
   bayPicker,
@@ -201,12 +213,7 @@ const bayRailDrop = bindBayRailDrop(dockingRailRoots, bayPickerDrag, ({ bayId, r
   if (activePlacementDraft === null) return;
   const result = activePlacementDraft.moveToRailEnd(bayId, rail);
   if (result.status !== "moved") return;
-  renderBayPlacementPreviews(dockingRailRoots, activePlacementDraft.documents());
-  renderBayPicker({
-    root: bayPicker,
-    unplaced: bayPickerUnplaced,
-    placed: bayPickerPlaced,
-  }, activePlacementDraft.picker());
+  renderActivePlacementDraft();
 });
 void bayRailDrop;
 const layoutBayTrashConnection = bindLayoutBayTrash(
@@ -218,12 +225,7 @@ const layoutBayTrashConnection = bindLayoutBayTrash(
       if (activePlacementDraft === null) return;
       const result = activePlacementDraft.unplace(bayId);
       if (result.status !== "unplaced") return;
-      renderBayPlacementPreviews(dockingRailRoots, activePlacementDraft.documents());
-      renderBayPicker({
-        root: bayPicker,
-        unplaced: bayPickerUnplaced,
-        placed: bayPickerPlaced,
-      }, activePlacementDraft.picker());
+      renderActivePlacementDraft();
     },
   },
 );
@@ -240,13 +242,20 @@ bayPicker.addEventListener("click", (event) => {
   );
   const result = activePlacementDraft.autoPlace(bayId, measurements);
   if (result.status !== "placed") return;
+  renderActivePlacementDraft();
+});
+
+/** 配置ドラフト、4レール、ピッカー、編集バー状態を同じスナップショットへ同期する。 */
+function renderActivePlacementDraft(): void {
+  if (activePlacementDraft === null) return;
   renderBayPlacementPreviews(dockingRailRoots, activePlacementDraft.documents());
   renderBayPicker({
     root: bayPicker,
     unplaced: bayPickerUnplaced,
     placed: bayPickerPlaced,
   }, activePlacementDraft.picker());
-});
+  layoutEditTransactionConnection?.refresh();
+}
 
 // 永続ユーザーベイとの接続はDB-8で行い、現段階では偽データを注入しない。
 const bayFactoryConnection = bindBayFactory({
@@ -849,18 +858,36 @@ async function main(): Promise<void> {
         activeChipRuntime?.disconnect();
         activeChipRuntime = null;
         activePlacementDraft = createBayPlacementDraft(documents);
-        renderBayPlacementPreviews(dockingRailRoots, activePlacementDraft.documents());
-        renderBayPicker({
-          root: bayPicker,
-          unplaced: bayPickerUnplaced,
-          placed: bayPickerPlaced,
-        }, activePlacementDraft.picker());
+        const placementDraft = activePlacementDraft;
+        layoutEditTransactionConnection = bindLayoutEditTransaction({
+          get dirty() { return placementDraft.dirty; },
+          get canUndo() { return placementDraft.canUndo; },
+          get canRedo() { return placementDraft.canRedo; },
+          saving: false,
+          undo: () => placementDraft.undo(),
+          redo: () => placementDraft.redo(),
+        }, {
+          undo: layoutEditUndo,
+          redo: layoutEditRedo,
+          save: layoutEditSave,
+          delete: layoutEditDelete,
+          exit: layoutEditExit,
+          unsaved: layoutEditUnsaved,
+        }, {
+          onStateChange: renderActivePlacementDraft,
+          // 永続保存と既存削除処理への接続はDB-12Fで行う。
+          onSave: () => {},
+          onDelete: () => {},
+        });
+        renderActivePlacementDraft();
         bayPicker.hidden = false;
       },
       onExit: (documents) => {
         bayRailDrop.clear();
         layoutBayTrashConnection.clear();
         bayPickerDrag.cancel();
+        layoutEditTransactionConnection?.disconnect();
+        layoutEditTransactionConnection = null;
         activePlacementDraft?.discard();
         activePlacementDraft = null;
         bayPicker.hidden = true;
