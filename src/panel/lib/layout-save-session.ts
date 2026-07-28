@@ -13,6 +13,7 @@ export interface LayoutSaveSession {
   stage(documents: DockingDocumentsPatch): void;
   stagedDocuments(): DockingDocumentsPatch | null;
   committedDocuments(): DockingDocuments;
+  adoptCommittedDocuments(documents: DockingDocuments): void;
   save(): Promise<DockingDocuments>;
 }
 
@@ -72,6 +73,10 @@ export function createLayoutSaveSession(
     stage,
     stagedDocuments: (): DockingDocumentsPatch | null => structuredClone(staged),
     committedDocuments: (): DockingDocuments => structuredClone(committed),
+    adoptCommittedDocuments(documents): void {
+      if (saving || staged !== null) throw new Error("layout save session is not idle");
+      committed = structuredClone(documents);
+    },
     save,
   };
 }

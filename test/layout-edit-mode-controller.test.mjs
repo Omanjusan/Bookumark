@@ -78,6 +78,25 @@ test("keeps editing unavailable until initial panel restoration is ready", () =>
   assert.equal(controller.editing, true);
 });
 
+test("commits a saved placement baseline while editing and returns it on exit", () => {
+  const fake = harness();
+  const exits = [];
+  const controller = bindLayoutEditMode(fake.elements, fixture(), {
+    onExit: (documents) => exits.push(documents),
+  });
+  assert.throws(
+    () => controller.commitDocuments(fixture()),
+    /can only be committed while editing/,
+  );
+  fake.elements.entry.emit("click");
+  const saved = fixture();
+  saved.mainLayouts.layouts[1].placements.push({ bayId: "bay-1", rail: "left", order: 1 });
+  controller.commitDocuments(saved);
+  fake.elements.exit.emit("click");
+
+  assert.deepEqual(exits[0], saved);
+});
+
 function harness() {
   const element = (values = {}) => ({
     disabled: false,

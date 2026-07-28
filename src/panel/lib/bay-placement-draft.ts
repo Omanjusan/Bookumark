@@ -31,6 +31,7 @@ export interface BayPlacementDraft {
   unplace(bayId: string): BayUnplacementResult;
   undo(): boolean;
   redo(): boolean;
+  markSaved(): void;
   discard(): void;
 }
 
@@ -64,7 +65,7 @@ const MINIMUM_GAP = 2;
 
 /** 保存済み文書から独立し、終了時に破棄できるactiveレイアウト配置ドラフトを生成する。 */
 export function createBayPlacementDraft(savedDocuments: DockingDocuments): BayPlacementDraft {
-  const saved = structuredClone(savedDocuments);
+  let saved = structuredClone(savedDocuments);
   let draft = structuredClone(savedDocuments);
   const undoStack: DockingDocuments[] = [];
   const redoStack: DockingDocuments[] = [];
@@ -191,6 +192,11 @@ export function createBayPlacementDraft(savedDocuments: DockingDocuments): BayPl
       undoStack.push(structuredClone(draft));
       draft = structuredClone(next);
       return true;
+    },
+    markSaved(): void {
+      saved = structuredClone(draft);
+      undoStack.length = 0;
+      redoStack.length = 0;
     },
     discard(): void {
       draft = structuredClone(saved);

@@ -120,6 +120,22 @@ test("returns defensive staged and committed document snapshots", () => {
   assert.equal(source.mainLayouts.layouts[0].name, "内部デフォルト");
 });
 
+test("adopts an independently saved state only while idle", async () => {
+  const session = createLayoutSaveSession(documentsFixture(), { saveDocuments: async () => {} });
+  const adopted = documentsFixture();
+  adopted.mainLayouts.layouts[1].placements.push({ bayId: "bay-1", rail: "left", order: 1 });
+  session.adoptCommittedDocuments(adopted);
+  adopted.mainLayouts.layouts[1].placements.length = 0;
+  assert.equal(session.committedDocuments().mainLayouts.layouts[1].placements.length, 1);
+
+  session.stage({ mainLayouts: documentsFixture().mainLayouts });
+  assert.throws(
+    () => session.adoptCommittedDocuments(documentsFixture()),
+    /layout save session is not idle/,
+  );
+  await session.save();
+});
+
 function documentsFixture() {
   return {
     bayConfigurations: {

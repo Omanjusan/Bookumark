@@ -112,6 +112,8 @@ header h1 {
   font-size: 11px;
 }
 .layout-edit-unsaved[hidden] { display: none; }
+.layout-edit-bar button[hidden] { display: none; }
+#layout-edit-status { color: var(--text-muted); font-size: 11px; }
 #layout-edit-delete { margin-left: auto; }
 .bay-picker {
   display: grid;

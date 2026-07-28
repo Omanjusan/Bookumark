@@ -18,8 +18,10 @@ test("provides the complete layout edit action bar", () => {
   assert.match(bar, /<button[^>]+id="layout-edit-undo"[^>]+disabled[^>]*>元に戻す<\/button>/);
   assert.match(bar, /<button[^>]+id="layout-edit-redo"[^>]+disabled[^>]*>やり直す<\/button>/);
   assert.match(bar, /<button[^>]+id="layout-edit-save"[^>]+disabled[^>]*>保存<\/button>/);
+  assert.match(bar, /<button[^>]+id="layout-edit-retry"[^>]+hidden[^>]*>保存を再試行<\/button>/);
   assert.match(bar, /<button[^>]+id="layout-edit-delete"[^>]*>削除<\/button>/);
   assert.match(bar, /<button[^>]+id="layout-edit-exit"[^>]*>編集を終了<\/button>/);
   assert.match(css, /\.layout-edit-bar\[hidden\]\s*\{[^}]*display:\s*none/);
   assert.match(css, /\.layout-edit-unsaved\s*\{[^}]*color:\s*var\(--mode-directory\)/s);
+  assert.match(bar, /id="layout-edit-status"[^>]+role="status"[^>]+aria-live="polite"/);
 });

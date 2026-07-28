@@ -28,6 +28,7 @@ export interface LayoutManagementCoordinator {
   readonly pending: boolean;
   readonly saving: boolean;
   state(): DockingDocuments;
+  replaceState(documents: DockingDocuments): void;
   create(request: LayoutCreationRequest): Promise<DockingDocuments>;
   rename(layoutId: string, name: string): Promise<DockingDocuments>;
   setPreferred(layoutId: string | undefined): Promise<DockingDocuments>;
@@ -112,6 +113,7 @@ export function createLayoutManagementCoordinator(
     get pending(): boolean { return session.pending; },
     get saving(): boolean { return session.saving; },
     state: (): DockingDocuments => session.committedDocuments(),
+    replaceState: (documents): void => session.adoptCommittedDocuments(documents),
     create,
     rename: (layoutId, name) => {
       const current = session.committedDocuments();

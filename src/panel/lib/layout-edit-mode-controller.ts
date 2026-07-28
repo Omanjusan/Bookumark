@@ -15,6 +15,7 @@ export interface LayoutEditModeController {
   readonly editing: boolean;
   setReady(): void;
   replaceDocuments(documents: DockingDocuments): void;
+  commitDocuments(documents: DockingDocuments): void;
 }
 
 interface LayoutEditModeOptions {
@@ -98,6 +99,14 @@ export function bindLayoutEditMode(
       if (editing) throw new Error("layout documents cannot change while editing");
       documents = structuredClone(nextDocuments);
       renderAvailability();
+    },
+    commitDocuments(nextDocuments): void {
+      if (!editing) throw new Error("layout documents can only be committed while editing");
+      const currentActiveId = documents.dockingMetadata.activeLayoutId;
+      if (nextDocuments.dockingMetadata.activeLayoutId !== currentActiveId) {
+        throw new Error("active layout cannot change while editing");
+      }
+      documents = structuredClone(nextDocuments);
     },
   };
 }
