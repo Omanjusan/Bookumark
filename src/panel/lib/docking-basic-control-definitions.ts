@@ -44,7 +44,13 @@ export const BASIC_DOCKING_CONTROL_DEFINITIONS: ChipDefinitionRegistry = new Map
   ["search", controlDefinition(
     "search",
     (state) => state.query,
-    (state, value) => ({ ...state, query: value }),
+    (state, value) => ({
+      ...state,
+      query: value,
+      movementMode: typeof value === "string" && value.trim().length > 0
+        ? "normal"
+        : state.movementMode,
+    }),
   )],
   ["visit-status", controlDefinition(
     "visit-status",
@@ -52,6 +58,7 @@ export const BASIC_DOCKING_CONTROL_DEFINITIONS: ChipDefinitionRegistry = new Map
     (state, value) => ({
       ...state,
       filters: { ...asRecord(state.filters), visitStatus: value },
+      movementMode: value === "all" ? state.movementMode : "normal",
     }),
   )],
   ["folder-history", controlDefinition(
@@ -62,7 +69,7 @@ export const BASIC_DOCKING_CONTROL_DEFINITIONS: ChipDefinitionRegistry = new Map
   ["sort", controlDefinition(
     "sort",
     (state) => state.sort,
-    (state, value) => ({ ...state, sort: value }),
+    (state, value) => ({ ...state, sort: value, movementMode: "normal" }),
   )],
   ["view-type", controlDefinition(
     "view-type",

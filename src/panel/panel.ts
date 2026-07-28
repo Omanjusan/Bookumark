@@ -28,15 +28,42 @@ import { reorderItemsForTileDrop } from "./lib/custom-order-items.js";
 import { persistCustomOrder } from "./lib/custom-order-persistence.js";
 import type { DisplayBookmarkItem } from "./lib/display-item.js";
 import type { MovementMode, StandardSortAxisId } from "./lib/display-state.js";
-import { INITIAL_FIXED_DISPLAY_STATE, reduceFixedDisplayState } from "./lib/fixed-display-controller.js";
+import { INITIAL_FIXED_DISPLAY_STATE } from "./lib/fixed-display-controller.js";
 import { directFolderContents } from "./lib/folder-contents.js";
 import { createDockingBasicChipRuntime } from "./lib/docking-basic-chip-runtime.js";
 import type { DockingBasicChipRuntime } from "./lib/docking-basic-chip-runtime.js";
+import {
+  BASIC_DOCKING_CONTROL_DEFINITIONS,
+  createDockingBasicControlStore,
+} from "./lib/docking-basic-control-definitions.js";
+import type {
+  DockingBasicControlStore,
+} from "./lib/docking-basic-control-definitions.js";
+import {
+  buildDockingChipApplicationOrder,
+} from "./lib/docking-chip-application-order.js";
 import { createDockingChipRendererRegistry } from "./lib/docking-chip-renderer-registry.js";
+import {
+  createDockingEditRuntimeCoordinator,
+} from "./lib/docking-edit-runtime-coordinator.js";
+import type {
+  DockingEditRuntimeCoordinator,
+} from "./lib/docking-edit-runtime-coordinator.js";
 import { renderHorizontalDockingRail } from "./lib/docking-horizontal-rail-view.js";
 import { planDockingRailOverflow } from "./lib/docking-rail-overflow.js";
 import { renderVerticalDockingRail } from "./lib/docking-vertical-rail-view.js";
 import type { DockingDocuments } from "./lib/docking-persistence-model.js";
+import {
+  createDockingSaveReevaluationSession,
+} from "./lib/docking-save-reevaluation-session.js";
+import type {
+  DockingSaveReevaluationSession,
+} from "./lib/docking-save-reevaluation-session.js";
+import {
+  createDefaultDockingSharedState,
+  evaluateDockingSharedStateConditions,
+} from "./lib/docking-shared-state.js";
+import type { DockingSharedState } from "./lib/docking-shared-state.js";
 import {
   migrateLegacyOrder,
   orderDirectFolderContents,
@@ -211,8 +238,13 @@ let visitStatusValue: VisitStatusFilterValue = "all";
 let officialMovePending = false;
 let lastOfficialMove: BookmarkMoveSnapshot | null = null;
 let activeChipRuntime: DockingBasicChipRuntime | null = null;
+let activeDockingSharedState: DockingSharedState | null = null;
+let activeControlStore: DockingBasicControlStore | null = null;
 let activeDockingController: ActiveDockingLayoutController | null = null;
+let pendingDockingSharedState: DockingSharedState | null = null;
 let activePlacementDraft: LayoutPlacementEditSession | null = null;
+let editRuntimeCoordinator: DockingEditRuntimeCoordinator | null = null;
+let saveReevaluation: DockingSaveReevaluationSession | null = null;
 let layoutEditTransactionConnection: LayoutEditTransactionConnection | null = null;
 const dragClickGuard = createPanelDragClickGuard();
 const bayPickerDrag = bindBayPickerDrag(
@@ -263,7 +295,7 @@ bayPicker.addEventListener("click", (event) => {
 /** 配置ドラフト、4レール、ピッカー、編集バー状態を同じスナップショットへ同期する。 */
 function renderActivePlacementDraft(): void {
   if (activePlacementDraft === null) return;
-  renderBayPlacementPreviews(dockingRailRoots, activePlacementDraft.documents());
+  editRuntimeCoordinator?.preview(activePlacementDraft.documents());
   renderBayPicker({
     root: bayPicker,
     unplaced: bayPickerUnplaced,
@@ -372,12 +404,46 @@ function redraw(): void {
   });
 }
 
+/** 評価済みDocking共有状態を既存メイン表示モデルへ原子的に反映する。 */
+function applyDockingSharedState(state: DockingSharedState): void {
+  activeDockingSharedState = structuredClone(state);
+  visitStatusValue = state.filters.visitStatus;
+  const standardSort = structuredClone(state.sort);
+  fixedDisplayState = {
+    query: state.query,
+    filters: createVisitStatusFilters(state.filters.visitStatus),
+    display: {
+      movementMode: state.movementMode,
+      sort: state.movementMode === "normal"
+        ? standardSort
+        : { axisId: "custom", direction: standardSort.direction },
+      lastStandardSort: standardSort,
+    },
+    activeViewType: state.viewType,
+  };
+}
+
+/** 基本control更新を検証済み共有ストアへ適用し、失敗を当該操作へ隔離する。 */
+function updateDockingControl(chipType: string, value: unknown): boolean {
+  if (activeControlStore === null) return false;
+  try {
+    activeControlStore.update({
+      instanceId: `panel-${chipType}`,
+      chipType,
+      order: 1,
+      settings: {},
+    }, value);
+    applyDockingSharedState(activeControlStore.getState());
+    return true;
+  } catch (error) {
+    console.warn("docking control update failed:", { chipType, error });
+    return false;
+  }
+}
+
 /** 動的な移動モードチップから共有表示状態を更新する。 */
 function setMovementMode(mode: MovementMode): void {
-  fixedDisplayState = reduceFixedDisplayState(fixedDisplayState, {
-    type: "setMovementMode",
-    mode,
-  });
+  if (!updateDockingControl("movement-mode", mode)) return;
   syncMovementControls();
   if (currentFolderGuid === null) {
     redraw();
@@ -389,51 +455,42 @@ function setMovementMode(mode: MovementMode): void {
 /** 動的な検索チップから共有検索状態を更新する。 */
 function setSearchQuery(nextQuery: string): void {
   const previousMode = fixedDisplayState.display.movementMode;
-  fixedDisplayState = reduceFixedDisplayState(fixedDisplayState, {
-    type: "setQuery",
-    query: nextQuery,
-  });
+  if (!updateDockingControl("search", nextQuery)) return;
   if (fixedDisplayState.display.movementMode !== previousMode) syncMovementControls();
   redraw();
 }
 
 /** 動的な訪問状態チップから共有フィルター状態を更新する。 */
 function setVisitStatus(value: VisitStatusFilterValue): void {
-  visitStatusValue = value;
   const previousMode = fixedDisplayState.display.movementMode;
-  fixedDisplayState = reduceFixedDisplayState(fixedDisplayState, {
-    type: "setFilters",
-    filters: createVisitStatusFilters(value),
-  });
+  if (!updateDockingControl("visit-status", value)) return;
   if (fixedDisplayState.display.movementMode !== previousMode) syncMovementControls();
   redraw();
 }
 
 /** 動的な表示形式チップから共有ビュー状態を更新する。 */
 function setViewType(viewType: ViewType): void {
-  fixedDisplayState = reduceFixedDisplayState(fixedDisplayState, {
-    type: "selectView",
-    viewType,
-  });
+  if (!updateDockingControl("view-type", viewType)) return;
   redraw();
 }
 
 /** 動的なソートチップから共有ソート軸を更新する。 */
 function setSortAxis(axisId: StandardSortAxisId): void {
-  fixedDisplayState = reduceFixedDisplayState(fixedDisplayState, {
-    type: "selectSort",
+  if (!updateDockingControl("sort", {
     axisId,
-    direction: fixedDisplayState.display.sort.direction,
-  });
+    direction: fixedDisplayState.display.lastStandardSort.direction,
+  })) return;
   syncMovementControls();
   redraw();
 }
 
 /** 動的なソートチップから共有ソート方向を反転する。 */
 function toggleSortDirection(): void {
-  fixedDisplayState = reduceFixedDisplayState(fixedDisplayState, {
-    type: "toggleDirection",
-  });
+  const current = fixedDisplayState.display.lastStandardSort;
+  if (!updateDockingControl("sort", {
+    axisId: current.axisId,
+    direction: current.direction === "asc" ? "desc" : "asc",
+  })) return;
   syncSortDirectionButton();
   redraw();
 }
@@ -748,18 +805,22 @@ function showLoadError(error: unknown): void {
 function createPanelChipRuntime(): DockingBasicChipRuntime {
   return createDockingBasicChipRuntime({
     snapshot: () => ({
-      query: fixedDisplayState.query,
-      visitStatus: visitStatusValue,
+      query: activeDockingSharedState?.query ?? fixedDisplayState.query,
+      visitStatus: activeDockingSharedState?.filters.visitStatus ?? visitStatusValue,
       folderHistory: {
         canGoBack: (folderHistory?.backDestination() ?? null) !== null,
         canGoForward: (folderHistory?.forwardDestination() ?? null) !== null,
         pending: folderNavigationPending,
       },
-      sortAxis: fixedDisplayState.display.lastStandardSort.axisId,
-      sortDirection: fixedDisplayState.display.lastStandardSort.direction,
-      sortDisabled: fixedDisplayState.display.movementMode !== "normal",
-      viewType: fixedDisplayState.activeViewType,
-      movementMode: fixedDisplayState.display.movementMode,
+      sortAxis: activeDockingSharedState?.sort.axisId
+        ?? fixedDisplayState.display.lastStandardSort.axisId,
+      sortDirection: activeDockingSharedState?.sort.direction
+        ?? fixedDisplayState.display.lastStandardSort.direction,
+      sortDisabled: (activeDockingSharedState?.movementMode
+        ?? fixedDisplayState.display.movementMode) !== "normal",
+      viewType: activeDockingSharedState?.viewType ?? fixedDisplayState.activeViewType,
+      movementMode: activeDockingSharedState?.movementMode
+        ?? fixedDisplayState.display.movementMode,
     }),
     onSearch: setSearchQuery,
     onVisitStatus: setVisitStatus,
@@ -799,6 +860,12 @@ function dockingLayoutController(): ActiveDockingLayoutController {
     },
     resetTransientState: () => {
       if (currentFolderGuid === null) throw new Error("current folder is required for layout rebuild");
+      if (pendingDockingSharedState === null) {
+        throw new Error("evaluated Docking shared state is required for layout rebuild");
+      }
+      activeControlStore?.disconnect();
+      activeControlStore = null;
+      activeDockingSharedState = null;
       const transient = createDockingTransientState(currentFolderGuid);
       fixedDisplayState = transient.fixedDisplayState;
       visitStatusValue = "all";
@@ -806,6 +873,8 @@ function dockingLayoutController(): ActiveDockingLayoutController {
       lastOfficialMove = transient.officialUndo;
       officialMovePending = transient.officialMovePending;
       folderNavigationPending = transient.folderNavigationPending;
+      applyDockingSharedState(pendingDockingSharedState);
+      activeControlStore = createDockingBasicControlStore(pendingDockingSharedState);
     },
     render: (plan) => {
       const runtime = createPanelChipRuntime();
@@ -834,11 +903,34 @@ function dockingLayoutController(): ActiveDockingLayoutController {
   return activeDockingController;
 }
 
-/** 正常化済み文書のactiveレイアウトを動的4レールへ再構築する。 */
-function rebuildActiveDockingLayout(documents: DockingDocuments): void {
+/** active文書をデフォルト状態からcondition評価し、失敗を警告へ隔離する。 */
+function evaluatePanelDockingState(documents: DockingDocuments): DockingSharedState {
+  const initial = createDefaultDockingSharedState(documents.dockingMetadata.activeLayoutId);
+  const sequence = buildDockingChipApplicationOrder(documents);
+  const evaluation = evaluateDockingSharedStateConditions(
+    initial,
+    sequence,
+    BASIC_DOCKING_CONTROL_DEFINITIONS,
+  );
+  if (evaluation.failures.length > 0) {
+    console.warn("docking condition evaluation failed:", evaluation.failures);
+  }
+  return structuredClone(evaluation.state) as DockingSharedState;
+}
+
+/** 正常化済み文書と評価済み状態からactiveレイアウトを動的4レールへ再構築する。 */
+function rebuildActiveDockingLayout(
+  documents: DockingDocuments,
+  evaluatedState = evaluatePanelDockingState(documents),
+): void {
   if (currentFolderGuid === null) return;
-  const plan = dockingLayoutController().rebuild(documents);
-  root.dataset.activeLayoutId = plan.activeLayoutId;
+  pendingDockingSharedState = structuredClone(evaluatedState);
+  try {
+    const plan = dockingLayoutController().rebuild(documents);
+    root.dataset.activeLayoutId = plan.activeLayoutId;
+  } finally {
+    pendingDockingSharedState = null;
+  }
 }
 
 async function main(): Promise<void> {
@@ -848,6 +940,28 @@ async function main(): Promise<void> {
     // 後続の動的レール描画が同じactiveレイアウトを参照できる境界として保持する。
     root.dataset.activeLayoutId = dockingState.activeLayout.id;
     const layoutCoordinator = createLayoutManagementCoordinator(dockingState.documents);
+
+    /** 保存済み基準を持つ編集runtime調停器を現在文書と評価状態で置き換える。 */
+    const replaceEditRuntimeCoordinator = (
+      documents: DockingDocuments,
+      state: DockingSharedState,
+    ): void => {
+      editRuntimeCoordinator = createDockingEditRuntimeCoordinator(documents, state, {
+        disconnectNormalRuntime: () => {
+          activeDockingController?.disconnect();
+          activeControlStore?.disconnect();
+          activeControlStore = null;
+          activeDockingSharedState = null;
+        },
+        renderPreview: (previewDocuments) => {
+          renderBayPlacementPreviews(dockingRailRoots, previewDocuments);
+        },
+        connectNormalRuntime: (savedDocuments, savedState) => {
+          rebuildActiveDockingLayout(savedDocuments, savedState);
+        },
+      });
+    };
+
     const layoutEditMode = bindLayoutEditMode({
       root: frameRoot,
       entry: layoutEditEntry,
@@ -873,10 +987,14 @@ async function main(): Promise<void> {
       initiallyReady: false,
       hasUnsavedChanges: () => activePlacementDraft?.dirty === true,
       onEnter: (documents) => {
-        // レール自体は後続の配置操作に使うため、通常チップの接続だけを停止する。
-        activeChipRuntime?.disconnect();
-        activeChipRuntime = null;
         activePlacementDraft = createLayoutPlacementEditSession(documents);
+        editRuntimeCoordinator?.enter(documents);
+        const reevaluationInitial = editRuntimeCoordinator?.getSavedState()
+          ?? evaluatePanelDockingState(documents);
+        saveReevaluation = createDockingSaveReevaluationSession(
+          reevaluationInitial,
+          BASIC_DOCKING_CONTROL_DEFINITIONS,
+        );
         const placementDraft = activePlacementDraft;
         let managementOperationPending = false;
         layoutEditTransactionConnection = bindLayoutEditTransaction({
@@ -916,9 +1034,17 @@ async function main(): Promise<void> {
           const request = retry ? placementDraft.retry() : placementDraft.save();
           layoutEditTransactionConnection?.refresh();
           try {
-            const savedDocuments = await request;
-            layoutCoordinator.replaceState(savedDocuments);
-            layoutEditMode.commitDocuments(savedDocuments);
+            if (saveReevaluation === null) throw new Error("save reevaluation is unavailable");
+            const reevaluated = await saveReevaluation.run(() => request);
+            if (reevaluated.warnings.length > 0) {
+              console.warn("storage reload failed after Docking save:", reevaluated.warnings);
+            }
+            if (reevaluated.conditionFailures.length > 0) {
+              console.warn("docking condition evaluation failed:", reevaluated.conditionFailures);
+            }
+            layoutCoordinator.replaceState(reevaluated.documents);
+            layoutEditMode.commitDocuments(reevaluated.documents);
+            editRuntimeCoordinator?.commit(reevaluated);
             layoutEditRetry.hidden = true;
             layoutEditStatus.textContent = "保存しました";
             renderActivePlacementDraft();
@@ -950,6 +1076,13 @@ async function main(): Promise<void> {
             const deletedDocuments = retry
               ? await layoutCoordinator.retry()
               : await layoutCoordinator.delete(activeLayoutId);
+            const deletedState = evaluatePanelDockingState(deletedDocuments);
+            editRuntimeCoordinator?.commit({
+              documents: deletedDocuments,
+              state: deletedState,
+              warnings: [],
+              conditionFailures: [],
+            });
             layoutManagementConnection.replaceDocuments(deletedDocuments);
             root.dataset.activeLayoutId = deletedDocuments.dockingMetadata.activeLayoutId;
             layoutEditStatus.textContent = "レイアウトを削除しました";
@@ -969,7 +1102,7 @@ async function main(): Promise<void> {
           }
         }
       },
-      onExit: (documents) => {
+      onExit: (_documents) => {
         if (layoutCoordinator.pending) {
           layoutManagementConnection.showPendingRetry("削除の保存を再試行してください");
         }
@@ -983,8 +1116,9 @@ async function main(): Promise<void> {
         for (const rail of Object.values(dockingRailRoots)) rail.inert = false;
         activePlacementDraft?.discard();
         activePlacementDraft = null;
+        saveReevaluation = null;
         bayPicker.hidden = true;
-        rebuildActiveDockingLayout(documents);
+        editRuntimeCoordinator?.exit();
       },
     });
     const layoutManagementConnection = bindLayoutManagement({
@@ -1009,7 +1143,9 @@ async function main(): Promise<void> {
         layoutEditMode.replaceDocuments(documents);
         root.dataset.activeLayoutId = documents.dockingMetadata.activeLayoutId;
         bayFactoryConnection.replaceBays(buildPanelBayModels(documents));
-        rebuildActiveDockingLayout(documents);
+        const evaluatedState = evaluatePanelDockingState(documents);
+        rebuildActiveDockingLayout(documents, evaluatedState);
+        replaceEditRuntimeCoordinator(documents, evaluatedState);
       },
     });
     treeItems = await getBookmarkTreeItems();
@@ -1035,7 +1171,9 @@ async function main(): Promise<void> {
       ...restoredFolder.ancestorGuids,
       restoredFolder.guid,
     ]);
-    rebuildActiveDockingLayout(dockingState.documents);
+    const initialDockingState = evaluatePanelDockingState(dockingState.documents);
+    rebuildActiveDockingLayout(dockingState.documents, initialDockingState);
+    replaceEditRuntimeCoordinator(dockingState.documents, initialDockingState);
     layoutEditMode.setReady();
     redraw();
   } catch (error) {

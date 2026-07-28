@@ -120,6 +120,23 @@ test("defensively separates state and rendered values from consumers", () => {
   });
 });
 
+test("returns movement mode to normal for active search, filter, and standard sort", () => {
+  const custom = {
+    ...createDefaultDockingSharedState("layout-1"),
+    movementMode: "custom-order",
+  };
+  const store = createDockingBasicControlStore(custom);
+
+  store.update(instance("search"), "book");
+  assert.equal(store.getState().movementMode, "normal");
+  store.update(instance("movement-mode"), "directory-move");
+  store.update(instance("visit-status"), "visited");
+  assert.equal(store.getState().movementMode, "normal");
+  store.update(instance("movement-mode"), "custom-order");
+  store.update(instance("sort"), { axisId: "title", direction: "asc" });
+  assert.equal(store.getState().movementMode, "normal");
+});
+
 function instance(chipType, instanceId = `${chipType}-1`) {
   return { instanceId, chipType, order: 1, settings: {} };
 }

@@ -26,3 +26,32 @@ test("hands a pending deletion retry to layout management when editing exits", (
     /onExit:[\s\S]*?layoutCoordinator\.pending[\s\S]*?layoutManagementConnection\.showPendingRetry/,
   );
 });
+
+test("evaluates Docking shared state before rebuilding the panel runtime", () => {
+  assert.match(source, /buildDockingChipApplicationOrder/);
+  assert.match(source, /evaluateDockingSharedStateConditions/);
+  assert.match(source, /createDefaultDockingSharedState/);
+  assert.match(source, /docking condition evaluation failed/);
+});
+
+test("routes basic chip changes through the validated shared control store", () => {
+  assert.match(source, /createDockingBasicControlStore/);
+  assert.match(source, /updateDockingControl\("search", nextQuery\)/);
+  assert.match(source, /updateDockingControl\("visit-status", value\)/);
+  assert.match(source, /updateDockingControl\("view-type", viewType\)/);
+  assert.match(source, /updateDockingControl\("movement-mode", mode\)/);
+});
+
+test("wraps placement saves in reload reevaluation and commits without runtime reconnect", () => {
+  assert.match(source, /createDockingSaveReevaluationSession/);
+  assert.match(source, /saveReevaluation\.run\(\(\) => request\)/);
+  assert.match(source, /editRuntimeCoordinator\?\.commit\(reevaluated\)/);
+  assert.match(source, /storage reload failed after Docking save/);
+});
+
+test("delegates editing previews and exit reconnect to the runtime coordinator", () => {
+  assert.match(source, /createDockingEditRuntimeCoordinator/);
+  assert.match(source, /editRuntimeCoordinator\?\.enter\(documents\)/);
+  assert.match(source, /editRuntimeCoordinator\?\.preview\(activePlacementDraft\.documents\(\)\)/);
+  assert.match(source, /editRuntimeCoordinator\?\.exit\(\)/);
+});
