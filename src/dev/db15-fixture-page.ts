@@ -6,10 +6,12 @@ import {
 import { DOCKING_STORAGE_KEYS } from "../panel/lib/docking-storage.js";
 
 const BACKUP_KEY = "db15FixtureBackup.v1";
+const OFFICIAL_DND_FOLDER_TITLE = "DB15 公式整理 移動先";
 const STORAGE_KEYS = [...Object.values(DOCKING_STORAGE_KEYS), "currentFolder"];
 const install = requireButton("install");
 const editFixture = requireButton("edit-fixture");
 const loadFixture = requireButton("load-fixture");
+const officialDndFixture = requireButton("official-dnd-fixture");
 const open = requireButton("open");
 const restore = requireButton("restore");
 const status = requireStatus();
@@ -88,11 +90,33 @@ loadFixture.addEventListener("click", () => runLocked(async () => {
   setStatus("高負荷fixtureへ戻しました。Bookumarkを再読み込みしてください。");
 }));
 
+officialDndFixture.addEventListener("click", () => runLocked(async () => {
+  const result = await browser.storage.local.get(BACKUP_KEY);
+  const backup = parseBackup(result[BACKUP_KEY]);
+  if (backup?.fixtureRootId === undefined) {
+    throw new Error("先に高負荷fixtureを投入してください。");
+  }
+  const children = await browser.bookmarks.getChildren(backup.fixtureRootId);
+  const exists = children.some(
+    (child) => child.type === "folder" && child.title === OFFICIAL_DND_FOLDER_TITLE,
+  );
+  if (!exists) {
+    await browser.bookmarks.create({
+      parentId: backup.fixtureRootId,
+      title: OFFICIAL_DND_FOLDER_TITLE,
+    });
+  }
+  setStatus(exists
+    ? "公式整理D&D用フォルダは準備済みです。"
+    : "公式整理D&D用フォルダを追加しました。Bookumarkを再読み込みしてください。");
+}));
+
 /** 多重操作を防いでfixture操作を実行し、失敗を画面へ報告する。 */
 async function runLocked(operation: () => Promise<void>): Promise<void> {
   install.disabled = true;
   editFixture.disabled = true;
   loadFixture.disabled = true;
+  officialDndFixture.disabled = true;
   open.disabled = true;
   restore.disabled = true;
   setStatus("処理中…");
@@ -105,6 +129,7 @@ async function runLocked(operation: () => Promise<void>): Promise<void> {
     install.disabled = false;
     editFixture.disabled = false;
     loadFixture.disabled = false;
+    officialDndFixture.disabled = false;
     open.disabled = false;
     restore.disabled = false;
   }
