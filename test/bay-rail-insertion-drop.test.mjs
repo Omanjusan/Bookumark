@@ -45,25 +45,46 @@ test("returns zero for an empty target and rejects malformed geometry", () => {
   );
 });
 
-test("delivers precise horizontal and vertical insertion indexes", () => {
+test("uses vertical stacking for top and horizontal stacking for left", () => {
   const fake = harness();
   const drops = [];
   bindBayRailInsertionDrop(fake.roots, fake.drag, (drop) => drops.push(drop));
 
-  fake.emit("top", "dragover", { clientX: 75 });
-  assert.equal(fake.bays.top[2].classList.has("dock-bay--drop-before-horizontal"), true);
-  fake.emit("top", "drop", { clientX: 75 });
+  fake.emit("top", "dragover", { clientY: 75 });
+  assert.equal(fake.bays.top[2].classList.has("dock-bay--drop-before-vertical"), true);
+  fake.emit("top", "drop", { clientY: 75 });
 
   fake.setState({ bayId: "bay-2", sourceRail: "top" });
-  fake.emit("left", "dragover", { clientY: 200 });
-  assert.equal(fake.bays.left[1].classList.has("dock-bay--drop-after-vertical"), true);
-  fake.emit("left", "drop", { clientY: 200 });
+  fake.emit("left", "dragover", { clientX: 200 });
+  assert.equal(fake.bays.left[1].classList.has("dock-bay--drop-after-horizontal"), true);
+  fake.emit("left", "drop", { clientX: 200 });
 
   assert.deepEqual(drops, [
     { bayId: "bay-2", rail: "top", index: 1 },
     { bayId: "bay-2", rail: "left", index: 2 },
   ]);
   assert.equal(fake.cancelCalls(), 2);
+});
+
+test("maps bottom and right reverse visuals back to outside-to-inside storage order", () => {
+  const fake = harness();
+  const drops = [];
+  bindBayRailInsertionDrop(fake.roots, fake.drag, (drop) => drops.push(drop));
+
+  fake.setState({ bayId: "moving", sourceRail: "left" });
+  fake.emit("bottom", "dragover", { clientY: 235 });
+  assert.equal(fake.bays.bottom[0].classList.has("dock-bay--drop-after-vertical"), true);
+  fake.emit("bottom", "drop", { clientY: 235 });
+
+  fake.setState({ bayId: "moving", sourceRail: "top" });
+  fake.emit("right", "dragover", { clientX: 235 });
+  assert.equal(fake.bays.right[0].classList.has("dock-bay--drop-after-horizontal"), true);
+  fake.emit("right", "drop", { clientX: 235 });
+
+  assert.deepEqual(drops, [
+    { bayId: "moving", rail: "bottom", index: 0 },
+    { bayId: "moving", rail: "right", index: 0 },
+  ]);
 });
 
 test("marks an empty rail and clears all markers on leave, clear, and disconnect", () => {
@@ -74,12 +95,12 @@ test("marks an empty rail and clears all markers on leave, clear, and disconnect
   assert.equal(fake.roots.right.classList.has("dock-rail--bay-drop-empty"), true);
   fake.emit("right", "dragleave", { relatedTarget: null });
   assert.equal(fake.roots.right.classList.has("dock-rail--bay-drop-empty"), false);
-  fake.emit("top", "dragover", { clientX: 10 });
+  fake.emit("top", "dragover", { clientY: 10 });
   connection.clear();
-  assert.equal(fake.bays.top[0].classList.has("dock-bay--drop-before-horizontal"), false);
-  fake.emit("top", "dragover", { clientX: 10 });
+  assert.equal(fake.bays.top[0].classList.has("dock-bay--drop-before-vertical"), false);
+  fake.emit("top", "dragover", { clientY: 10 });
   connection.disconnect();
-  assert.equal(fake.bays.top[0].classList.has("dock-bay--drop-before-horizontal"), false);
+  assert.equal(fake.bays.top[0].classList.has("dock-bay--drop-before-vertical"), false);
   assert.equal(fake.listenerCount(), 0);
 });
 
@@ -97,10 +118,10 @@ function harness(overrides = {}) {
   let state = { bayId: "bay-2", sourceRail: "top" };
   let cancels = 0;
   const bays = {
-    top: [bay("bay-1", 0, 40, 0, 30), bay("bay-2", 42, 82, 0, 30), bay("bay-3", 84, 124, 0, 30)],
-    left: [bay("bay-4", 0, 30, 10, 50), bay("bay-5", 0, 30, 60, 100)],
-    right: [bay("bay-6", 0, 30, 10, 50)],
-    bottom: [bay("bay-7", 0, 40, 0, 30)],
+    top: [bay("bay-1", 0, 40, 0, 40), bay("bay-2", 0, 40, 42, 82), bay("bay-3", 0, 40, 84, 124)],
+    left: [bay("bay-4", 10, 50, 0, 30), bay("bay-5", 60, 100, 0, 30)],
+    right: [bay("bay-6", 210, 250, 0, 30)],
+    bottom: [bay("bay-7", 0, 40, 210, 250)],
     ...overrides,
   };
   const roots = Object.fromEntries(Object.entries(bays).map(([rail, children]) => [rail, root(children)]));

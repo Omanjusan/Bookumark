@@ -25,10 +25,10 @@ test("drops an active bay at any rail end and clears lifecycle state", () => {
 test("applies edge pan only on the target rail orientation axis", () => {
   const fake = harness();
   bindBayRailDrop(fake.roots, fake.drag, () => {}, { edgeThreshold: 40, maxPanStep: 20 });
-  fake.emit("top", "dragover", { clientX: 295, clientY: 100 });
-  fake.emit("left", "dragover", { clientX: 100, clientY: 55 });
-  assert.deepEqual(fake.roots.top.scrollCalls, [{ left: 18, top: 0, behavior: "auto" }]);
-  assert.deepEqual(fake.roots.left.scrollCalls, [{ left: 0, top: -18, behavior: "auto" }]);
+  fake.emit("top", "dragover", { clientX: 200, clientY: 245 });
+  fake.emit("left", "dragover", { clientX: 105, clientY: 150 });
+  assert.deepEqual(fake.roots.top.scrollCalls, [{ left: 0, top: 18, behavior: "auto" }]);
+  assert.deepEqual(fake.roots.left.scrollCalls, [{ left: -18, top: 0, behavior: "auto" }]);
 });
 
 test("ignores external drags and clears markers on leave, clear, and disconnect", () => {
@@ -93,7 +93,7 @@ function root() {
 function pointerFor(rail) {
   return rail === "top" || rail === "bottom"
     ? { clientX: 200, clientY: 100 }
-    : { clientX: 100, clientY: 150 };
+    : { clientX: 150, clientY: 150 };
 }
 
 function classList() {

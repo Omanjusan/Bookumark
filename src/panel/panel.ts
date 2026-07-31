@@ -6,11 +6,18 @@ import {
 import type { ActiveDockingLayoutController } from "./lib/active-docking-layout-controller.js";
 import { bindBayFactory } from "./lib/bay-factory-controller.js";
 import { bindBayFactoryChipDrag } from "./lib/bay-factory-chip-drag.js";
+import { createBayEditSession } from "./lib/bay-edit-session.js";
+import type { BayEditSession } from "./lib/bay-edit-session.js";
+import { bindBayEditTransaction } from "./lib/bay-edit-transaction-controller.js";
+import type { BayEditTransactionConnection } from "./lib/bay-edit-transaction-controller.js";
 import { renderBayFactoryEditor } from "./lib/bay-factory-static-view.js";
 import { renderChipToolSelector } from "./lib/chip-tool-selector-view.js";
 import { bindChipToolBayDrag } from "./lib/chip-tool-bay-drag.js";
 import { bindChipToolTooltip } from "./lib/chip-tool-tooltip.js";
 import { bindNewBayFactory } from "./lib/new-bay-factory-controller.js";
+import type { NewBayFactoryController } from "./lib/new-bay-factory-controller.js";
+import { saveNewBayConfiguration } from "./lib/new-bay-save.js";
+import type { NewBayDraft } from "./lib/bay-management.js";
 import { getBookmarkTreeItems, moveBookmark } from "./lib/bookmarks.js";
 import type {
   BookmarkItem,
@@ -46,7 +53,10 @@ import {
   buildDockingChipApplicationOrder,
 } from "./lib/docking-chip-application-order.js";
 import { createDockingChipRendererRegistry } from "./lib/docking-chip-renderer-registry.js";
-import { PRODUCTION_DOCKING_CHIP_CATALOG } from "./lib/docking-chip-catalog.js";
+import {
+  CURRENT_DOCKING_CHIP_RECORDS,
+  PRODUCTION_DOCKING_CHIP_CATALOG,
+} from "./lib/docking-chip-catalog.js";
 import { createDockingConditionFailureNotification } from "./lib/docking-condition-failure-notification.js";
 import type { DockingConditionFailure } from "./lib/docking-condition-evaluator.js";
 import {
@@ -62,7 +72,7 @@ import type {
 import { renderHorizontalDockingRail } from "./lib/docking-horizontal-rail-view.js";
 import { planDockingRailOverflow } from "./lib/docking-rail-overflow.js";
 import { renderVerticalDockingRail } from "./lib/docking-vertical-rail-view.js";
-import type { DockingDocuments } from "./lib/docking-persistence-model.js";
+import type { DockingDocuments, RailId } from "./lib/docking-persistence-model.js";
 import {
   createDockingSaveReevaluationSession,
 } from "./lib/docking-save-reevaluation-session.js";
@@ -218,7 +228,11 @@ const bayFactoryOpen = document.getElementById("bay-factory-open") as HTMLButton
 const bayFactoryDialog = document.getElementById("bay-factory-dialog") as HTMLDialogElement;
 const bayFactoryClose = document.getElementById("bay-factory-close") as HTMLButtonElement;
 const bayFactoryName = document.getElementById("bay-factory-name") as HTMLInputElement;
+const bayFactoryUndo = document.getElementById("bay-factory-undo") as HTMLButtonElement;
+const bayFactoryRedo = document.getElementById("bay-factory-redo") as HTMLButtonElement;
+const bayFactorySave = document.getElementById("bay-factory-save") as HTMLButtonElement;
 const bayFactoryDuplicate = document.getElementById("bay-factory-duplicate") as HTMLButtonElement;
+const bayFactoryDelete = document.getElementById("bay-factory-delete") as HTMLButtonElement;
 const bayFactoryEditor = document.getElementById("bay-factory-editor") as HTMLElement;
 const bayFactoryDiscardConfirmation = document.getElementById(
   "bay-factory-discard-confirmation",
@@ -229,7 +243,6 @@ const bayFactoryContinueEditing = document.getElementById(
 const bayFactoryDiscardChanges = document.getElementById(
   "bay-factory-discard-changes",
 ) as HTMLButtonElement;
-void bayFactoryDuplicate;
 const chipToolList = document.getElementById("chip-tool-list") as HTMLElement;
 const chipToolTooltip = document.getElementById("chip-tool-tooltip") as HTMLElement;
 const chipToolTooltipTitle = document.getElementById("chip-tool-tooltip-title") as HTMLElement;
@@ -288,6 +301,11 @@ let activePlacementDraft: LayoutPlacementEditSession | null = null;
 let editRuntimeCoordinator: DockingEditRuntimeCoordinator | null = null;
 let saveReevaluation: DockingSaveReevaluationSession | null = null;
 let layoutEditTransactionConnection: LayoutEditTransactionConnection | null = null;
+let activeBayEditSession: BayEditSession | null = null;
+let activeBayEditTransaction: BayEditTransactionConnection | null = null;
+let beginBayEditing: ((bayId: string) => void) | null = null;
+let beginNewBayEditing: ((draft: NewBayDraft) => void) | null = null;
+let newBayFactoryConnection: NewBayFactoryController | null = null;
 const dragClickGuard = createPanelDragClickGuard();
 const bayPickerDrag = bindBayPickerDrag(
   bayPicker,
@@ -346,6 +364,15 @@ function renderActivePlacementDraft(): void {
   layoutEditTransactionConnection?.refresh();
 }
 
+/** ベイ工場の選択対象だけを4レール上でアウトライン表示する。 */
+function highlightBayFactorySelection(bayId: string | null): void {
+  for (const rail of Object.values(dockingRailRoots)) {
+    for (const bay of rail.querySelectorAll<HTMLElement>(".dock-bay")) {
+      bay.classList.toggle("dock-bay--factory-selected", bay.dataset.bayId === bayId);
+    }
+  }
+}
+
 // 永続ユーザーベイとの接続はDB-8で行い、現段階では偽データを注入しない。
 const bayFactoryConnection = bindBayFactory({
   entry: bayFactoryEntry,
@@ -359,28 +386,48 @@ const bayFactoryConnection = bindBayFactory({
   discardConfirmation: bayFactoryDiscardConfirmation,
   continueEditing: bayFactoryContinueEditing,
   discardChanges: bayFactoryDiscardChanges,
-}, []);
+}, [], {
+  onSelectionChange: (bayId) => highlightBayFactorySelection(bayId),
+  onOpen: (bayId) => beginBayEditing?.(bayId),
+  hasUnsavedChanges: () => activeBayEditSession?.dirty ?? false,
+  onDiscard: () => {
+    activeBayEditSession?.discardChanges();
+    activeBayEditTransaction?.refresh();
+  },
+  onClose: () => {
+    activeBayEditTransaction?.disconnect();
+    activeBayEditTransaction = null;
+    activeBayEditSession = null;
+    newBayFactoryConnection?.discard();
+  },
+});
 let temporaryBaySequence = 1;
-bindNewBayFactory({
+newBayFactoryConnection = bindNewBayFactory({
   add: bayFactoryAdd,
   dialog: bayFactoryDialog,
   name: bayFactoryName,
 }, {
   createTemporaryId: () => `new-bay-session-${temporaryBaySequence++}`,
   render: (model) => renderBayFactoryEditor(bayFactoryEditor, model),
+  onStartEditing: (draft) => beginNewBayEditing?.(draft),
 });
-renderChipToolSelector(chipToolList, []);
+renderChipToolSelector(chipToolList, CURRENT_DOCKING_CHIP_RECORDS.map((record) => ({
+  chipType: record.chipType,
+  kind: record.kind,
+  label: record.displayName,
+  description: `${record.displayName}をベイへ追加`,
+})));
 bindChipToolTooltip(
   chipToolList,
   chipToolTooltip,
   chipToolTooltipTitle,
   chipToolTooltipDescription,
 );
-bindChipToolBayDrag(chipToolList, bayFactoryEditor, () => {
-  // DB-7でdrop結果を編集中ドラフトへ反映する。
+bindChipToolBayDrag(chipToolList, bayFactoryEditor, (drop) => {
+  activeBayEditTransaction?.handleToolDrop(drop);
 });
-bindBayFactoryChipDrag(bayFactoryEditor, () => {
-  // DB-7で並べ替え・削除結果を編集中ドラフトへ反映する。
+bindBayFactoryChipDrag(bayFactoryEditor, (change) => {
+  activeBayEditTransaction?.handleChipChange(change);
 });
 
 function currentDragMode(): ReturnType<typeof resolveViewDragMode> {
@@ -889,6 +936,11 @@ function applyDockingRailOverflow(
   rail.dataset.scroll = String(overflow.scroll);
 }
 
+/** レール内で複数ベイが増える軸を返す。ベイ内部のチップ方向とは独立している。 */
+function dockingRailArrangementAxis(rail: RailId): "horizontal" | "vertical" {
+  return rail === "top" || rail === "bottom" ? "vertical" : "horizontal";
+}
+
 /** 動的4レールのライフサイクルコントローラーを遅延生成する。 */
 function dockingLayoutController(): ActiveDockingLayoutController {
   if (activeDockingController !== null) return activeDockingController;
@@ -930,7 +982,7 @@ function dockingLayoutController(): ActiveDockingLayoutController {
         if (result.skippedChips.length > 0) {
           console.warn("docking chips were skipped:", result.skippedChips);
         }
-        applyDockingRailOverflow(rail, railPlan.orientation);
+        applyDockingRailOverflow(rail, dockingRailArrangementAxis(railPlan.rail));
       }
       runtime.sync();
       redraw();
@@ -1259,6 +1311,91 @@ async function main(): Promise<void> {
         editRuntimeCoordinator?.exit();
       },
     });
+    beginBayEditing = (bayId): void => {
+      activeBayEditTransaction?.disconnect();
+      const session = createBayEditSession(
+        layoutCoordinator.state().bayConfigurations,
+        bayId,
+        {
+          saveDocument: async (bayConfigurations) => {
+            await saveDockingDocuments({ bayConfigurations });
+            const documents = { ...layoutCoordinator.state(), bayConfigurations };
+            layoutCoordinator.replaceState(documents);
+            layoutEditMode.replaceDocuments(documents);
+            bayFactoryConnection.replaceBays(buildPanelBayModels(documents));
+            const evaluatedState = evaluatePanelDockingState(documents);
+            rebuildActiveDockingLayout(documents, evaluatedState);
+            replaceEditRuntimeCoordinator(documents, evaluatedState);
+          },
+        },
+      );
+      activeBayEditSession = session;
+      activeBayEditTransaction = bindBayEditTransaction(session, {
+        undo: bayFactoryUndo,
+        redo: bayFactoryRedo,
+        save: bayFactorySave,
+        name: bayFactoryName,
+        duplicate: bayFactoryDuplicate,
+        delete: bayFactoryDelete,
+      }, {
+        chipLabels: new Map(
+          CURRENT_DOCKING_CHIP_RECORDS.map(({ chipType, displayName }) => [chipType, displayName]),
+        ),
+        render: (model) => renderBayFactoryEditor(bayFactoryEditor, model),
+      });
+    };
+    beginNewBayEditing = (draft): void => {
+      activeBayEditTransaction?.disconnect();
+      const current = layoutCoordinator.state();
+      const temporaryBayConfigurations = structuredClone(current.bayConfigurations);
+      temporaryBayConfigurations.bays.push({
+        id: draft.temporaryId,
+        name: draft.name,
+        permanent: false,
+        chips: [],
+      });
+      let formalBayId: string | null = null;
+      const session = createBayEditSession(
+        temporaryBayConfigurations,
+        draft.temporaryId,
+        {
+          saveDocument: async (editedTemporaryBayConfigurations) => {
+            const latest = layoutCoordinator.state();
+            const saved = await saveNewBayConfiguration(
+              latest,
+              editedTemporaryBayConfigurations,
+              draft.temporaryId,
+              latest.dockingMetadata.activeLayoutId,
+            );
+            formalBayId = saved.bay.id;
+            const documents = { ...latest, ...saved.documents };
+            layoutCoordinator.replaceState(documents);
+            layoutEditMode.replaceDocuments(documents);
+            bayFactoryConnection.replaceBays(buildPanelBayModels(documents));
+            const evaluatedState = evaluatePanelDockingState(documents);
+            rebuildActiveDockingLayout(documents, evaluatedState);
+            replaceEditRuntimeCoordinator(documents, evaluatedState);
+          },
+        },
+      );
+      activeBayEditSession = session;
+      activeBayEditTransaction = bindBayEditTransaction(session, {
+        undo: bayFactoryUndo,
+        redo: bayFactoryRedo,
+        save: bayFactorySave,
+        name: bayFactoryName,
+        duplicate: bayFactoryDuplicate,
+        delete: bayFactoryDelete,
+      }, {
+        chipLabels: new Map(
+          CURRENT_DOCKING_CHIP_RECORDS.map(({ chipType, displayName }) => [chipType, displayName]),
+        ),
+        render: (model) => renderBayFactoryEditor(bayFactoryEditor, model),
+        onSaved: () => {
+          if (formalBayId !== null) beginBayEditing?.(formalBayId);
+        },
+      });
+    };
     const layoutManagementConnection = bindLayoutManagement({
       select: layoutSelect,
       restoreDefault: layoutDefault,

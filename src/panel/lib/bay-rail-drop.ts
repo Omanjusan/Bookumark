@@ -37,8 +37,8 @@ export function bindBayRailDrop(
   for (const rail of RAILS) {
     const root = roots[rail];
     const orientation: BayOrientation = rail === "top" || rail === "bottom"
-      ? "horizontal"
-      : "vertical";
+      ? "vertical"
+      : "horizontal";
     const onDragOver = (event: Event): void => {
       if (drag.state() === null) return;
       event.preventDefault();

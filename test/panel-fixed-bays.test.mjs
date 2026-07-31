@@ -20,8 +20,8 @@ test("registers the six former fixed controls as dynamic renderers", () => {
   }
 });
 
-test("fixed bays have visible boundaries and wrap on narrow panels", () => {
+test("fixed bays have visible boundaries and bottom bays stack inward", () => {
   assert.match(css, /\.dock-bay\s*\{[^}]*border:\s*1px solid var\(--border\)[^}]*border-radius:/s);
-  assert.match(css, /\.dock-rail--bottom\s*\{[^}]*flex-wrap:\s*wrap/s);
+  assert.match(css, /\.dock-rail--bottom\s*\{[^}]*flex-direction:\s*column-reverse/s);
   assert.match(css, /\.dock-bay--search\s*\{[^}]*width:\s*100%/s);
 });

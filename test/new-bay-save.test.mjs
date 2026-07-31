@@ -2,7 +2,41 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { createNewBayDraft } from "../dist/panel/lib/bay-management.js";
-import { saveNewBay } from "../dist/panel/lib/new-bay-save.js";
+import { saveNewBay, saveNewBayConfiguration } from "../dist/panel/lib/new-bay-save.js";
+
+test("formalizes an edited temporary bay with all chip instances in one request", async () => {
+  const documents = fixture();
+  const temporary = structuredClone(documents.bayConfigurations);
+  temporary.nextChipSequence = 5;
+  temporary.bays.push({
+    id: "new-bay-session-1",
+    name: "チップ付き",
+    permanent: false,
+    chips: [
+      { instanceId: "chip-3", chipType: "search", order: 1, settings: {} },
+      { instanceId: "chip-4", chipType: "sort", order: 2, settings: {} },
+    ],
+  });
+  const requests = [];
+
+  const result = await saveNewBayConfiguration(
+    documents,
+    temporary,
+    "new-bay-session-1",
+    "layout-2",
+    { saveDocuments: async (patch) => requests.push(patch) },
+  );
+
+  assert.equal(requests.length, 1);
+  assert.equal(result.bay.id, "bay-3");
+  assert.deepEqual(result.bay.chips, temporary.bays.at(-1).chips);
+  assert.equal(result.documents.bayConfigurations.nextBaySequence, 4);
+  assert.equal(result.documents.bayConfigurations.nextChipSequence, 5);
+  assert.equal(result.documents.bayConfigurations.bays.some(({ id }) => id.startsWith("new-bay-session-")), false);
+  assert.deepEqual(result.documents.mainLayouts.layouts[1].placements.at(-1), {
+    bayId: "bay-3", rail: "top", order: 3,
+  });
+});
 
 test("issues a formal id and saves the bay at the active top rail end in one request", async () => {
   const documents = fixture();

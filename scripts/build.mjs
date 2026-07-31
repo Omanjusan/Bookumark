@@ -49,5 +49,13 @@ if (development) {
   const manifestPath = path.join(dist, "manifest.json");
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
   manifest.background = { scripts: ["background.js"] };
+  manifest.options_ui = { page: "dev/db15-fixture.html", open_in_tab: true };
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  await mkdir(path.join(dist, "dev"), { recursive: true });
+  await copyFile(
+    path.join(root, "dev", "db15-fixture.html"),
+    path.join(dist, "dev", "db15-fixture.html"),
+  );
+} else {
+  await rm(path.join(dist, "dev"), { recursive: true, force: true });
 }

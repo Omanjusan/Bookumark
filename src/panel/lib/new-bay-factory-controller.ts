@@ -11,6 +11,7 @@ interface NewBayFactoryElements {
 interface NewBayFactoryOptions {
   readonly createTemporaryId: () => string;
   readonly render: (model: BayFactoryViewModel) => void;
+  readonly onStartEditing?: (draft: NewBayDraft) => void;
   readonly onDraftChange?: (draft: NewBayDraft) => void;
   readonly onNameError?: (error: unknown) => void;
 }
@@ -38,12 +39,15 @@ export function bindNewBayFactory(
     draft = createNewBayDraft(options.createTemporaryId(), "新しいベイ");
     elements.name.disabled = false;
     elements.name.value = draft.name;
-    renderDraft();
+    if (options.onStartEditing) options.onStartEditing(structuredClone(draft));
+    else renderDraft();
     if (!elements.dialog.open) elements.dialog.showModal();
   };
 
   const onNameChange = (): void => {
     if (draft === null) return;
+    // 委譲先の通常編集セッションが名前とチップを一体管理する。
+    if (options.onStartEditing) return;
     try {
       const renamed = createNewBayDraft(draft.temporaryId, elements.name.value);
       draft = { ...renamed, chips: draft.chips };

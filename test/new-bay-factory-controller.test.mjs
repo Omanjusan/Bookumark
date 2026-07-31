@@ -29,6 +29,27 @@ test("opens one empty unsaved bay under an injected temporary identity", () => {
   }]);
 });
 
+test("delegates a new draft to the full editor without later overwriting its chips", () => {
+  const fake = harness();
+  const starts = [];
+  bindNewBayFactory(fake.elements, {
+    createTemporaryId: () => "new-bay-session-8",
+    render: (model) => fake.renders.push(structuredClone(model)),
+    onStartEditing: (draft) => starts.push(draft),
+  });
+
+  fake.elements.add.emit("click");
+  fake.elements.name.value = "編集セッション側の名前";
+  fake.elements.name.emit("change");
+
+  assert.deepEqual(starts, [{
+    temporaryId: "new-bay-session-8",
+    name: "新しいベイ",
+    chips: [],
+  }]);
+  assert.equal(fake.renders.length, 0);
+});
+
 test("keeps the draft private until it is explicitly queried", () => {
   const fake = harness();
   const publications = [];

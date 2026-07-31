@@ -22,6 +22,44 @@ export interface NewBaySaveResult {
   readonly documents: NewBaySaveDocuments;
 }
 
+/** 編集済みの一時ベイを正式IDへ置換し、チップを含む2文書を原子的に保存する。 */
+export async function saveNewBayConfiguration(
+  documents: NewBaySaveDocuments,
+  temporaryBayConfigurations: BayConfigurationsDocument,
+  temporaryBayId: string,
+  activeLayoutId: string,
+  options: NewBaySaveOptions = {},
+): Promise<NewBaySaveResult> {
+  const activeLayout = documents.mainLayouts.layouts.find(({ id }) => id === activeLayoutId);
+  if (activeLayout === undefined) {
+    throw new Error(`active layout was not found: ${activeLayoutId}`);
+  }
+  const temporaryBay = temporaryBayConfigurations.bays.find(({ id }) => id === temporaryBayId);
+  if (temporaryBay === undefined) {
+    throw new Error(`temporary bay was not found: ${temporaryBayId}`);
+  }
+  if (temporaryBay.permanent) throw new Error("temporary bay must not be permanent");
+
+  const issued = issueBayId(documents.bayConfigurations.nextBaySequence);
+  const bay = structuredClone(temporaryBay);
+  bay.id = issued.id;
+  const candidate: NewBaySaveDocuments = {
+    bayConfigurations: structuredClone(temporaryBayConfigurations),
+    mainLayouts: structuredClone(documents.mainLayouts),
+  };
+  const temporaryIndex = candidate.bayConfigurations.bays.findIndex(
+    ({ id }) => id === temporaryBayId,
+  );
+  candidate.bayConfigurations.bays[temporaryIndex] = structuredClone(bay);
+  candidate.bayConfigurations.nextBaySequence = issued.nextSequence;
+  placeNewBay(candidate.mainLayouts, activeLayoutId, issued.id);
+
+  const persist = options.saveDocuments
+    ?? ((patch: NewBaySaveDocuments) => saveDockingDocuments(patch));
+  await persist(structuredClone(candidate));
+  return { bay: structuredClone(bay), documents: structuredClone(candidate) };
+}
+
 /** 一時ベイへ正式IDを発行し、ベイ・レイアウト文書を1回で保存する。 */
 export async function saveNewBay(
   documents: NewBaySaveDocuments,
@@ -48,14 +86,7 @@ export async function saveNewBay(
   candidate.bayConfigurations.bays.push(structuredClone(bay));
   candidate.bayConfigurations.nextBaySequence = issued.nextSequence;
 
-  if (!activeLayout.systemDefault) {
-    const target = candidate.mainLayouts.layouts.find((layout) => layout.id === activeLayoutId);
-    if (target === undefined) throw new Error(`active layout was not found: ${activeLayoutId}`);
-    const lastTopOrder = target.placements
-      .filter((placement) => placement.rail === "top")
-      .reduce((maximum, placement) => Math.max(maximum, placement.order), 0);
-    target.placements.push({ bayId: issued.id, rail: "top", order: lastTopOrder + 1 });
-  }
+  placeNewBay(candidate.mainLayouts, activeLayoutId, issued.id);
 
   const persist = options.saveDocuments
     ?? ((patch: NewBaySaveDocuments) => saveDockingDocuments(patch));
@@ -64,4 +95,19 @@ export async function saveNewBay(
     bay: structuredClone(bay),
     documents: structuredClone(candidate),
   };
+}
+
+/** 非デフォルトのactiveレイアウトで、新規ベイを上レールの内側末尾へ配置する。 */
+function placeNewBay(
+  mainLayouts: MainLayoutsDocument,
+  activeLayoutId: string,
+  bayId: string,
+): void {
+  const target = mainLayouts.layouts.find((layout) => layout.id === activeLayoutId);
+  if (target === undefined) throw new Error(`active layout was not found: ${activeLayoutId}`);
+  if (target.systemDefault) return;
+  const lastTopOrder = target.placements
+    .filter((placement) => placement.rail === "top")
+    .reduce((maximum, placement) => Math.max(maximum, placement.order), 0);
+  target.placements.push({ bayId, rail: "top", order: lastTopOrder + 1 });
 }

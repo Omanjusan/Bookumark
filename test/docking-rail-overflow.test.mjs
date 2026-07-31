@@ -55,9 +55,11 @@ test("applies edge pan only to the rail orientation axis", () => {
   assert.deepEqual(vertical.calls, [{ left: 0, top: -15, behavior: "auto" }]);
 });
 
-test("styles horizontal and vertical rails for one-axis scrolling", () => {
-  assert.match(css, /\.dock-rail--top,[\s\S]*?\.dock-rail--bottom\s*\{[^}]*overflow-x:\s*auto[^}]*overflow-y:\s*hidden/s);
-  assert.match(css, /\.dock-rail--left,[\s\S]*?\.dock-rail--right\s*\{[^}]*overflow-x:\s*hidden[^}]*overflow-y:\s*auto/s);
+test("styles rails for inward stacking and one-axis scrolling", () => {
+  assert.match(css, /\.dock-rail--top\s*\{[^}]*flex-direction:\s*column[^}]*overflow-x:\s*hidden[^}]*overflow-y:\s*auto/s);
+  assert.match(css, /\.dock-rail--bottom\s*\{[^}]*flex-direction:\s*column-reverse[^}]*overflow-x:\s*hidden[^}]*overflow-y:\s*auto/s);
+  assert.match(css, /\.dock-rail--left\s*\{[^}]*flex-direction:\s*row[^}]*overflow-x:\s*auto[^}]*overflow-y:\s*hidden/s);
+  assert.match(css, /\.dock-rail--right\s*\{[^}]*flex-direction:\s*row-reverse[^}]*overflow-x:\s*auto[^}]*overflow-y:\s*hidden/s);
   for (const gap of [8, 4, 2]) {
     assert.match(css, new RegExp(`\\.dock-rail\\[data-gap="${gap}"\\]\\s*\\{[^}]*gap:\\s*${gap}px`, "s"));
   }

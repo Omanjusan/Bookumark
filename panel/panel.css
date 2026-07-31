@@ -52,9 +52,22 @@ body {
 
 header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 4px 4px 10px;
+}
+header button {
+  flex: none;
+  white-space: nowrap;
+}
+header #layout-edit-entry,
+header #bay-factory-add,
+header #bay-factory-entry { margin-left: 0; }
+#layout-select {
+  flex: 1 1 180px;
+  min-width: 140px;
+  max-width: 100%;
 }
 header h1 {
   font-size: 15px;
@@ -299,28 +312,31 @@ header h1 {
 .dock-rail[data-gap="8"] { gap: 8px; }
 .dock-rail[data-gap="4"] { gap: 4px; }
 .dock-rail[data-gap="2"] { gap: 2px; }
-.dock-rail--top,
-.dock-rail--bottom {
-  overflow-x: auto;
-  overflow-y: hidden;
-}
-.dock-rail--left,
-.dock-rail--right {
+.dock-rail--top {
   flex-direction: column;
   overflow-x: hidden;
   overflow-y: auto;
+  margin: 0 0 10px;
+}
+.dock-rail--bottom {
+  flex-direction: column-reverse;
+  overflow-x: hidden;
+  overflow-y: auto;
+  align-items: flex-start;
+}
+.dock-rail--left {
+  flex-direction: row;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.dock-rail--right {
+  flex-direction: row-reverse;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 .dock-rail--bay-drop-end {
   outline: 2px dashed var(--mode-custom);
   outline-offset: 2px;
-}
-.dock-rail--top {
-  flex-wrap: wrap;
-  margin: 0 0 10px;
-}
-.dock-rail--bottom {
-  flex-wrap: wrap;
-  align-items: flex-start;
 }
 .dock-bay {
   display: flex;
@@ -334,12 +350,19 @@ header h1 {
 }
 .dock-bay--search { width: 100%; }
 .dock-bay--history { margin-right: auto; }
-.dock-bay--horizontal { flex-direction: row; }
+.dock-bay--horizontal {
+  flex: none;
+  flex-direction: row;
+}
 .dock-bay--preview {
   pointer-events: none;
   user-select: none;
 }
 .dock-bay--preview.dock-bay--drag-source { opacity: 0.35; }
+.dock-bay--factory-selected {
+  outline: 3px solid var(--mode-custom);
+  outline-offset: -1px;
+}
 .dock-bay--drop-before-horizontal,
 .dock-bay--drop-after-horizontal,
 .dock-bay--drop-before-vertical,

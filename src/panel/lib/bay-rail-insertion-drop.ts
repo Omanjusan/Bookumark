@@ -69,21 +69,23 @@ export function bindBayRailInsertionDrop(
 
   for (const rail of RAILS) {
     const root = roots[rail];
-    const orientation = orientationOf(rail);
+    const orientation = arrangementAxisOf(rail);
+    const reverse = isReverseRail(rail);
     const onDragOver = (event: Event): void => {
       const state = drag.state();
       if (state === null) return;
       event.preventDefault();
       const dragEvent = event as DragEvent;
-      const coordinate = orientation === "horizontal" ? dragEvent.clientX : dragEvent.clientY;
-      const candidates = candidateBays(root, state.bayId, orientation);
+      const physicalCoordinate = orientation === "horizontal" ? dragEvent.clientX : dragEvent.clientY;
+      const coordinate = normalizeCoordinate(physicalCoordinate, reverse);
+      const candidates = candidateBays(root, state.bayId, orientation, reverse);
       const index = calculateBayRailInsertionIndex(
         candidates.map(({ bayId, start, end }) => ({ bayId, start, end })),
         state.bayId,
         coordinate,
       );
-      mark(root, candidates.map(({ element }) => element), orientation, index);
-      pan(root, orientation, coordinate, edgeThreshold, maxPanStep);
+      mark(root, candidates.map(({ element }) => element), orientation, reverse, index);
+      pan(root, orientation, physicalCoordinate, edgeThreshold, maxPanStep);
       if (dragEvent.dataTransfer !== null) dragEvent.dataTransfer.dropEffect = "move";
     };
     const onDragLeave = (event: Event): void => {
@@ -95,8 +97,9 @@ export function bindBayRailInsertionDrop(
       if (state === null) return;
       event.preventDefault();
       const dragEvent = event as DragEvent;
-      const coordinate = orientation === "horizontal" ? dragEvent.clientX : dragEvent.clientY;
-      const candidates = candidateBays(root, state.bayId, orientation);
+      const physicalCoordinate = orientation === "horizontal" ? dragEvent.clientX : dragEvent.clientY;
+      const coordinate = normalizeCoordinate(physicalCoordinate, reverse);
+      const candidates = candidateBays(root, state.bayId, orientation, reverse);
       const index = calculateBayRailInsertionIndex(candidates, state.bayId, coordinate);
       clearMark();
       deliver({ bayId: state.bayId, rail, index });
@@ -117,6 +120,7 @@ export function bindBayRailInsertionDrop(
     root: HTMLElement,
     candidates: readonly HTMLElement[],
     orientation: BayOrientation,
+    reverse: boolean,
     index: number,
   ): void {
     clearMark();
@@ -127,7 +131,8 @@ export function bindBayRailInsertionDrop(
     }
     const atEnd = index === candidates.length;
     markedBay = atEnd ? candidates.at(-1) ?? null : candidates[index] ?? null;
-    markedBay?.classList.add(`dock-bay--drop-${atEnd ? "after" : "before"}-${orientation}`);
+    const visualSide = reverse === atEnd ? "before" : "after";
+    markedBay?.classList.add(`dock-bay--drop-${visualSide}-${orientation}`);
   }
 
   /** 全向きの挿入表示をイベント終了経路から解除する。 */
@@ -152,23 +157,36 @@ function candidateBays(
   root: HTMLElement,
   draggedBayId: string,
   orientation: BayOrientation,
+  reverse: boolean,
 ): Array<BayInsertionCandidate & { readonly element: HTMLElement }> {
   return [...root.querySelectorAll<HTMLElement>(".dock-bay--preview")]
     .filter(({ dataset }) => dataset.bayId !== draggedBayId)
     .map((element) => {
       const rect = element.getBoundingClientRect();
+      const physicalStart = orientation === "horizontal" ? rect.left : rect.top;
+      const physicalEnd = orientation === "horizontal" ? rect.right : rect.bottom;
       return {
         element,
         bayId: element.dataset.bayId ?? "",
-        start: orientation === "horizontal" ? rect.left : rect.top,
-        end: orientation === "horizontal" ? rect.right : rect.bottom,
+        start: reverse ? -physicalEnd : physicalStart,
+        end: reverse ? -physicalStart : physicalEnd,
       };
     });
 }
 
-/** レールIDから挿入判定軸を選ぶ。 */
-function orientationOf(rail: RailId): BayOrientation {
-  return rail === "top" || rail === "bottom" ? "horizontal" : "vertical";
+/** レールIDから複数ベイの配置軸を選ぶ。ベイ内部のチップ方向とは逆になる。 */
+function arrangementAxisOf(rail: RailId): BayOrientation {
+  return rail === "top" || rail === "bottom" ? "vertical" : "horizontal";
+}
+
+/** 外側から内側への保存順を逆flexで描画するレールかを返す。 */
+function isReverseRail(rail: RailId): boolean {
+  return rail === "right" || rail === "bottom";
+}
+
+/** 逆方向レールの物理座標を、保存順に増加する座標へ変換する。 */
+function normalizeCoordinate(coordinate: number, reverse: boolean): number {
+  return reverse ? -coordinate : coordinate;
 }
 
 /** 精密drop中も既存の向き別端パン計算を適用する。 */
