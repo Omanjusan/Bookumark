@@ -7,6 +7,8 @@ test("enters a named layout edit session and restores guarded interaction on exi
   const fake = harness();
   const events = [];
   const controller = bindLayoutEditMode(fake.elements, fixture(), {
+    readPageScroll: fake.readPageScroll,
+    restorePageScroll: fake.restorePageScroll,
     onEnter: (documents) => events.push(["enter", documents.dockingMetadata.activeLayoutId]),
     onExit: (documents) => events.push(["exit", documents.dockingMetadata.activeLayoutId]),
   });
@@ -28,6 +30,27 @@ test("enters a named layout edit session and restores guarded interaction on exi
   assert.deepEqual(fake.elements.guardedControls.map(({ disabled }) => disabled), [false, true]);
   assert.deepEqual(fake.elements.guardedRegions.map(({ inert }) => inert), [false, true]);
   assert.deepEqual(events, [["enter", "layout-2"], ["exit", "layout-2"]]);
+  assert.deepEqual(fake.restoredPageScrolls(), [{ left: 12, top: 480 }]);
+});
+
+test("captures a fresh page position for every edit session", () => {
+  const fake = harness();
+  const controller = bindLayoutEditMode(fake.elements, fixture(), {
+    readPageScroll: fake.readPageScroll,
+    restorePageScroll: fake.restorePageScroll,
+  });
+
+  fake.setPageScroll({ left: 0, top: 120 });
+  fake.elements.entry.emit("click");
+  fake.elements.exit.emit("click");
+  fake.setPageScroll({ left: 0, top: 720 });
+  fake.elements.entry.emit("click");
+  fake.elements.exit.emit("click");
+
+  assert.deepEqual(fake.restoredPageScrolls(), [
+    { left: 0, top: 120 },
+    { left: 0, top: 720 },
+  ]);
 });
 
 test("disables entry with an explanation for the internal default", () => {
@@ -157,6 +180,8 @@ test("finishes after deletion with a restored active layout without an unsaved p
 });
 
 function harness() {
+  let pageScroll = { left: 12, top: 480 };
+  const restoredPageScrolls = [];
   const element = (values = {}) => ({
     disabled: false,
     hidden: false,
@@ -169,6 +194,10 @@ function harness() {
     ...values,
   });
   return {
+    readPageScroll: () => ({ ...pageScroll }),
+    restorePageScroll: (position) => { restoredPageScrolls.push(position); },
+    restoredPageScrolls: () => structuredClone(restoredPageScrolls),
+    setPageScroll: (position) => { pageScroll = position; },
     elements: {
       root: element(),
       entry: element(),

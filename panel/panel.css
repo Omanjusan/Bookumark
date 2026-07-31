@@ -269,6 +269,7 @@ header h1 {
   min-width: 0;
   min-height: 0;
 }
+.frame[data-layout-editing="true"] #docking-center { display: none; }
 #docking-rail-right {
   grid-area: right;
   justify-self: end;

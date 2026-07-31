@@ -32,7 +32,9 @@ interface BayRailInsertionDropOptions {
 interface ActiveEdgePan {
   readonly root: HTMLElement;
   readonly orientation: BayOrientation;
-  readonly coordinate: number;
+  coordinate: number;
+  observedPosition: number;
+  stationaryFrames: number;
 }
 
 const RAILS: readonly RailId[] = ["top", "left", "right", "bottom"];
@@ -173,17 +175,31 @@ export function bindBayRailInsertionDrop(
     orientation: BayOrientation,
     coordinate: number,
   ): void {
-    activePan = { root, orientation, coordinate };
+    if (activePan?.root === root && activePan.orientation === orientation) {
+      activePan.coordinate = coordinate;
+    } else {
+      activePan = {
+        root,
+        orientation,
+        coordinate,
+        observedPosition: scrollPosition(root, orientation),
+        stationaryFrames: 0,
+      };
+    }
     if (panFrame !== null) return;
     if (applyActivePan()) schedulePan();
     else activePan = null;
   }
 
-  /** 現在の端パンを1回適用し、実際にスクロール位置が変わったかを返す。 */
+  /** 現在の端パンを1回適用し、遅延反映を許容しつつ継続可否を返す。 */
   function applyActivePan(): boolean {
     if (activePan === null || drag.state() === null) return false;
     const { root, orientation, coordinate } = activePan;
-    const before = orientation === "horizontal" ? root.scrollLeft : root.scrollTop;
+    const before = scrollPosition(root, orientation);
+    activePan.stationaryFrames = before === activePan.observedPosition
+      ? activePan.stationaryFrames + 1
+      : 0;
+    activePan.observedPosition = before;
     const rect = root.getBoundingClientRect();
     const step = applyDockingRailEdgePan(root, orientation, coordinate, {
       start: orientation === "horizontal" ? rect.left : rect.top,
@@ -191,8 +207,8 @@ export function bindBayRailInsertionDrop(
       threshold: edgeThreshold,
       maxStep: maxPanStep,
     });
-    const after = orientation === "horizontal" ? root.scrollLeft : root.scrollTop;
-    return step !== 0 && after !== before;
+    // FirefoxではscrollByの反映が次フレームになるため、連続2フレーム不変で終端と判定する。
+    return step !== 0 && activePan.stationaryFrames < 2;
   }
 
   /** 静止ポインターでも端パンを継続する次フレームを一つだけ予約する。 */
@@ -218,6 +234,11 @@ export function bindBayRailInsertionDrop(
       clearMark();
     },
   };
+}
+
+/** レール配置軸の現在スクロール位置を返す。 */
+function scrollPosition(root: HTMLElement, orientation: BayOrientation): number {
+  return orientation === "horizontal" ? root.scrollLeft : root.scrollTop;
 }
 
 /** レールDOMからドラッグ元を除いた配置ベイと向き別の座標を取得する。 */

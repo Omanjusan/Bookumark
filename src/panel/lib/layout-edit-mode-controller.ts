@@ -27,6 +27,13 @@ interface LayoutEditModeOptions {
   readonly onEnter?: (documents: DockingDocuments) => void;
   readonly onExit?: (documents: DockingDocuments) => void;
   readonly hasUnsavedChanges?: () => boolean;
+  readonly readPageScroll?: () => PageScrollPosition;
+  readonly restorePageScroll?: (position: PageScrollPosition) => void;
+}
+
+interface PageScrollPosition {
+  readonly left: number;
+  readonly top: number;
 }
 
 /** activeレイアウトの編集可否と、編集中に停止する通常操作のライフサイクルを管理する。 */
@@ -40,6 +47,14 @@ export function bindLayoutEditMode(
   let ready = options.initiallyReady ?? true;
   let controlStates: boolean[] = [];
   let regionStates: boolean[] = [];
+  let pageScrollBeforeEditing: PageScrollPosition | null = null;
+  const readPageScroll = options.readPageScroll ?? (() => ({
+    left: globalThis.scrollX ?? 0,
+    top: globalThis.scrollY ?? 0,
+  }));
+  const restorePageScroll = options.restorePageScroll ?? ((position: PageScrollPosition) => {
+    globalThis.scrollTo?.({ left: position.left, top: position.top, behavior: "auto" });
+  });
 
   /** 保存済みactiveレイアウトに合わせて入口の可否と説明を更新する。 */
   const renderAvailability = (): void => {
@@ -57,6 +72,7 @@ export function bindLayoutEditMode(
     const active = resolveActiveLayout(documents);
     if (!ready || active.systemDefault) return;
     editing = true;
+    pageScrollBeforeEditing = readPageScroll();
     controlStates = elements.guardedControls.map((control) => control.disabled);
     regionStates = elements.guardedRegions.map((region) => region.inert);
     for (const control of elements.guardedControls) control.disabled = true;
@@ -88,6 +104,8 @@ export function bindLayoutEditMode(
     elements.discardConfirmation.hidden = true;
     renderAvailability();
     options.onExit?.(structuredClone(documents));
+    if (pageScrollBeforeEditing !== null) restorePageScroll(pageScrollBeforeEditing);
+    pageScrollBeforeEditing = null;
   };
 
   /** 未保存なら確認を表示し、クリーンな状態だけを即時終了する。 */

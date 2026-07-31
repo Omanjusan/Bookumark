@@ -141,7 +141,24 @@ test("continues edge pan while stationary and stops on leave, clear, and drop", 
   assert.equal(fake.pendingFrames(), 0);
 });
 
-function harness(overrides = {}) {
+test("continues edge pan when Firefox applies scrollBy after the current frame", () => {
+  const fake = harness({}, deferredRoot);
+  bindBayRailInsertionDrop(fake.roots, fake.drag, () => {}, {
+    edgeThreshold: 40,
+    maxPanStep: 20,
+    requestFrame: fake.requestFrame,
+    cancelFrame: fake.cancelFrame,
+  });
+
+  fake.emit("top", "dragover", { clientY: 295 });
+  assert.equal(fake.pendingFrames(), 1);
+  const beforeFrame = fake.scrollPosition("top");
+  fake.runFrame();
+  assert.ok(fake.scrollPosition("top") > beforeFrame);
+  assert.equal(fake.pendingFrames(), 1);
+});
+
+function harness(overrides = {}, createRoot = root) {
   let state = { bayId: "bay-2", sourceRail: "top" };
   let cancels = 0;
   let nextFrameId = 1;
@@ -153,7 +170,7 @@ function harness(overrides = {}) {
     bottom: [bay("bay-7", 0, 40, 210, 250)],
     ...overrides,
   };
-  const roots = Object.fromEntries(Object.entries(bays).map(([rail, children]) => [rail, root(children)]));
+  const roots = Object.fromEntries(Object.entries(bays).map(([rail, children]) => [rail, createRoot(children)]));
   return {
     bays,
     roots,
@@ -173,6 +190,7 @@ function harness(overrides = {}) {
       if (entry === undefined) return;
       const [id, callback] = entry;
       frames.delete(id);
+      for (const value of Object.values(roots)) value.flushScroll?.();
       callback(0);
     },
     scrollPosition: (rail) => roots[rail].position(),
@@ -188,6 +206,17 @@ function harness(overrides = {}) {
     },
     listenerCount: () => Object.values(roots).reduce((total, value) => total + value.listeners.size, 0),
   };
+}
+
+function deferredRoot(children) {
+  const value = root(children);
+  const scrollBy = value.scrollBy.bind(value);
+  const pending = [];
+  value.scrollBy = (options) => { pending.push(options); };
+  value.flushScroll = () => {
+    for (const options of pending.splice(0)) scrollBy(options);
+  };
+  return value;
 }
 
 function root(children) {

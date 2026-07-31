@@ -38,3 +38,11 @@ test("provides the specified unsaved-exit confirmation outside the edit bar", ()
     /\.layout-edit-discard-confirmation\[hidden\]\s*\{[^}]*display:\s*none/,
   );
 });
+
+test("collapses normal center content while preserving the editing grid", () => {
+  assert.match(
+    css,
+    /\.frame\[data-layout-editing="true"\]\s+#docking-center\s*\{[^}]*display:\s*none/s,
+  );
+  assert.doesNotMatch(css, /\.frame\[data-layout-editing="true"\]\s+#layout-bay-trash/);
+});
