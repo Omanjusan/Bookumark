@@ -34,6 +34,7 @@ interface BayFactoryControllerOptions {
 
 export interface BayFactoryConnection {
   replaceBays(bays: readonly SelectableBayFactoryViewModel[]): void;
+  closeAfterSave(): void;
 }
 
 /** ユーザーベイの対象選択と静的ベイ工場の開閉をDOMへ接続する。 */
@@ -105,6 +106,12 @@ export function bindBayFactory(
   });
 
   return {
+    /** 保存成功後は未保存確認を挟まず閉じ、通常の終了後片付けを実行する。 */
+    closeAfterSave(): void {
+      elements.discardConfirmation.hidden = true;
+      if (elements.dialog.open) elements.dialog.close();
+      options.onClose?.();
+    },
     /** ロード・保存後のベイ一覧へ置換し、有効な選択IDだけを維持する。 */
     replaceBays(nextBays: readonly SelectableBayFactoryViewModel[]): void {
       const previousId = elements.select.value;

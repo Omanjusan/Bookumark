@@ -99,6 +99,23 @@ test("routes the close button and Escape cancel through the same close contract"
   assert.equal(closes, 2);
 });
 
+test("closes immediately after a successful save and runs close cleanup", () => {
+  const fake = harness();
+  let closes = 0;
+  const connection = bindBayFactory(fake.elements, bays, {
+    document: fake.document,
+    hasUnsavedChanges: () => true,
+    onClose: () => { closes += 1; },
+  });
+  fake.elements.dialog.open = true;
+
+  connection.closeAfterSave();
+
+  assert.equal(fake.elements.dialog.closeCalls, 1);
+  assert.equal(fake.elements.discardConfirmation.hidden, true);
+  assert.equal(closes, 1);
+});
+
 test("shows the specified discard confirmation for unsaved close and Escape", () => {
   const fake = harness();
   bindBayFactory(fake.elements, bays, {

@@ -228,11 +228,13 @@ const bayFactoryOpen = document.getElementById("bay-factory-open") as HTMLButton
 const bayFactoryDialog = document.getElementById("bay-factory-dialog") as HTMLDialogElement;
 const bayFactoryClose = document.getElementById("bay-factory-close") as HTMLButtonElement;
 const bayFactoryName = document.getElementById("bay-factory-name") as HTMLInputElement;
+const bayFactoryPlacement = document.getElementById("bay-factory-placement") as HTMLSelectElement;
 const bayFactoryUndo = document.getElementById("bay-factory-undo") as HTMLButtonElement;
 const bayFactoryRedo = document.getElementById("bay-factory-redo") as HTMLButtonElement;
 const bayFactorySave = document.getElementById("bay-factory-save") as HTMLButtonElement;
 const bayFactoryDuplicate = document.getElementById("bay-factory-duplicate") as HTMLButtonElement;
 const bayFactoryDelete = document.getElementById("bay-factory-delete") as HTMLButtonElement;
+const bayFactorySaveStatus = document.getElementById("bay-factory-save-status") as HTMLElement;
 const bayFactoryEditor = document.getElementById("bay-factory-editor") as HTMLElement;
 const bayFactoryDiscardConfirmation = document.getElementById(
   "bay-factory-discard-confirmation",
@@ -399,6 +401,9 @@ const bayFactoryConnection = bindBayFactory({
     activeBayEditTransaction = null;
     activeBayEditSession = null;
     newBayFactoryConnection?.discard();
+    bayFactoryPlacement.hidden = true;
+    bayFactoryPlacement.disabled = true;
+    bayFactorySaveStatus.textContent = "";
   },
 });
 let temporaryBaySequence = 1;
@@ -1313,6 +1318,10 @@ async function main(): Promise<void> {
     });
     beginBayEditing = (bayId): void => {
       activeBayEditTransaction?.disconnect();
+      bayFactorySave.textContent = "保存";
+      bayFactoryPlacement.hidden = true;
+      bayFactoryPlacement.disabled = true;
+      bayFactorySaveStatus.textContent = "";
       const session = createBayEditSession(
         layoutCoordinator.state().bayConfigurations,
         bayId,
@@ -1346,6 +1355,11 @@ async function main(): Promise<void> {
     };
     beginNewBayEditing = (draft): void => {
       activeBayEditTransaction?.disconnect();
+      bayFactorySave.textContent = "保存して閉じる";
+      bayFactoryPlacement.value = "top";
+      bayFactoryPlacement.hidden = false;
+      bayFactoryPlacement.disabled = false;
+      bayFactorySaveStatus.textContent = "";
       const current = layoutCoordinator.state();
       const temporaryBayConfigurations = structuredClone(current.bayConfigurations);
       temporaryBayConfigurations.bays.push({
@@ -1354,7 +1368,6 @@ async function main(): Promise<void> {
         permanent: false,
         chips: [],
       });
-      let formalBayId: string | null = null;
       const session = createBayEditSession(
         temporaryBayConfigurations,
         draft.temporaryId,
@@ -1366,8 +1379,8 @@ async function main(): Promise<void> {
               editedTemporaryBayConfigurations,
               draft.temporaryId,
               latest.dockingMetadata.activeLayoutId,
+              bayFactoryPlacement.value as RailId,
             );
-            formalBayId = saved.bay.id;
             const documents = { ...latest, ...saved.documents };
             layoutCoordinator.replaceState(documents);
             layoutEditMode.replaceDocuments(documents);
@@ -1391,8 +1404,12 @@ async function main(): Promise<void> {
           CURRENT_DOCKING_CHIP_RECORDS.map(({ chipType, displayName }) => [chipType, displayName]),
         ),
         render: (model) => renderBayFactoryEditor(bayFactoryEditor, model),
-        onSaved: () => {
-          if (formalBayId !== null) beginBayEditing?.(formalBayId);
+        onSaved: () => bayFactoryConnection.closeAfterSave(),
+        onSaveError: (error) => {
+          bayFactorySaveStatus.textContent = error instanceof Error
+            && error.message.startsWith("bay name already exists:")
+            ? "同じ名前のベイがあります"
+            : "保存に失敗しました";
         },
       });
     };

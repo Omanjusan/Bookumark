@@ -24,6 +24,7 @@ test("formalizes an edited temporary bay with all chip instances in one request"
     temporary,
     "new-bay-session-1",
     "layout-2",
+    "right",
     { saveDocuments: async (patch) => requests.push(patch) },
   );
 
@@ -34,8 +35,43 @@ test("formalizes an edited temporary bay with all chip instances in one request"
   assert.equal(result.documents.bayConfigurations.nextChipSequence, 5);
   assert.equal(result.documents.bayConfigurations.bays.some(({ id }) => id.startsWith("new-bay-session-")), false);
   assert.deepEqual(result.documents.mainLayouts.layouts[1].placements.at(-1), {
-    bayId: "bay-3", rail: "top", order: 3,
+    bayId: "bay-3", rail: "right", order: 1,
   });
+});
+
+test("places new bays at the inward end of every selected rail", async () => {
+  for (const rail of ["top", "right", "bottom", "left"]) {
+    const documents = fixture();
+    const temporary = structuredClone(documents.bayConfigurations);
+    temporary.bays.push({ id: `new-${rail}`, name: `新規-${rail}`, permanent: false, chips: [] });
+    const result = await saveNewBayConfiguration(
+      documents, temporary, `new-${rail}`, "layout-2", rail,
+      { saveDocuments: async () => {} },
+    );
+    const placement = result.documents.mainLayouts.layouts[1].placements.at(-1);
+    const previousOrders = documents.mainLayouts.layouts[1].placements
+      .filter((item) => item.rail === rail).map(({ order }) => order);
+    assert.deepEqual(placement, {
+      bayId: "bay-3",
+      rail,
+      order: Math.max(0, ...previousOrders) + 1,
+    });
+  }
+});
+
+test("rejects a duplicate bay name without issuing a storage request", async () => {
+  const documents = fixture();
+  const temporary = structuredClone(documents.bayConfigurations);
+  temporary.bays.push({ id: "new-duplicate", name: "表示", permanent: false, chips: [] });
+  let saves = 0;
+
+  await assert.rejects(
+    saveNewBayConfiguration(documents, temporary, "new-duplicate", "layout-2", "left", {
+      saveDocuments: async () => { saves += 1; },
+    }),
+    /bay name already exists: 表示/,
+  );
+  assert.equal(saves, 0);
 });
 
 test("issues a formal id and saves the bay at the active top rail end in one request", async () => {

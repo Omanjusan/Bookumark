@@ -5,6 +5,7 @@ import type {
   BayConfiguration,
   BayConfigurationsDocument,
   MainLayoutsDocument,
+  RailId,
 } from "./docking-persistence-model.js";
 import { saveDockingDocuments } from "./docking-storage.js";
 
@@ -28,6 +29,7 @@ export async function saveNewBayConfiguration(
   temporaryBayConfigurations: BayConfigurationsDocument,
   temporaryBayId: string,
   activeLayoutId: string,
+  targetRail: RailId,
   options: NewBaySaveOptions = {},
 ): Promise<NewBaySaveResult> {
   const activeLayout = documents.mainLayouts.layouts.find(({ id }) => id === activeLayoutId);
@@ -39,6 +41,9 @@ export async function saveNewBayConfiguration(
     throw new Error(`temporary bay was not found: ${temporaryBayId}`);
   }
   if (temporaryBay.permanent) throw new Error("temporary bay must not be permanent");
+  if (documents.bayConfigurations.bays.some(({ name }) => name === temporaryBay.name)) {
+    throw new Error(`bay name already exists: ${temporaryBay.name}`);
+  }
 
   const issued = issueBayId(documents.bayConfigurations.nextBaySequence);
   const bay = structuredClone(temporaryBay);
@@ -52,7 +57,7 @@ export async function saveNewBayConfiguration(
   );
   candidate.bayConfigurations.bays[temporaryIndex] = structuredClone(bay);
   candidate.bayConfigurations.nextBaySequence = issued.nextSequence;
-  placeNewBay(candidate.mainLayouts, activeLayoutId, issued.id);
+  placeNewBay(candidate.mainLayouts, activeLayoutId, issued.id, targetRail);
 
   const persist = options.saveDocuments
     ?? ((patch: NewBaySaveDocuments) => saveDockingDocuments(patch));
@@ -86,7 +91,7 @@ export async function saveNewBay(
   candidate.bayConfigurations.bays.push(structuredClone(bay));
   candidate.bayConfigurations.nextBaySequence = issued.nextSequence;
 
-  placeNewBay(candidate.mainLayouts, activeLayoutId, issued.id);
+  placeNewBay(candidate.mainLayouts, activeLayoutId, issued.id, "top");
 
   const persist = options.saveDocuments
     ?? ((patch: NewBaySaveDocuments) => saveDockingDocuments(patch));
@@ -102,12 +107,13 @@ function placeNewBay(
   mainLayouts: MainLayoutsDocument,
   activeLayoutId: string,
   bayId: string,
+  rail: RailId,
 ): void {
   const target = mainLayouts.layouts.find((layout) => layout.id === activeLayoutId);
   if (target === undefined) throw new Error(`active layout was not found: ${activeLayoutId}`);
   if (target.systemDefault) return;
   const lastTopOrder = target.placements
-    .filter((placement) => placement.rail === "top")
+    .filter((placement) => placement.rail === rail)
     .reduce((maximum, placement) => Math.max(maximum, placement.order), 0);
-  target.placements.push({ bayId, rail: "top", order: lastTopOrder + 1 });
+  target.placements.push({ bayId, rail, order: lastTopOrder + 1 });
 }

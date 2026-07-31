@@ -841,6 +841,7 @@ header h1 {
   border-bottom: 1px solid var(--border);
 }
 .bay-factory-menu input,
+.bay-factory-menu select,
 .bay-factory-menu button {
   flex: none;
   border: 1px solid var(--border);
@@ -855,11 +856,17 @@ header h1 {
   flex: 1 1 180px;
 }
 .bay-factory-menu button:disabled,
-.bay-factory-menu input:disabled {
+.bay-factory-menu input:disabled,
+.bay-factory-menu select:disabled {
   color: var(--text-faint);
   cursor: not-allowed;
 }
 #bay-factory-delete { margin-left: auto; }
+#bay-factory-save-status {
+  flex: none;
+  color: var(--danger);
+  font-size: 11px;
+}
 .bay-factory-management-status {
   min-height: 160px;
   padding: 24px;

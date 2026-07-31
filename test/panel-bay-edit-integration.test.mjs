@@ -24,4 +24,14 @@ test("opens new bays through the same edit transaction and formalizes them on sa
   assert.match(source, /onStartEditing:\s*\(draft\)\s*=>\s*beginNewBayEditing\?\.\(draft\)/);
   assert.match(source, /saveNewBayConfiguration\(/);
   assert.match(source, /createBayEditSession\(\s*temporaryBayConfigurations/);
+  assert.match(source, /bayFactoryConnection\.closeAfterSave\(\)/);
+  assert.match(source, /bayFactoryPlacement\.value/);
+});
+
+test("labels new-bay save as closing and exposes four placement directions", async () => {
+  const html = await readFile("panel/panel.html", "utf8");
+  assert.match(source, /bayFactorySave\.textContent\s*=\s*"保存して閉じる"/);
+  assert.match(source, /bayFactorySave\.textContent\s*=\s*"保存"/);
+  assert.match(html, /id="bay-factory-placement"[^>]*>[\s\S]*value="top"[\s\S]*value="right"[\s\S]*value="bottom"[\s\S]*value="left"/);
+  assert.match(html, /id="bay-factory-save-status"[^>]*role="status"/);
 });
