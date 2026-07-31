@@ -359,6 +359,9 @@ header h1 {
 .dock-bay--horizontal {
   flex: none;
   flex-direction: row;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 .dock-bay--preview {
   pointer-events: none;
@@ -408,6 +411,9 @@ header h1 {
   flex-direction: column;
   align-items: flex-start;
   width: calc(var(--dock-vertical-chip-width) + 12px);
+  max-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 .dock-bay--right { direction: ltr; }
 .dock-chip--vertical-viewport {

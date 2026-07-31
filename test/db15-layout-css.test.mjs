@@ -34,3 +34,17 @@ test("caps all rails while preserving a shrinkable 270px center preference", () 
 test("allows the document to shrink below the old 360px body floor", () => {
   assert.doesNotMatch(css, /body\s*\{[^}]*min-width:\s*360px/s);
 });
+
+test("caps horizontal bays and scrolls only their overlong contents", () => {
+  assert.match(
+    css,
+    /\.dock-bay--horizontal\s*\{[^}]*max-width:\s*100%[^}]*overflow-x:\s*auto[^}]*overflow-y:\s*hidden/s,
+  );
+});
+
+test("caps vertical bays to the viewport and scrolls only their overlong contents", () => {
+  assert.match(
+    css,
+    /\.dock-bay--vertical\s*\{[^}]*max-height:\s*100vh[^}]*overflow-x:\s*hidden[^}]*overflow-y:\s*auto/s,
+  );
+});
