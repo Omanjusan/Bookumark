@@ -237,3 +237,8 @@ DB-14の要求分析、懸念事項のインタビュー、仕様確定、テス
 - Nodeテスト環境では短いタイマーへフォールバックし、Firefoxでは`requestAnimationFrame`を使用する。
 - 対象D&D・端パンテスト、全154テスト、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
 - 静止中の連続端パンと全終了経路のFirefox実機確認はDB15-E-01Gで行う。次はDB15-E-01F「保存・境界値・高負荷・回帰」のGO確認から再開する。
+- DB15-E-01F「保存・境界値・高負荷・回帰」を完了した。
+- TC-26は配置編集保存、TC-27は20ベイ・4レールfixture、TC-29は上限ぴったりと超過、TC-30は位置補正とD&D停止、TC-31は既存永続化回帰で自動テスト済みであることを監査した。
+- 対応する集中7テストはすべて合格し、保存形式、高負荷fixture、境界値、停止、既存永続化契約に未対応はなかったため、新しい実装やテスト追加は不要と判断した。
+- 全154テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
+- 次はDB15-E-01G「Firefox実機15表示条件・最終監査」のGO確認から再開する。
