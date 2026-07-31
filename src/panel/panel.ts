@@ -110,6 +110,15 @@ import {
   loadPanelDockingState,
 } from "./lib/panel-docking-bootstrap.js";
 import { runPanelDockingStartup } from "./lib/panel-docking-startup.js";
+import {
+  createPanelErrorNotificationAdapter,
+} from "./lib/panel-error-notification.js";
+import {
+  createPanelInitialLoadController,
+} from "./lib/panel-initial-load-controller.js";
+import type {
+  PanelInitialLoadController,
+} from "./lib/panel-initial-load-controller.js";
 import { createFolderNavigationHistory } from "./lib/folder-navigation-history.js";
 import type { FolderNavigationHistory } from "./lib/folder-navigation-history.js";
 import { renderListView } from "./lib/list-view.js";
@@ -273,6 +282,7 @@ let activeStartupDialogAction: {
   run: () => Promise<void>;
   retryNotification: CommonDialogNotification;
 } | null = null;
+let initialLoadController: PanelInitialLoadController | null = null;
 let conditionNotificationSequence = 0;
 const notificationView = bindCommonNotificationView({
   dialog: commonNotificationDialog,
@@ -1038,6 +1048,11 @@ function renderCommonNotifications(): void {
 
 /** 起動ダイアログの主操作を保存ゲートとして実行し、失敗時は同じ操作を再試行可能にする。 */
 async function runActiveStartupDialogAction(id: string): Promise<void> {
+  if (initialLoadController !== null
+    && id === "panel-initial-load-failure") {
+    await initialLoadController.handlePrimary(id);
+    return;
+  }
   const action = activeStartupDialogAction;
   if (action === null || action.id !== id || !notificationQueue.beginActiveDialogOperation(id)) {
     return;
@@ -1126,377 +1141,411 @@ function rebuildActiveDockingLayout(
   }
 }
 
-async function main(): Promise<void> {
-  try {
-    const loadedDockingState = await loadPanelDockingState();
-    let startupDocuments: DockingDocuments | null = null;
-    await runPanelDockingStartup(
-      loadedDockingState.normalization,
-      PRODUCTION_DOCKING_CHIP_CATALOG,
+async function loadAndStartPanelRuntime(): Promise<void> {
+  const loadedDockingState = await loadPanelDockingState();
+  let startupDocuments: DockingDocuments | null = null;
+  await runPanelDockingStartup(
+    loadedDockingState.normalization,
+    PRODUCTION_DOCKING_CHIP_CATALOG,
+    {
+      saveDocuments: saveDockingDocuments,
+      presentRecovery: (snapshot, save) => presentStartupDialog(
+        createDockingRecoveryDialogNotification(snapshot),
+        createDockingRecoveryDialogNotification(snapshot, true),
+        save,
+      ),
+      presentDeprecated: (summary, save) => presentStartupDialog(
+        createDeprecatedChipDialogNotification(summary),
+        createDeprecatedChipDialogNotification(summary, true),
+        save,
+      ),
+      startRuntime: (documents) => { startupDocuments = documents; },
+    },
+  );
+  if (startupDocuments === null) throw new Error("Docking startup did not produce documents");
+  const dockingState = buildPanelDockingState({
+    ...loadedDockingState.normalization,
+    documents: startupDocuments,
+    changedDocuments: [],
+  });
+  const candidateTreeItems = await getBookmarkTreeItems();
+  const savedFolderOrders = await loadFolderOrders();
+  let candidateFolderOrders: CustomOrderByFolder;
+  if (savedFolderOrders === null) {
+    candidateFolderOrders = migrateLegacyOrder(await loadOrder(), candidateTreeItems);
+    await saveFolderOrders(candidateFolderOrders);
+  } else {
+    const reconciled = reconcileFolderOrders(savedFolderOrders, candidateTreeItems);
+    candidateFolderOrders = reconciled.orders;
+    if (reconciled.changed) await saveFolderOrders(candidateFolderOrders);
+  }
+
+  const savedFolder = await loadCurrentFolder();
+  const candidateFolderGuid = resolveCurrentFolderGuid(candidateTreeItems, savedFolder);
+  if (candidateFolderGuid === null) throw new Error("Firefox bookmark root was not found");
+  const directContents = directFolderContents(candidateTreeItems, candidateFolderGuid);
+  const candidateContents = fixedDisplayState.display.movementMode === "directory-move"
+    ? directContents
+    : orderDirectFolderContents(
+      directContents,
+      candidateFolderOrders[candidateFolderGuid] ?? [],
+    );
+  const candidateItems = await loadBookmarkHistory(candidateContents.bookmarks);
+  const candidateStoredFolder = createStoredCurrentFolder(
+    candidateTreeItems,
+    candidateFolderGuid,
+  );
+  if (candidateStoredFolder === null) {
+    throw new Error(`Folder not found after restoration: ${candidateFolderGuid}`);
+  }
+  await saveCurrentFolder(candidateStoredFolder);
+
+  // 全非同期ロード成功後にだけ、通常runtimeが参照する状態をまとめて公開する。
+  treeItems = candidateTreeItems;
+  folderOrders = candidateFolderOrders;
+  currentFolderGuid = candidateFolderGuid;
+  currentFolders = candidateContents.folders;
+  currentItems = candidateItems;
+  countEl.textContent = `${currentItems.length}件`;
+  folderHistory = createFolderNavigationHistory([
+    ...candidateStoredFolder.ancestorGuids,
+    candidateStoredFolder.guid,
+  ]);
+  bayFactoryConnection.replaceBays(dockingState.bays);
+  // 後続の動的レール描画が同じactiveレイアウトを参照できる境界として保持する。
+  root.dataset.activeLayoutId = dockingState.activeLayout.id;
+  const layoutCoordinator = createLayoutManagementCoordinator(dockingState.documents);
+
+  /** 保存済み基準を持つ編集runtime調停器を現在文書と評価状態で置き換える。 */
+  const replaceEditRuntimeCoordinator = (
+    documents: DockingDocuments,
+    state: DockingSharedState,
+  ): void => {
+    editRuntimeCoordinator = createDockingEditRuntimeCoordinator(documents, state, {
+      disconnectNormalRuntime: () => {
+        activeDockingController?.disconnect();
+        activeControlStore?.disconnect();
+        activeControlStore = null;
+        activeDockingSharedState = null;
+      },
+      renderPreview: (previewDocuments) => {
+        renderBayPlacementPreviews(dockingRailRoots, previewDocuments);
+      },
+      connectNormalRuntime: (savedDocuments, savedState) => {
+        rebuildActiveDockingLayout(savedDocuments, savedState);
+      },
+    });
+  };
+
+  const layoutEditMode = bindLayoutEditMode({
+    root: frameRoot,
+    entry: layoutEditEntry,
+    unavailableReason: layoutEditUnavailable,
+    editBar: layoutEditBar,
+    layoutName: layoutEditName,
+    exit: layoutEditExit,
+    discardConfirmation: layoutEditDiscardConfirmation,
+    continueEditing: layoutEditContinue,
+    discardChanges: layoutEditDiscard,
+    guardedControls: [
+      layoutSelect,
+      layoutDefault,
+      layoutManage,
+      bayFactoryAdd,
+      bayFactoryEntry,
+    ],
+    guardedRegions: [
+      document.getElementById("docking-center") as HTMLElement,
+      bayFactorySelection,
+    ],
+  }, dockingState.documents, {
+    initiallyReady: false,
+    hasUnsavedChanges: () => activePlacementDraft?.dirty === true,
+    onEnter: (documents) => {
+      activePlacementDraft = createLayoutPlacementEditSession(documents);
+      editRuntimeCoordinator?.enter(documents);
+      const reevaluationInitial = editRuntimeCoordinator?.getSavedState()
+        ?? evaluatePanelDockingState(documents);
+      saveReevaluation = createDockingSaveReevaluationSession(
+        reevaluationInitial,
+        BASIC_DOCKING_CONTROL_DEFINITIONS,
+      );
+      const placementDraft = activePlacementDraft;
+      let managementOperationPending = false;
+      layoutEditTransactionConnection = bindLayoutEditTransaction({
+        get dirty() { return placementDraft.dirty; },
+        get canUndo() { return placementDraft.canUndo; },
+        get canRedo() { return placementDraft.canRedo; },
+        get saving() { return placementDraft.saving || managementOperationPending; },
+        get retryPending() { return placementDraft.pendingRetry || layoutCoordinator.pending; },
+        undo: () => placementDraft.undo(),
+        redo: () => placementDraft.redo(),
+      }, {
+        undo: layoutEditUndo,
+        redo: layoutEditRedo,
+        save: layoutEditSave,
+        delete: layoutEditDelete,
+        exit: layoutEditExit,
+        unsaved: layoutEditUnsaved,
+      }, {
+        onStateChange: renderActivePlacementDraft,
+        onSave: () => { void savePlacementDraft(false); },
+        onDelete: () => { void deleteActiveLayout(); },
+      });
+      layoutEditRetry.onclick = () => { void savePlacementDraft(true); };
+      layoutEditRetry.hidden = true;
+      layoutEditStatus.textContent = "";
+      renderActivePlacementDraft();
+      bayPicker.hidden = false;
+
+      /** 現在候補の初回保存または失敗候補の明示再試行を実行する。 */
+      async function savePlacementDraft(retry: boolean): Promise<void> {
+        bayPickerDrag.cancel();
+        layoutBayTrashConnection.clear();
+        bayPicker.inert = true;
+        for (const rail of Object.values(dockingRailRoots)) rail.inert = true;
+        layoutEditRetry.disabled = true;
+        layoutEditStatus.textContent = "保存中…";
+        const request = retry ? placementDraft.retry() : placementDraft.save();
+        layoutEditTransactionConnection?.refresh();
+        try {
+          if (saveReevaluation === null) throw new Error("save reevaluation is unavailable");
+          const reevaluated = await saveReevaluation.run(() => request);
+          if (reevaluated.warnings.length > 0) {
+            console.warn("storage reload failed after Docking save:", reevaluated.warnings);
+          }
+          if (reevaluated.conditionFailures.length > 0) {
+            notifyDockingConditionFailures(
+              reevaluated.conditionFailures,
+              reevaluated.documents,
+            );
+          }
+          layoutCoordinator.replaceState(reevaluated.documents);
+          layoutEditMode.commitDocuments(reevaluated.documents);
+          editRuntimeCoordinator?.commit(reevaluated);
+          layoutEditRetry.hidden = true;
+          layoutEditStatus.textContent = "保存しました";
+          renderActivePlacementDraft();
+        } catch {
+          layoutEditRetry.hidden = !placementDraft.pendingRetry;
+          layoutEditStatus.textContent = "保存に失敗しました";
+        } finally {
+          bayPicker.inert = placementDraft.pendingRetry;
+          for (const rail of Object.values(dockingRailRoots)) {
+            rail.inert = placementDraft.pendingRetry;
+          }
+          layoutEditRetry.disabled = false;
+          layoutEditTransactionConnection?.refresh();
+        }
+      }
+
+      /** 既存の名前付きレイアウト削除・復元規則でactiveレイアウトを削除する。 */
+      async function deleteActiveLayout(retry = false): Promise<void> {
+        managementOperationPending = true;
+        bayPickerDrag.cancel();
+        layoutBayTrashConnection.clear();
+        bayPicker.inert = true;
+        for (const rail of Object.values(dockingRailRoots)) rail.inert = true;
+        layoutEditRetry.disabled = true;
+        layoutEditStatus.textContent = "削除中…";
+        layoutEditTransactionConnection?.refresh();
+        try {
+          const activeLayoutId = placementDraft.documents().dockingMetadata.activeLayoutId;
+          const deletedDocuments = retry
+            ? await layoutCoordinator.retry()
+            : await layoutCoordinator.delete(activeLayoutId);
+          const deletedState = evaluatePanelDockingState(deletedDocuments);
+          editRuntimeCoordinator?.commit({
+            documents: deletedDocuments,
+            state: deletedState,
+            warnings: [],
+            conditionFailures: [],
+          });
+          layoutManagementConnection.replaceDocuments(deletedDocuments);
+          root.dataset.activeLayoutId = deletedDocuments.dockingMetadata.activeLayoutId;
+          layoutEditStatus.textContent = "レイアウトを削除しました";
+          layoutEditMode.finishWithDocuments(deletedDocuments);
+        } catch {
+          layoutEditRetry.hidden = !layoutCoordinator.pending;
+          layoutEditRetry.onclick = () => { void deleteActiveLayout(true); };
+          layoutEditStatus.textContent = "削除に失敗しました";
+        } finally {
+          managementOperationPending = false;
+          bayPicker.inert = layoutCoordinator.pending;
+          for (const rail of Object.values(dockingRailRoots)) {
+            rail.inert = layoutCoordinator.pending;
+          }
+          layoutEditRetry.disabled = false;
+          layoutEditTransactionConnection?.refresh();
+        }
+      }
+    },
+    onExit: (_documents) => {
+      if (layoutCoordinator.pending) {
+        layoutManagementConnection.showPendingRetry("削除の保存を再試行してください");
+      }
+      bayRailDrop.clear();
+      layoutBayTrashConnection.clear();
+      bayPickerDrag.cancel();
+      layoutEditTransactionConnection?.disconnect();
+      layoutEditTransactionConnection = null;
+      layoutEditRetry.onclick = null;
+      bayPicker.inert = false;
+      for (const rail of Object.values(dockingRailRoots)) rail.inert = false;
+      activePlacementDraft?.discard();
+      activePlacementDraft = null;
+      saveReevaluation = null;
+      bayPicker.hidden = true;
+      editRuntimeCoordinator?.exit();
+    },
+  });
+  beginBayEditing = (bayId): void => {
+    activeBayEditTransaction?.disconnect();
+    bayFactorySave.textContent = "保存";
+    bayFactoryPlacement.hidden = true;
+    bayFactoryPlacement.disabled = true;
+    bayFactorySaveStatus.textContent = "";
+    const session = createBayEditSession(
+      layoutCoordinator.state().bayConfigurations,
+      bayId,
       {
-        saveDocuments: saveDockingDocuments,
-        presentRecovery: (snapshot, save) => presentStartupDialog(
-          createDockingRecoveryDialogNotification(snapshot),
-          createDockingRecoveryDialogNotification(snapshot, true),
-          save,
-        ),
-        presentDeprecated: (summary, save) => presentStartupDialog(
-          createDeprecatedChipDialogNotification(summary),
-          createDeprecatedChipDialogNotification(summary, true),
-          save,
-        ),
-        startRuntime: (documents) => { startupDocuments = documents; },
+        saveDocument: async (bayConfigurations) => {
+          await saveDockingDocuments({ bayConfigurations });
+          const documents = { ...layoutCoordinator.state(), bayConfigurations };
+          layoutCoordinator.replaceState(documents);
+          layoutEditMode.replaceDocuments(documents);
+          bayFactoryConnection.replaceBays(buildPanelBayModels(documents));
+          const evaluatedState = evaluatePanelDockingState(documents);
+          rebuildActiveDockingLayout(documents, evaluatedState);
+          replaceEditRuntimeCoordinator(documents, evaluatedState);
+        },
       },
     );
-    if (startupDocuments === null) throw new Error("Docking startup did not produce documents");
-    const dockingState = buildPanelDockingState({
-      ...loadedDockingState.normalization,
-      documents: startupDocuments,
-      changedDocuments: [],
+    activeBayEditSession = session;
+    activeBayEditTransaction = bindBayEditTransaction(session, {
+      undo: bayFactoryUndo,
+      redo: bayFactoryRedo,
+      save: bayFactorySave,
+      name: bayFactoryName,
+      duplicate: bayFactoryDuplicate,
+      delete: bayFactoryDelete,
+    }, {
+      chipLabels: new Map(
+        CURRENT_DOCKING_CHIP_RECORDS.map(({ chipType, displayName }) => [chipType, displayName]),
+      ),
+      render: (model) => renderBayFactoryEditor(bayFactoryEditor, model),
     });
-    bayFactoryConnection.replaceBays(dockingState.bays);
-    // 後続の動的レール描画が同じactiveレイアウトを参照できる境界として保持する。
-    root.dataset.activeLayoutId = dockingState.activeLayout.id;
-    const layoutCoordinator = createLayoutManagementCoordinator(dockingState.documents);
-
-    /** 保存済み基準を持つ編集runtime調停器を現在文書と評価状態で置き換える。 */
-    const replaceEditRuntimeCoordinator = (
-      documents: DockingDocuments,
-      state: DockingSharedState,
-    ): void => {
-      editRuntimeCoordinator = createDockingEditRuntimeCoordinator(documents, state, {
-        disconnectNormalRuntime: () => {
-          activeDockingController?.disconnect();
-          activeControlStore?.disconnect();
-          activeControlStore = null;
-          activeDockingSharedState = null;
+  };
+  beginNewBayEditing = (draft): void => {
+    activeBayEditTransaction?.disconnect();
+    bayFactorySave.textContent = "保存して閉じる";
+    bayFactoryPlacement.value = "top";
+    bayFactoryPlacement.hidden = false;
+    bayFactoryPlacement.disabled = false;
+    bayFactorySaveStatus.textContent = "";
+    const current = layoutCoordinator.state();
+    const temporaryBayConfigurations = structuredClone(current.bayConfigurations);
+    temporaryBayConfigurations.bays.push({
+      id: draft.temporaryId,
+      name: draft.name,
+      permanent: false,
+      chips: [],
+    });
+    const session = createBayEditSession(
+      temporaryBayConfigurations,
+      draft.temporaryId,
+      {
+        saveDocument: async (editedTemporaryBayConfigurations) => {
+          const latest = layoutCoordinator.state();
+          const saved = await saveNewBayConfiguration(
+            latest,
+            editedTemporaryBayConfigurations,
+            draft.temporaryId,
+            latest.dockingMetadata.activeLayoutId,
+            bayFactoryPlacement.value as RailId,
+          );
+          const documents = { ...latest, ...saved.documents };
+          layoutCoordinator.replaceState(documents);
+          layoutEditMode.replaceDocuments(documents);
+          bayFactoryConnection.replaceBays(buildPanelBayModels(documents));
+          const evaluatedState = evaluatePanelDockingState(documents);
+          rebuildActiveDockingLayout(documents, evaluatedState);
+          replaceEditRuntimeCoordinator(documents, evaluatedState);
         },
-        renderPreview: (previewDocuments) => {
-          renderBayPlacementPreviews(dockingRailRoots, previewDocuments);
-        },
-        connectNormalRuntime: (savedDocuments, savedState) => {
-          rebuildActiveDockingLayout(savedDocuments, savedState);
-        },
-      });
-    };
-
-    const layoutEditMode = bindLayoutEditMode({
-      root: frameRoot,
-      entry: layoutEditEntry,
-      unavailableReason: layoutEditUnavailable,
-      editBar: layoutEditBar,
-      layoutName: layoutEditName,
-      exit: layoutEditExit,
-      discardConfirmation: layoutEditDiscardConfirmation,
-      continueEditing: layoutEditContinue,
-      discardChanges: layoutEditDiscard,
-      guardedControls: [
-        layoutSelect,
-        layoutDefault,
-        layoutManage,
-        bayFactoryAdd,
-        bayFactoryEntry,
-      ],
-      guardedRegions: [
-        document.getElementById("docking-center") as HTMLElement,
-        bayFactorySelection,
-      ],
-    }, dockingState.documents, {
-      initiallyReady: false,
-      hasUnsavedChanges: () => activePlacementDraft?.dirty === true,
-      onEnter: (documents) => {
-        activePlacementDraft = createLayoutPlacementEditSession(documents);
-        editRuntimeCoordinator?.enter(documents);
-        const reevaluationInitial = editRuntimeCoordinator?.getSavedState()
-          ?? evaluatePanelDockingState(documents);
-        saveReevaluation = createDockingSaveReevaluationSession(
-          reevaluationInitial,
-          BASIC_DOCKING_CONTROL_DEFINITIONS,
-        );
-        const placementDraft = activePlacementDraft;
-        let managementOperationPending = false;
-        layoutEditTransactionConnection = bindLayoutEditTransaction({
-          get dirty() { return placementDraft.dirty; },
-          get canUndo() { return placementDraft.canUndo; },
-          get canRedo() { return placementDraft.canRedo; },
-          get saving() { return placementDraft.saving || managementOperationPending; },
-          get retryPending() { return placementDraft.pendingRetry || layoutCoordinator.pending; },
-          undo: () => placementDraft.undo(),
-          redo: () => placementDraft.redo(),
-        }, {
-          undo: layoutEditUndo,
-          redo: layoutEditRedo,
-          save: layoutEditSave,
-          delete: layoutEditDelete,
-          exit: layoutEditExit,
-          unsaved: layoutEditUnsaved,
-        }, {
-          onStateChange: renderActivePlacementDraft,
-          onSave: () => { void savePlacementDraft(false); },
-          onDelete: () => { void deleteActiveLayout(); },
-        });
-        layoutEditRetry.onclick = () => { void savePlacementDraft(true); };
-        layoutEditRetry.hidden = true;
-        layoutEditStatus.textContent = "";
-        renderActivePlacementDraft();
-        bayPicker.hidden = false;
-
-        /** 現在候補の初回保存または失敗候補の明示再試行を実行する。 */
-        async function savePlacementDraft(retry: boolean): Promise<void> {
-          bayPickerDrag.cancel();
-          layoutBayTrashConnection.clear();
-          bayPicker.inert = true;
-          for (const rail of Object.values(dockingRailRoots)) rail.inert = true;
-          layoutEditRetry.disabled = true;
-          layoutEditStatus.textContent = "保存中…";
-          const request = retry ? placementDraft.retry() : placementDraft.save();
-          layoutEditTransactionConnection?.refresh();
-          try {
-            if (saveReevaluation === null) throw new Error("save reevaluation is unavailable");
-            const reevaluated = await saveReevaluation.run(() => request);
-            if (reevaluated.warnings.length > 0) {
-              console.warn("storage reload failed after Docking save:", reevaluated.warnings);
-            }
-            if (reevaluated.conditionFailures.length > 0) {
-              notifyDockingConditionFailures(
-                reevaluated.conditionFailures,
-                reevaluated.documents,
-              );
-            }
-            layoutCoordinator.replaceState(reevaluated.documents);
-            layoutEditMode.commitDocuments(reevaluated.documents);
-            editRuntimeCoordinator?.commit(reevaluated);
-            layoutEditRetry.hidden = true;
-            layoutEditStatus.textContent = "保存しました";
-            renderActivePlacementDraft();
-          } catch {
-            layoutEditRetry.hidden = !placementDraft.pendingRetry;
-            layoutEditStatus.textContent = "保存に失敗しました";
-          } finally {
-            bayPicker.inert = placementDraft.pendingRetry;
-            for (const rail of Object.values(dockingRailRoots)) {
-              rail.inert = placementDraft.pendingRetry;
-            }
-            layoutEditRetry.disabled = false;
-            layoutEditTransactionConnection?.refresh();
-          }
-        }
-
-        /** 既存の名前付きレイアウト削除・復元規則でactiveレイアウトを削除する。 */
-        async function deleteActiveLayout(retry = false): Promise<void> {
-          managementOperationPending = true;
-          bayPickerDrag.cancel();
-          layoutBayTrashConnection.clear();
-          bayPicker.inert = true;
-          for (const rail of Object.values(dockingRailRoots)) rail.inert = true;
-          layoutEditRetry.disabled = true;
-          layoutEditStatus.textContent = "削除中…";
-          layoutEditTransactionConnection?.refresh();
-          try {
-            const activeLayoutId = placementDraft.documents().dockingMetadata.activeLayoutId;
-            const deletedDocuments = retry
-              ? await layoutCoordinator.retry()
-              : await layoutCoordinator.delete(activeLayoutId);
-            const deletedState = evaluatePanelDockingState(deletedDocuments);
-            editRuntimeCoordinator?.commit({
-              documents: deletedDocuments,
-              state: deletedState,
-              warnings: [],
-              conditionFailures: [],
-            });
-            layoutManagementConnection.replaceDocuments(deletedDocuments);
-            root.dataset.activeLayoutId = deletedDocuments.dockingMetadata.activeLayoutId;
-            layoutEditStatus.textContent = "レイアウトを削除しました";
-            layoutEditMode.finishWithDocuments(deletedDocuments);
-          } catch {
-            layoutEditRetry.hidden = !layoutCoordinator.pending;
-            layoutEditRetry.onclick = () => { void deleteActiveLayout(true); };
-            layoutEditStatus.textContent = "削除に失敗しました";
-          } finally {
-            managementOperationPending = false;
-            bayPicker.inert = layoutCoordinator.pending;
-            for (const rail of Object.values(dockingRailRoots)) {
-              rail.inert = layoutCoordinator.pending;
-            }
-            layoutEditRetry.disabled = false;
-            layoutEditTransactionConnection?.refresh();
-          }
-        }
       },
-      onExit: (_documents) => {
-        if (layoutCoordinator.pending) {
-          layoutManagementConnection.showPendingRetry("削除の保存を再試行してください");
-        }
-        bayRailDrop.clear();
-        layoutBayTrashConnection.clear();
-        bayPickerDrag.cancel();
-        layoutEditTransactionConnection?.disconnect();
-        layoutEditTransactionConnection = null;
-        layoutEditRetry.onclick = null;
-        bayPicker.inert = false;
-        for (const rail of Object.values(dockingRailRoots)) rail.inert = false;
-        activePlacementDraft?.discard();
-        activePlacementDraft = null;
-        saveReevaluation = null;
-        bayPicker.hidden = true;
-        editRuntimeCoordinator?.exit();
+    );
+    activeBayEditSession = session;
+    activeBayEditTransaction = bindBayEditTransaction(session, {
+      undo: bayFactoryUndo,
+      redo: bayFactoryRedo,
+      save: bayFactorySave,
+      name: bayFactoryName,
+      duplicate: bayFactoryDuplicate,
+      delete: bayFactoryDelete,
+    }, {
+      chipLabels: new Map(
+        CURRENT_DOCKING_CHIP_RECORDS.map(({ chipType, displayName }) => [chipType, displayName]),
+      ),
+      render: (model) => renderBayFactoryEditor(bayFactoryEditor, model),
+      onSaved: () => bayFactoryConnection.closeAfterSave(),
+      onSaveError: (error) => {
+        bayFactorySaveStatus.textContent = error instanceof Error
+          && error.message.startsWith("bay name already exists:")
+          ? "同じ名前のベイがあります"
+          : "保存に失敗しました";
       },
     });
-    beginBayEditing = (bayId): void => {
-      activeBayEditTransaction?.disconnect();
-      bayFactorySave.textContent = "保存";
-      bayFactoryPlacement.hidden = true;
-      bayFactoryPlacement.disabled = true;
-      bayFactorySaveStatus.textContent = "";
-      const session = createBayEditSession(
-        layoutCoordinator.state().bayConfigurations,
-        bayId,
-        {
-          saveDocument: async (bayConfigurations) => {
-            await saveDockingDocuments({ bayConfigurations });
-            const documents = { ...layoutCoordinator.state(), bayConfigurations };
-            layoutCoordinator.replaceState(documents);
-            layoutEditMode.replaceDocuments(documents);
-            bayFactoryConnection.replaceBays(buildPanelBayModels(documents));
-            const evaluatedState = evaluatePanelDockingState(documents);
-            rebuildActiveDockingLayout(documents, evaluatedState);
-            replaceEditRuntimeCoordinator(documents, evaluatedState);
-          },
-        },
-      );
-      activeBayEditSession = session;
-      activeBayEditTransaction = bindBayEditTransaction(session, {
-        undo: bayFactoryUndo,
-        redo: bayFactoryRedo,
-        save: bayFactorySave,
-        name: bayFactoryName,
-        duplicate: bayFactoryDuplicate,
-        delete: bayFactoryDelete,
-      }, {
-        chipLabels: new Map(
-          CURRENT_DOCKING_CHIP_RECORDS.map(({ chipType, displayName }) => [chipType, displayName]),
-        ),
-        render: (model) => renderBayFactoryEditor(bayFactoryEditor, model),
-      });
-    };
-    beginNewBayEditing = (draft): void => {
-      activeBayEditTransaction?.disconnect();
-      bayFactorySave.textContent = "保存して閉じる";
-      bayFactoryPlacement.value = "top";
-      bayFactoryPlacement.hidden = false;
-      bayFactoryPlacement.disabled = false;
-      bayFactorySaveStatus.textContent = "";
-      const current = layoutCoordinator.state();
-      const temporaryBayConfigurations = structuredClone(current.bayConfigurations);
-      temporaryBayConfigurations.bays.push({
-        id: draft.temporaryId,
-        name: draft.name,
-        permanent: false,
-        chips: [],
-      });
-      const session = createBayEditSession(
-        temporaryBayConfigurations,
-        draft.temporaryId,
-        {
-          saveDocument: async (editedTemporaryBayConfigurations) => {
-            const latest = layoutCoordinator.state();
-            const saved = await saveNewBayConfiguration(
-              latest,
-              editedTemporaryBayConfigurations,
-              draft.temporaryId,
-              latest.dockingMetadata.activeLayoutId,
-              bayFactoryPlacement.value as RailId,
-            );
-            const documents = { ...latest, ...saved.documents };
-            layoutCoordinator.replaceState(documents);
-            layoutEditMode.replaceDocuments(documents);
-            bayFactoryConnection.replaceBays(buildPanelBayModels(documents));
-            const evaluatedState = evaluatePanelDockingState(documents);
-            rebuildActiveDockingLayout(documents, evaluatedState);
-            replaceEditRuntimeCoordinator(documents, evaluatedState);
-          },
-        },
-      );
-      activeBayEditSession = session;
-      activeBayEditTransaction = bindBayEditTransaction(session, {
-        undo: bayFactoryUndo,
-        redo: bayFactoryRedo,
-        save: bayFactorySave,
-        name: bayFactoryName,
-        duplicate: bayFactoryDuplicate,
-        delete: bayFactoryDelete,
-      }, {
-        chipLabels: new Map(
-          CURRENT_DOCKING_CHIP_RECORDS.map(({ chipType, displayName }) => [chipType, displayName]),
-        ),
-        render: (model) => renderBayFactoryEditor(bayFactoryEditor, model),
-        onSaved: () => bayFactoryConnection.closeAfterSave(),
-        onSaveError: (error) => {
-          bayFactorySaveStatus.textContent = error instanceof Error
-            && error.message.startsWith("bay name already exists:")
-            ? "同じ名前のベイがあります"
-            : "保存に失敗しました";
-        },
-      });
-    };
-    const layoutManagementConnection = bindLayoutManagement({
-      select: layoutSelect,
-      restoreDefault: layoutDefault,
-      manage: layoutManage,
-      dialog: layoutDialog,
-      close: layoutDialogClose,
-      name: layoutName,
-      source: layoutSource,
-      duplicationModes: layoutDuplicationModes,
-      shared: layoutDuplicationShared,
-      independent: layoutDuplicationIndependent,
-      create: layoutCreate,
-      rename: layoutRename,
-      preferred: layoutPreferred,
-      delete: layoutDelete,
-      retry: layoutRetry,
-      status: layoutStatus,
-    }, layoutCoordinator, {
-      onStateChange: (documents) => {
-        layoutEditMode.replaceDocuments(documents);
-        root.dataset.activeLayoutId = documents.dockingMetadata.activeLayoutId;
-        bayFactoryConnection.replaceBays(buildPanelBayModels(documents));
-        const evaluatedState = evaluatePanelDockingState(documents);
-        rebuildActiveDockingLayout(documents, evaluatedState);
-        replaceEditRuntimeCoordinator(documents, evaluatedState);
-      },
-    });
-    treeItems = await getBookmarkTreeItems();
-    const savedFolderOrders = await loadFolderOrders();
-    if (savedFolderOrders === null) {
-      folderOrders = migrateLegacyOrder(await loadOrder(), treeItems);
-      await saveFolderOrders(folderOrders);
-    } else {
-      const reconciled = reconcileFolderOrders(savedFolderOrders, treeItems);
-      folderOrders = reconciled.orders;
-      if (reconciled.changed) await saveFolderOrders(folderOrders);
-    }
-
-    const savedFolder = await loadCurrentFolder();
-    const folderGuid = resolveCurrentFolderGuid(treeItems, savedFolder);
-    if (folderGuid === null) throw new Error("Firefox bookmark root was not found");
-    await showFolder(folderGuid);
-    const restoredFolder = createStoredCurrentFolder(treeItems, folderGuid);
-    if (restoredFolder === null) {
-      throw new Error(`Folder not found after restoration: ${folderGuid}`);
-    }
-    folderHistory = createFolderNavigationHistory([
-      ...restoredFolder.ancestorGuids,
-      restoredFolder.guid,
-    ]);
-    const initialDockingState = evaluatePanelDockingState(dockingState.documents);
-    rebuildActiveDockingLayout(dockingState.documents, initialDockingState);
-    replaceEditRuntimeCoordinator(dockingState.documents, initialDockingState);
-    layoutEditMode.setReady();
-    redraw();
-  } catch (error) {
-    showLoadError(error);
-  }
+  };
+  const layoutManagementConnection = bindLayoutManagement({
+    select: layoutSelect,
+    restoreDefault: layoutDefault,
+    manage: layoutManage,
+    dialog: layoutDialog,
+    close: layoutDialogClose,
+    name: layoutName,
+    source: layoutSource,
+    duplicationModes: layoutDuplicationModes,
+    shared: layoutDuplicationShared,
+    independent: layoutDuplicationIndependent,
+    create: layoutCreate,
+    rename: layoutRename,
+    preferred: layoutPreferred,
+    delete: layoutDelete,
+    retry: layoutRetry,
+    status: layoutStatus,
+  }, layoutCoordinator, {
+    onStateChange: (documents) => {
+      layoutEditMode.replaceDocuments(documents);
+      root.dataset.activeLayoutId = documents.dockingMetadata.activeLayoutId;
+      bayFactoryConnection.replaceBays(buildPanelBayModels(documents));
+      const evaluatedState = evaluatePanelDockingState(documents);
+      rebuildActiveDockingLayout(documents, evaluatedState);
+      replaceEditRuntimeCoordinator(documents, evaluatedState);
+    },
+  });
+  const initialDockingState = evaluatePanelDockingState(dockingState.documents);
+  rebuildActiveDockingLayout(dockingState.documents, initialDockingState);
+  replaceEditRuntimeCoordinator(dockingState.documents, initialDockingState);
+  layoutEditMode.setReady();
+  redraw();
 }
 
-main();
+const panelErrorNotifications = createPanelErrorNotificationAdapter({
+  queue: notificationQueue,
+  render: renderCommonNotifications,
+  reportDiagnostic: (diagnostic) => {
+    console.error("panel operation failed:", diagnostic);
+  },
+  reportNotificationFailure: (failure) => {
+    console.error("panel error notification failed:", failure);
+  },
+});
+initialLoadController = createPanelInitialLoadController({
+  load: loadAndStartPanelRuntime,
+  publish: () => {},
+  queue: notificationQueue,
+  notifyFailure: (error) => panelErrorNotifications.notify("initial-load", error),
+  reportRetryFailure: (error) => panelErrorNotifications.report("initial-load", error),
+  render: renderCommonNotifications,
+});
+void initialLoadController.start();

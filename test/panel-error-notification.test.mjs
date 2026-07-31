@@ -81,6 +81,21 @@ test("keeps notification ids unique while aggregate keys remain stable", () => {
   assert.notEqual(fake.toasts[0].id, fake.toasts[1].id);
 });
 
+test("reports a repeated failure without adding another notification", () => {
+  const fake = harness();
+  const retryError = new Error("retry failed");
+  const adapter = createPanelErrorNotificationAdapter(fake.dependencies);
+
+  adapter.notify("initial-load", new Error("first failed"));
+  adapter.report("initial-load", retryError);
+
+  assert.equal(fake.dialogs.length, 1);
+  assert.deepEqual(fake.diagnostics.at(-1), {
+    operation: "initial-load",
+    error: retryError,
+  });
+});
+
 test("does not schedule error toast expiry or change state when a toast is dismissed", () => {
   const fake = queueHarness();
   const state = { items: ["bookmark-1"], historyIndex: 2 };

@@ -34,6 +34,7 @@ interface PanelErrorNotificationDependencies {
 
 export interface PanelErrorNotificationAdapter {
   notify(operation: PanelErrorOperation, error: unknown): void;
+  report(operation: PanelErrorOperation, error: unknown): void;
 }
 
 const INITIAL_LOAD_NOTIFICATION: CommonDialogNotification = {
@@ -84,7 +85,7 @@ export function createPanelErrorNotificationAdapter(
   return {
     notify(operation, error): void {
       const diagnostic: PanelErrorDiagnostic = { operation, error };
-      safelyRun("diagnostic", diagnostic, () => dependencies.reportDiagnostic(diagnostic));
+      reportDiagnostic(diagnostic);
 
       const enqueued = safelyRun("enqueue", diagnostic, () => {
         if (operation === "initial-load") {
@@ -102,7 +103,15 @@ export function createPanelErrorNotificationAdapter(
       });
       if (enqueued) safelyRun("render", diagnostic, dependencies.render);
     },
+    report(operation, error): void {
+      reportDiagnostic({ operation, error });
+    },
   };
+
+  /** 画面通知を増やさず、操作種別と原因だけを診断口へ渡す。 */
+  function reportDiagnostic(diagnostic: PanelErrorDiagnostic): void {
+    safelyRun("diagnostic", diagnostic, () => dependencies.reportDiagnostic(diagnostic));
+  }
 
   /** アダプター内の副作用失敗を任意の診断口へ渡し、元の処理へ再送出しない。 */
   function safelyRun(

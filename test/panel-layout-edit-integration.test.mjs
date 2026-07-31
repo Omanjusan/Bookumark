@@ -42,6 +42,23 @@ test("connects startup recovery and condition failures to common notifications",
   assert.match(source, /saveDockingDocuments/);
 });
 
+test("routes the complete initial load and retry through the common error dialog", () => {
+  assert.match(source, /createPanelInitialLoadController/);
+  assert.match(source, /load:\s*loadAndStartPanelRuntime/);
+  assert.match(source, /panelErrorNotifications\.notify\("initial-load", error\)/);
+  assert.match(source, /panelErrorNotifications\.report\("initial-load", error\)/);
+  assert.match(source, /initialLoadController\.handlePrimary\(id\)/);
+  assert.doesNotMatch(source, /async function main\(\)/);
+  assert.ok(
+    source.indexOf("const candidateTreeItems = await getBookmarkTreeItems()")
+      < source.indexOf("treeItems = candidateTreeItems"),
+  );
+  assert.ok(
+    source.indexOf("await saveCurrentFolder(candidateStoredFolder)")
+      < source.indexOf("bayFactoryConnection.replaceBays(dockingState.bays)"),
+  );
+});
+
 test("routes basic chip changes through the validated shared control store", () => {
   assert.match(source, /createDockingBasicControlStore/);
   assert.match(source, /updateDockingControl\("search", nextQuery\)/);
