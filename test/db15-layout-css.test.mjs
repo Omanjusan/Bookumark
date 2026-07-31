@@ -13,3 +13,24 @@ test("keeps each horizontal bay at intrinsic width inside vertically stacking to
   assert.match(css, /\.dock-bay--horizontal\s*\{[^}]*flex:\s*none/s);
   assert.match(css, /\.dock-rail--top\s*\{[^}]*flex-direction:\s*column[^}]*overflow-y:\s*auto/s);
 });
+
+test("uses a replaceable 96 percent window width without the legacy 640px cap", () => {
+  assert.match(css, /:root\s*\{[^}]*--panel-frame-width:\s*96%/s);
+  assert.match(css, /\.frame\s*\{[^}]*width:\s*var\(--panel-frame-width\)[^}]*max-width:\s*none/s);
+  assert.doesNotMatch(css, /\.frame\s*\{[^}]*max-width:\s*640px/s);
+});
+
+test("caps all rails while preserving a shrinkable 270px center preference", () => {
+  assert.match(
+    css,
+    /\.docking-grid\s*\{[^}]*grid-template-columns:\s*fit-content\(20%\)\s+minmax\(min\(270px,\s*100%\),\s*1fr\)\s+fit-content\(20%\)/s,
+  );
+  assert.match(css, /\.dock-rail--top\s*\{[^}]*max-height:\s*25vh/s);
+  assert.match(css, /\.dock-rail--bottom\s*\{[^}]*max-height:\s*25vh/s);
+  assert.match(css, /\.dock-rail--left\s*\{[^}]*min-width:\s*0/s);
+  assert.match(css, /\.dock-rail--right\s*\{[^}]*min-width:\s*0/s);
+});
+
+test("allows the document to shrink below the old 360px body floor", () => {
+  assert.doesNotMatch(css, /body\s*\{[^}]*min-width:\s*360px/s);
+});

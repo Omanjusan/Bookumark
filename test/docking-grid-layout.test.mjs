@@ -29,6 +29,9 @@ test("uses a five-area CSS grid and collapses empty rails", () => {
 });
 
 test("prevents the center and rail contents from forcing grid overflow", () => {
-  assert.match(css, /\.docking-grid\s*\{[^}]*grid-template-columns:\s*auto minmax\(0,\s*1fr\) auto/s);
+  assert.match(
+    css,
+    /\.docking-grid\s*\{[^}]*grid-template-columns:\s*fit-content\(20%\)\s+minmax\(min\(270px,\s*100%\),\s*1fr\)\s+fit-content\(20%\)/s,
+  );
   assert.match(css, /#docking-center\s*\{[^}]*min-width:\s*0[^}]*min-height:\s*0/s);
 });
