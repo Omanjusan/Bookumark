@@ -54,8 +54,19 @@ test("routes the complete initial load and retry through the common error dialog
       < source.indexOf("treeItems = candidateTreeItems"),
   );
   assert.ok(
-    source.indexOf("await saveCurrentFolder(candidateStoredFolder)")
+    source.indexOf("const candidateFolder = await loadPanelFolderCandidate")
       < source.indexOf("bayFactoryConnection.replaceBays(dockingState.bays)"),
+  );
+});
+
+test("keeps folder and history state unchanged when navigation loading fails", () => {
+  assert.match(source, /const candidate = await loadPanelFolderCandidate/);
+  assert.match(source, /await showFolder\(folderGuid\);\s*folderHistory\?\.visit\(folderGuid\)/);
+  assert.match(source, /await showFolder\(destination\);[\s\S]*?folderHistory\.moveBack\(\)/);
+  assert.match(source, /catch \(error\) \{\s*panelErrorNotifications\.notify\("folder-navigation", error\)/);
+  assert.doesNotMatch(
+    source,
+    /visitFolder\(folderGuid\)\.catch\(showLoadError\)|moveFolderHistory\(direction\)\.catch\(showLoadError\)/,
   );
 });
 

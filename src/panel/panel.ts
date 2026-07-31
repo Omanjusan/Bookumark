@@ -20,7 +20,6 @@ import { saveNewBayConfiguration } from "./lib/new-bay-save.js";
 import type { NewBayDraft } from "./lib/bay-management.js";
 import { getBookmarkTreeItems, moveBookmark } from "./lib/bookmarks.js";
 import type {
-  BookmarkItem,
   BookmarkTreeFolderItem,
   BookmarkTreeItem,
 } from "./lib/bookmarks.js";
@@ -29,7 +28,6 @@ import { createCommonNotificationQueue } from "./lib/common-notification-queue.j
 import type { CommonDialogNotification } from "./lib/common-notification-queue.js";
 import { bindCommonNotificationView } from "./lib/common-notification-view.js";
 import {
-  createStoredCurrentFolder,
   loadCurrentFolder,
   resolveCurrentFolderGuid,
   saveCurrentFolder,
@@ -39,7 +37,6 @@ import { persistCustomOrder } from "./lib/custom-order-persistence.js";
 import type { DisplayBookmarkItem } from "./lib/display-item.js";
 import type { MovementMode, StandardSortAxisId } from "./lib/display-state.js";
 import { INITIAL_FIXED_DISPLAY_STATE } from "./lib/fixed-display-controller.js";
-import { directFolderContents } from "./lib/folder-contents.js";
 import { createDockingBasicChipRuntime } from "./lib/docking-basic-chip-runtime.js";
 import type { DockingBasicChipRuntime } from "./lib/docking-basic-chip-runtime.js";
 import {
@@ -92,7 +89,6 @@ import type { DockingSharedState } from "./lib/docking-shared-state.js";
 import { saveDockingDocuments } from "./lib/docking-storage.js";
 import {
   migrateLegacyOrder,
-  orderDirectFolderContents,
   reconcileFolderOrders,
   replaceFolderOrderSubset,
 } from "./lib/folder-order.js";
@@ -103,6 +99,7 @@ import { renderIconView } from "./lib/icon-view.js";
 import { renderPanelGrid } from "./lib/panel-grid-view.js";
 import { bindPanelFolderNavigation } from "./lib/panel-folder-navigation.js";
 import { bindPanelFolderDrag } from "./lib/panel-folder-drag.js";
+import { loadPanelFolderCandidate } from "./lib/panel-folder-load.js";
 import { renderPanelFolders } from "./lib/panel-folder-view.js";
 import {
   buildPanelDockingState,
@@ -645,7 +642,7 @@ bindPanelTileDrag(
 
 bindPanelFolderNavigation(
   folderRoot,
-  (folderGuid) => void visitFolder(folderGuid).catch(showLoadError),
+  (folderGuid) => { void visitFolder(folderGuid); },
   { consumeSuppressedClick: dragClickGuard.consumeClick },
 );
 
@@ -843,41 +840,23 @@ observeGridCells(root, (cells) => {
 });
 
 /**
- * ブックマークと保存済み表示順を読み込み、初期画面を描画する。
- * 読み込みまたは整合処理に失敗した場合はエラー状態を表示する。
+ * 移動先のブックマークと表示順をローカル候補へ読み込み、成功時だけ公開する。
  */
 async function showFolder(folderGuid: string): Promise<void> {
-  const stored = createStoredCurrentFolder(treeItems, folderGuid);
-  if (stored === null) throw new Error(`Folder not found: ${folderGuid}`);
-
-  const previous = {
-    items: currentItems,
-    folders: currentFolders,
-    folderGuid: currentFolderGuid,
-  };
-  currentItems = null;
-  currentFolders = [];
-  currentFolderGuid = folderGuid;
+  const candidate = await loadPanelFolderCandidate({
+    treeItems,
+    folderOrders,
+    movementMode: fixedDisplayState.display.movementMode,
+    folderGuid,
+  }, {
+    loadHistory: loadBookmarkHistory,
+    saveCurrentFolder,
+  });
+  currentItems = candidate.items;
+  currentFolders = candidate.folders;
+  currentFolderGuid = candidate.folderGuid;
+  countEl.textContent = `${currentItems.length}件`;
   redraw();
-  try {
-    const directContents = directFolderContents(treeItems, folderGuid);
-    const contents = fixedDisplayState.display.movementMode === "directory-move"
-      ? directContents
-      : orderDirectFolderContents(directContents, folderOrders[folderGuid] ?? []);
-    const orderedItems: BookmarkItem[] = contents.bookmarks;
-    const loadedItems = await loadBookmarkHistory(orderedItems);
-    await saveCurrentFolder(stored);
-    currentFolders = contents.folders;
-    currentItems = loadedItems;
-    countEl.textContent = currentItems.length + "件";
-    redraw();
-  } catch (error) {
-    currentItems = previous.items;
-    currentFolders = previous.folders;
-    currentFolderGuid = previous.folderGuid;
-    redraw();
-    throw error;
-  }
 }
 
 async function visitFolder(folderGuid: string): Promise<void> {
@@ -887,6 +866,8 @@ async function visitFolder(folderGuid: string): Promise<void> {
   try {
     await showFolder(folderGuid);
     folderHistory?.visit(folderGuid);
+  } catch (error) {
+    panelErrorNotifications.notify("folder-navigation", error);
   } finally {
     folderNavigationPending = false;
     redraw();
@@ -906,6 +887,8 @@ async function moveFolderHistory(direction: FolderHistoryDirection): Promise<voi
     await showFolder(destination);
     if (direction === "back") folderHistory.moveBack();
     else folderHistory.moveForward();
+  } catch (error) {
+    panelErrorNotifications.notify("folder-navigation", error);
   } finally {
     folderNavigationPending = false;
     redraw();
@@ -943,7 +926,7 @@ function createPanelChipRuntime(): DockingBasicChipRuntime {
     }),
     onSearch: setSearchQuery,
     onVisitStatus: setVisitStatus,
-    onFolderHistory: (direction) => void moveFolderHistory(direction).catch(showLoadError),
+    onFolderHistory: (direction) => { void moveFolderHistory(direction); },
     onSortAxis: setSortAxis,
     onSortDirection: toggleSortDirection,
     onViewType: setViewType,
@@ -1183,33 +1166,26 @@ async function loadAndStartPanelRuntime(): Promise<void> {
   const savedFolder = await loadCurrentFolder();
   const candidateFolderGuid = resolveCurrentFolderGuid(candidateTreeItems, savedFolder);
   if (candidateFolderGuid === null) throw new Error("Firefox bookmark root was not found");
-  const directContents = directFolderContents(candidateTreeItems, candidateFolderGuid);
-  const candidateContents = fixedDisplayState.display.movementMode === "directory-move"
-    ? directContents
-    : orderDirectFolderContents(
-      directContents,
-      candidateFolderOrders[candidateFolderGuid] ?? [],
-    );
-  const candidateItems = await loadBookmarkHistory(candidateContents.bookmarks);
-  const candidateStoredFolder = createStoredCurrentFolder(
-    candidateTreeItems,
-    candidateFolderGuid,
-  );
-  if (candidateStoredFolder === null) {
-    throw new Error(`Folder not found after restoration: ${candidateFolderGuid}`);
-  }
-  await saveCurrentFolder(candidateStoredFolder);
+  const candidateFolder = await loadPanelFolderCandidate({
+    treeItems: candidateTreeItems,
+    folderOrders: candidateFolderOrders,
+    movementMode: fixedDisplayState.display.movementMode,
+    folderGuid: candidateFolderGuid,
+  }, {
+    loadHistory: loadBookmarkHistory,
+    saveCurrentFolder,
+  });
 
   // 全非同期ロード成功後にだけ、通常runtimeが参照する状態をまとめて公開する。
   treeItems = candidateTreeItems;
   folderOrders = candidateFolderOrders;
-  currentFolderGuid = candidateFolderGuid;
-  currentFolders = candidateContents.folders;
-  currentItems = candidateItems;
+  currentFolderGuid = candidateFolder.folderGuid;
+  currentFolders = candidateFolder.folders;
+  currentItems = candidateFolder.items;
   countEl.textContent = `${currentItems.length}件`;
   folderHistory = createFolderNavigationHistory([
-    ...candidateStoredFolder.ancestorGuids,
-    candidateStoredFolder.guid,
+    ...candidateFolder.storedFolder.ancestorGuids,
+    candidateFolder.storedFolder.guid,
   ]);
   bayFactoryConnection.replaceBays(dockingState.bays);
   // 後続の動的レール描画が同じactiveレイアウトを参照できる境界として保持する。
