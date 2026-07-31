@@ -75,6 +75,7 @@ import {
   preserveDockingRailScrollPosition,
   resetDockingRailScrollPosition,
 } from "./lib/docking-rail-scroll-position.js";
+import { applyDockingSideRailAvailableHeight } from "./lib/docking-side-rail-height.js";
 import { renderVerticalDockingRail } from "./lib/docking-vertical-rail-view.js";
 import type { DockingDocuments, RailId } from "./lib/docking-persistence-model.js";
 import {
@@ -822,6 +823,9 @@ observeGridCells(root, (cells) => {
   for (const railId of RAILS) {
     const rail = dockingRailRoots[railId];
     const orientation = dockingRailArrangementAxis(railId);
+    if (railId === "left" || railId === "right") {
+      applyDockingSideRailAvailableHeight(rail, window.innerHeight);
+    }
     applyDockingRailOverflow(rail, orientation);
     preserveDockingRailScrollPosition(rail, orientation);
   }
@@ -997,6 +1001,9 @@ function dockingLayoutController(): ActiveDockingLayoutController {
           : renderVerticalDockingRail(rail, railPlan, registry);
         if (result.skippedChips.length > 0) {
           console.warn("docking chips were skipped:", result.skippedChips);
+        }
+        if (railPlan.rail === "left" || railPlan.rail === "right") {
+          applyDockingSideRailAvailableHeight(rail, window.innerHeight);
         }
         applyDockingRailOverflow(rail, dockingRailArrangementAxis(railPlan.rail));
       }

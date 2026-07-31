@@ -57,20 +57,27 @@ test("creates 200 identifiable unknown chips for the long recovery dialog", () =
   assert.deepEqual(active.placements, [{ bayId: "bay-1", rail: "top", order: 1 }]);
 });
 
-test("creates a four-rail fixture with one identifiable bay per rail", () => {
+test("creates an identifiable editing fixture with a draggable second top bay", () => {
   const documents = createDb15BayEditingFixture();
   const layout = documents.mainLayouts.layouts.find(({ id }) => id === "layout-2");
 
   assert.ok(layout);
   assert.deepEqual(layout.placements, [
     { bayId: "bay-1", rail: "top", order: 1 },
-    { bayId: "bay-2", rail: "left", order: 1 },
-    { bayId: "bay-3", rail: "right", order: 1 },
-    { bayId: "bay-4", rail: "bottom", order: 1 },
+    { bayId: "bay-2", rail: "top", order: 2 },
+    { bayId: "bay-3", rail: "left", order: 1 },
+    { bayId: "bay-4", rail: "right", order: 1 },
+    { bayId: "bay-5", rail: "bottom", order: 1 },
   ]);
   assert.deepEqual(
-    documents.bayConfigurations.bays.map(({ name }) => name),
-    ["上レール・基本操作", "左レール・表示操作", "右レール・絞り込み", "下レール・移動操作"],
+    documents.bayConfigurations.bays.map(({ name, permanent }) => ({ name, permanent })),
+    [
+      { name: "上レール・基本操作", permanent: true },
+      { name: "上レール・D&D確認", permanent: false },
+      { name: "左レール・表示操作", permanent: false },
+      { name: "右レール・絞り込み", permanent: false },
+      { name: "下レール・移動操作", permanent: false },
+    ],
   );
   const normalized = normalizeDockingDocuments(documents, createInternalDefaultDockingDocuments());
   assert.deepEqual(normalized.documents, documents);

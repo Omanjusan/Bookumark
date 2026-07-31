@@ -45,6 +45,7 @@ test("caps horizontal bays and scrolls only their overlong contents", () => {
 test("caps vertical bays to the viewport and scrolls only their overlong contents", () => {
   assert.match(
     css,
-    /\.dock-bay--vertical\s*\{[^}]*max-height:\s*100vh[^}]*overflow-x:\s*hidden[^}]*overflow-y:\s*auto/s,
+    /\.dock-bay--vertical\s*\{[^}]*max-height:\s*var\(--dock-side-rail-max-height,\s*100vh\)[^}]*overflow-x:\s*hidden[^}]*overflow-y:\s*auto/s,
   );
+  assert.match(css, /\.dock-chip--vertical-viewport\s*\{[^}]*flex:\s*none/s);
 });

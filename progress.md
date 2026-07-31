@@ -242,3 +242,7 @@ DB-14の要求分析、懸念事項のインタビュー、仕様確定、テス
 - 対応する集中7テストはすべて合格し、保存形式、高負荷fixture、境界値、停止、既存永続化契約に未対応はなかったため、新しい実装やテスト追加は不要と判断した。
 - 全154テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
 - 次はDB15-E-01G「Firefox実機15表示条件・最終監査」のGO確認から再開する。
+- DB15-E-01Gの端パン実機確認開始時、ベイ編集調査fixtureの上部ベイが固定ベイだけで配置編集D&Dの対象に出ないことを確認した。
+- 調査fixtureへ非固定の「上レール・D&D確認」ベイを追加し、上部レールの2番目へ決定的に配置するRed-Green是正を行った。
+- 全155テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
+- 次は更新した開発ビルドで調査fixtureを再投入し、TC-14から端パン実機確認を再開する。

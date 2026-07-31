@@ -100,13 +100,14 @@ export function createDb15LongNotificationFixture(): DockingDocuments {
   return documents;
 }
 
-/** ベイ選択・編集を4レール1ベイずつで目視確認する調査用文書を生成する。 */
+/** ベイ選択・編集を4レールの識別可能なベイで目視確認する調査用文書を生成する。 */
 export function createDb15BayEditingFixture(): DockingDocuments {
   const definitions = [
-    { name: "上レール・基本操作", types: [...CHIP_TYPES] },
-    { name: "左レール・表示操作", types: ["view-type", "sort"] },
-    { name: "右レール・絞り込み", types: ["search", "visit-status"] },
-    { name: "下レール・移動操作", types: ["movement-mode", "folder-history"] },
+    { name: "上レール・基本操作", rail: "top", types: [...CHIP_TYPES] },
+    { name: "上レール・D&D確認", rail: "top", types: ["sort", "view-type"] },
+    { name: "左レール・表示操作", rail: "left", types: ["view-type", "sort"] },
+    { name: "右レール・絞り込み", rail: "right", types: ["search", "visit-status"] },
+    { name: "下レール・移動操作", rail: "bottom", types: ["movement-mode", "folder-history"] },
   ] as const;
   let nextChipSequence = 1;
   const bays = definitions.map(({ name, types }, bayIndex) => ({
@@ -120,11 +121,16 @@ export function createDb15BayEditingFixture(): DockingDocuments {
       settings: {},
     })),
   }));
-  const placements = RAILS.map((rail, index) => ({
-    bayId: bays[index].id,
-    rail,
-    order: 1,
-  }));
+  const railOrders = new Map<RailId, number>();
+  const placements = definitions.map(({ rail }, index) => {
+    const order = (railOrders.get(rail) ?? 0) + 1;
+    railOrders.set(rail, order);
+    return {
+      bayId: bays[index].id,
+      rail,
+      order,
+    };
+  });
 
   return {
     bayConfigurations: {

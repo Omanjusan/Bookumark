@@ -411,12 +411,13 @@ header h1 {
   flex-direction: column;
   align-items: flex-start;
   width: calc(var(--dock-vertical-chip-width) + 12px);
-  max-height: 100vh;
+  max-height: var(--dock-side-rail-max-height, 100vh);
   overflow-x: hidden;
   overflow-y: auto;
 }
 .dock-bay--right { direction: ltr; }
 .dock-chip--vertical-viewport {
+  flex: none;
   overflow: hidden;
   width: var(--dock-vertical-chip-width);
 }
