@@ -2,12 +2,12 @@
 
 ## 1. 状態
 
-- 状態: `DB-16F_COMPLETE`
+- 状態: `DB-16G_COMPLETE`
 - 要求分析: 完了
 - 懸念事項インタビュー: 全6問完了
 - 仕様・テストケース: 確定
-- 実装許可: DB-16A〜F取得済み、DB-16G〜H未取得
-- 次の作業: DB-16G「開発限定・一回限りの失敗fixture」のテストケース確認とRed-GreenのGO確認
+- 実装許可: DB-16A〜G取得済み、DB-16H未取得
+- 次の作業: DB-16H「Firefox実機、全体回帰、完了監査」のテストケース確認とGO確認
 - 前提: DB15-E-01Gは`DB15-E-01G_FROZEN_WITH_KNOWN_LIMITATIONS`として凍結済み
 
 ## 2. 背景

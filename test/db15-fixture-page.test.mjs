@@ -39,3 +39,47 @@ test("groups fixture actions around two splitters and labels the panel launch ac
   );
   assert.match(html, /\.fixture-actions\s*\{[^}]*display:\s*flex[^}]*flex-wrap:\s*wrap/s);
 });
+
+test("prepares and clears one-shot DB-16 failure switches independently", async () => {
+  const html = await readFile("dev/db15-fixture.html", "utf8");
+  const source = await readFile("src/dev/db15-fixture-page.ts", "utf8");
+  const switches = await readFile("src/dev/db16-failure-switch.ts", "utf8");
+
+  assert.match(html, /id="fail-initial-load-once"[^>]*>次回の初期読み込みを失敗</);
+  assert.match(html, /id="fail-custom-order-save-once"[^>]*>次回の表示順保存を失敗</);
+  assert.match(html, /id="clear-db16-failures"[^>]*>失敗スイッチを解除</);
+  assert.match(source, /prepareDb16FailureSwitch\("initialLoad"\)/);
+  assert.match(source, /prepareDb16FailureSwitch\("customOrderSave"\)/);
+  assert.match(source, /clearDb16FailureSwitches\(\)/);
+  assert.match(switches, /\[name\]: true/);
+  assert.match(switches, /\[name\]: false/);
+  assert.match(switches, /storage\.remove\(DB16_FAILURE_SWITCH_KEY\)/);
+  const restoreHandler = source.match(
+    /restore\.addEventListener\([\s\S]*?\n\}\)\);\n\nopen\.addEventListener/,
+  )?.[0] ?? "";
+  assert.doesNotMatch(restoreHandler, /DB16_FAILURE_SWITCH_KEY/);
+});
+
+test("injects one-shot DB-16 failures before panel startup in development only", async () => {
+  const build = await readFile("scripts/build.mjs", "utf8");
+  const source = await readFile("src/dev/db16-failure-fixture.ts", "utf8");
+  const switches = await readFile("src/dev/db16-failure-switch.ts", "utf8");
+
+  assert.match(build, /db16-failure-fixture\.js/);
+  assert.match(build, /db16-failure-fixture\.js[\s\S]*panel\.js/);
+  assert.match(source, /consumeDb16FailureSwitch\("initialLoad"[\s\S]*throw new Error/);
+  assert.match(source, /consumeDb16FailureSwitch\("customOrderSave"[\s\S]*throw new Error/);
+  assert.match(switches, /\[name\]: false[\s\S]*return true/);
+  assert.match(source, /orderByFolder/);
+});
+
+test("keeps DB-16 fixture UI and execution code out of production output", async () => {
+  const manifest = JSON.parse(await readFile("dist/manifest.json", "utf8"));
+  const panel = await readFile("dist/panel/panel.html", "utf8");
+  const runtime = await readFile("dist/panel/panel.js", "utf8");
+
+  assert.equal(manifest.options_ui, undefined);
+  assert.equal(manifest.background, undefined);
+  assert.doesNotMatch(panel, /db16-failure-fixture|fail-initial-load-once|fail-custom-order-save-once/);
+  assert.doesNotMatch(runtime, /db16FailureSwitch|DB16 fixture/);
+});

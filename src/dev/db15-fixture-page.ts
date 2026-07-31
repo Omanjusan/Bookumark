@@ -5,6 +5,10 @@ import {
   DB15_FIXTURE_COUNTS,
 } from "../panel/lib/db15-load-fixture.js";
 import { DOCKING_STORAGE_KEYS } from "../panel/lib/docking-storage.js";
+import {
+  clearDb16FailureSwitches,
+  prepareDb16FailureSwitch,
+} from "./db16-failure-switch.js";
 
 const BACKUP_KEY = "db15FixtureBackup.v1";
 const OFFICIAL_DND_FOLDER_TITLE = "DB15 公式整理 移動先";
@@ -14,6 +18,9 @@ const editFixture = requireButton("edit-fixture");
 const loadFixture = requireButton("load-fixture");
 const officialDndFixture = requireButton("official-dnd-fixture");
 const longNotificationFixture = requireButton("long-notification-fixture");
+const failInitialLoadOnce = requireButton("fail-initial-load-once");
+const failCustomOrderSaveOnce = requireButton("fail-custom-order-save-once");
+const clearDb16Failures = requireButton("clear-db16-failures");
 const open = requireButton("open");
 const restore = requireButton("restore");
 const status = requireStatus();
@@ -119,6 +126,21 @@ longNotificationFixture.addEventListener("click", () => runLocked(async () => {
   setStatus("長文通知fixtureへ切り替えました。Bookumarkを再読み込みしてください。");
 }));
 
+failInitialLoadOnce.addEventListener("click", () => runLocked(async () => {
+  await prepareDb16FailureSwitch("initialLoad");
+  setStatus("次回のBookumark初期読み込みを1回だけ失敗させます。");
+}));
+
+failCustomOrderSaveOnce.addEventListener("click", () => runLocked(async () => {
+  await prepareDb16FailureSwitch("customOrderSave");
+  setStatus("次回の仮想表示順保存を1回だけ失敗させます。");
+}));
+
+clearDb16Failures.addEventListener("click", () => runLocked(async () => {
+  await clearDb16FailureSwitches();
+  setStatus("DB-16失敗スイッチを解除しました。");
+}));
+
 /** 多重操作を防いでfixture操作を実行し、失敗を画面へ報告する。 */
 async function runLocked(operation: () => Promise<void>): Promise<void> {
   install.disabled = true;
@@ -126,6 +148,9 @@ async function runLocked(operation: () => Promise<void>): Promise<void> {
   loadFixture.disabled = true;
   officialDndFixture.disabled = true;
   longNotificationFixture.disabled = true;
+  failInitialLoadOnce.disabled = true;
+  failCustomOrderSaveOnce.disabled = true;
+  clearDb16Failures.disabled = true;
   open.disabled = true;
   restore.disabled = true;
   setStatus("処理中…");
@@ -140,6 +165,9 @@ async function runLocked(operation: () => Promise<void>): Promise<void> {
     loadFixture.disabled = false;
     officialDndFixture.disabled = false;
     longNotificationFixture.disabled = false;
+    failInitialLoadOnce.disabled = false;
+    failCustomOrderSaveOnce.disabled = false;
+    clearDb16Failures.disabled = false;
     open.disabled = false;
     restore.disabled = false;
   }

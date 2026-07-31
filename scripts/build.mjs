@@ -61,6 +61,9 @@ if (development) {
   await writeFile(
     panelPath,
     panelHtml.replace(
+      '<script type="module" src="panel.js"></script>',
+      '<script type="module" src="../dev/db16-failure-fixture.js"></script>\n  <script type="module" src="panel.js"></script>',
+    ).replace(
       "</body>",
       '  <script type="module" src="../dev/db15-performance.js"></script>\n</body>',
     ),

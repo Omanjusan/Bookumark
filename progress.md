@@ -306,3 +306,9 @@ DB-14の要求分析、懸念事項のインタビュー、仕様確定、テス
 - 公式移動、正本再取得、Undoの実装は変更・削除せず、既存の公式移動モジュールテストがすべて成功することを確認した。
 - DB-16F対象の2択UI・runtime正規化テストと公式移動凍結回帰、全158テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
 - DB-16G〜Hの実装GOは未取得であり、次はDB-16G「開発限定・一回限りの失敗fixture」のテストケース確認とRed-Green GO確認から再開する。
+- DB-16G「開発限定・一回限りの失敗fixture」のRed-Greenを完了し、状態を`DB-16G_COMPLETE`とした。
+- 開発fixtureページへ、次回の初期読み込み失敗、次回の仮想表示順保存失敗、DB-16失敗スイッチ解除の3操作を追加した。DB-15バックアップ復元とDB-16失敗スイッチは独立しており、復元操作では失敗準備を解除しない。
+- 失敗準備は操作別booleanとして保持し、同じ失敗の二重準備でも回数を積み上げない。発火時は例外を投げる前にスイッチを解除し、初期読み込みと仮想順序保存をそれぞれ一回だけ失敗させる。
+- development buildだけで失敗fixtureを`panel.js`より前に注入し、初期storage読み込みと`orderByFolder`を含むstorage保存を対象にした。production buildでは`dist/dev`、fixture UI、失敗スイッチ文字列、開発実行コードが存在しないことを確認した。
+- DB-16G対象7テスト、失敗スイッチの実動作確認、全158テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
+- DB-16Hの実装GOは未取得であり、次はDB-16H「Firefox実機、全体回帰、完了監査」のテストケース確認とGO確認から再開する。
