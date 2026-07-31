@@ -17,14 +17,19 @@ test("disconnects, clears, resets, then renders the new active layout", () => {
       const sequence = ++connectionSequence;
       return { disconnect: () => events.push(`disconnect:${sequence}`) };
     },
+    resetRailScrollPositions: () => events.push("scroll-reset"),
   });
 
   controller.rebuild(documents("layout-1"));
-  assert.deepEqual(events, ["clear", "reset", "render:layout-1"]);
+  assert.deepEqual(events, ["clear", "reset", "render:layout-1", "scroll-reset"]);
+
+  events.length = 0;
+  controller.rebuild(documents("layout-1"));
+  assert.deepEqual(events, ["disconnect:1", "clear", "reset", "render:layout-1"]);
 
   events.length = 0;
   const result = controller.rebuild(documents("layout-2"));
-  assert.deepEqual(events, ["disconnect:1", "clear", "reset", "render:layout-2"]);
+  assert.deepEqual(events, ["disconnect:2", "clear", "reset", "render:layout-2", "scroll-reset"]);
   assert.equal(result.activeLayoutId, "layout-2");
   assert.equal(controller.activeLayoutId, "layout-2");
 });

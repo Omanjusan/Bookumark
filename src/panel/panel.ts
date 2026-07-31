@@ -71,6 +71,10 @@ import type {
 } from "./lib/docking-edit-runtime-coordinator.js";
 import { renderHorizontalDockingRail } from "./lib/docking-horizontal-rail-view.js";
 import { planDockingRailOverflow } from "./lib/docking-rail-overflow.js";
+import {
+  preserveDockingRailScrollPosition,
+  resetDockingRailScrollPosition,
+} from "./lib/docking-rail-scroll-position.js";
 import { renderVerticalDockingRail } from "./lib/docking-vertical-rail-view.js";
 import type { DockingDocuments, RailId } from "./lib/docking-persistence-model.js";
 import {
@@ -174,6 +178,7 @@ const dockingRailRoots = {
   right: document.getElementById("docking-rail-right") as HTMLElement,
   bottom: document.getElementById("docking-rail-bottom") as HTMLElement,
 };
+const RAILS: readonly RailId[] = ["top", "left", "right", "bottom"];
 const officialMoveNoticeRoot = document.getElementById("official-move-notice") as HTMLElement;
 const officialMoveMessage = document.getElementById("official-move-message") as HTMLElement;
 const officialMoveUndoButton = document.getElementById("official-move-undo") as HTMLButtonElement;
@@ -814,6 +819,12 @@ function reportOfficialMoveError(error: unknown): void {
 
 observeGridCells(root, (cells) => {
   gridCells = cells;
+  for (const railId of RAILS) {
+    const rail = dockingRailRoots[railId];
+    const orientation = dockingRailArrangementAxis(railId);
+    applyDockingRailOverflow(rail, orientation);
+    preserveDockingRailScrollPosition(rail, orientation);
+  }
   redraw();
 });
 
@@ -997,6 +1008,14 @@ function dockingLayoutController(): ActiveDockingLayoutController {
           if (activeChipRuntime === runtime) activeChipRuntime = null;
         },
       };
+    },
+    resetRailScrollPositions: () => {
+      for (const railId of RAILS) {
+        resetDockingRailScrollPosition(
+          dockingRailRoots[railId],
+          dockingRailArrangementAxis(railId),
+        );
+      }
     },
   });
   return activeDockingController;

@@ -24,6 +24,7 @@ interface ActiveDockingLayoutControllerOptions {
   clearDynamicRails(): void;
   resetTransientState(): void;
   render(plan: DockingRailDrawingPlan): ActiveDockingRenderConnection;
+  resetRailScrollPositions?(): void;
 }
 
 export interface ActiveDockingLayoutController {
@@ -67,6 +68,7 @@ export function createActiveDockingLayoutController(
       return activeLayoutId;
     },
     rebuild(documents): DockingRailDrawingPlan {
+      const previousLayoutId = activeLayoutId;
       const hadCurrent = connection !== null || activeLayoutId !== null;
       clearCurrent();
       // 初回構築にも固定DOMを避けて動的レール領域だけを空にする。
@@ -74,6 +76,7 @@ export function createActiveDockingLayoutController(
       options.resetTransientState();
       const plan = buildDockingRailDrawingPlan(documents);
       connection = options.render(plan);
+      if (previousLayoutId !== plan.activeLayoutId) options.resetRailScrollPositions?.();
       activeLayoutId = plan.activeLayoutId;
       return structuredClone(plan);
     },
