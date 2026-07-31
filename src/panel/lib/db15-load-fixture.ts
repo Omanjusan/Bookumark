@@ -50,7 +50,7 @@ export function createDb15DockingFixture(): DockingDocuments {
     },
     mainLayouts: {
       schemaVersion: DOCKING_SCHEMA_VERSION,
-      nextLayoutSequence: 3,
+      nextLayoutSequence: 4,
       layouts: [
         {
           id: "layout-1",
@@ -63,6 +63,12 @@ export function createDb15DockingFixture(): DockingDocuments {
           name: "DB15高負荷レイアウト",
           systemDefault: false,
           placements,
+        },
+        {
+          id: "layout-3",
+          name: "DB15高負荷レイアウト 比較用",
+          systemDefault: false,
+          placements: structuredClone(placements),
         },
       ],
     },

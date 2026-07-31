@@ -56,6 +56,15 @@ if (development) {
     path.join(root, "dev", "db15-fixture.html"),
     path.join(dist, "dev", "db15-fixture.html"),
   );
+  const panelPath = path.join(dist, "panel", "panel.html");
+  const panelHtml = await readFile(panelPath, "utf8");
+  await writeFile(
+    panelPath,
+    panelHtml.replace(
+      "</body>",
+      '  <script type="module" src="../dev/db15-performance.js"></script>\n</body>',
+    ),
+  );
 } else {
   await rm(path.join(dist, "dev"), { recursive: true, force: true });
 }

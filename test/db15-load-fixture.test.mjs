@@ -14,6 +14,7 @@ test("creates the agreed DB-15 high-load docking fixture", () => {
   const documents = createDb15DockingFixture();
   const { bays } = documents.bayConfigurations;
   const layout = documents.mainLayouts.layouts.find(({ id }) => id === "layout-2");
+  const comparison = documents.mainLayouts.layouts.find(({ id }) => id === "layout-3");
 
   assert.deepEqual(DB15_FIXTURE_COUNTS, {
     bookmarks: 2_000,
@@ -23,6 +24,9 @@ test("creates the agreed DB-15 high-load docking fixture", () => {
   });
   assert.equal(bays.length, 20);
   assert.ok(layout);
+  assert.ok(comparison);
+  assert.equal(comparison.systemDefault, false);
+  assert.deepEqual(comparison.placements, layout.placements);
   assert.ok(bays.every(({ chips }) => chips.length === 10));
   assert.equal(new Set(bays.flatMap(({ chips }) => chips.map(({ instanceId }) => instanceId))).size, 200);
   assert.equal(layout.placements.length, 20);
