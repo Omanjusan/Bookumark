@@ -75,6 +75,25 @@ export function createDb15DockingFixture(): DockingDocuments {
   };
 }
 
+/** 200件の未知チップをベイ・型別に列挙させる長文復旧通知fixtureを生成する。 */
+export function createDb15LongNotificationFixture(): DockingDocuments {
+  const documents = createDb15DockingFixture();
+  const chips = documents.bayConfigurations.bays.flatMap(({ chips: bayChips }) => bayChips)
+    .map((chip, index) => ({
+      ...chip,
+      chipType: `db15-unknown-${String(index + 1).padStart(3, "0")}`,
+      order: index + 1,
+    }));
+  const bay = documents.bayConfigurations.bays[0];
+  bay.name = "DB15長文通知ベイ";
+  bay.chips = chips;
+  documents.bayConfigurations.bays = [bay];
+  documents.mainLayouts.layouts.forEach((layout) => {
+    layout.placements = [{ bayId: bay.id, rail: "top", order: 1 }];
+  });
+  return documents;
+}
+
 /** ベイ選択・編集を4レール1ベイずつで目視確認する調査用文書を生成する。 */
 export function createDb15BayEditingFixture(): DockingDocuments {
   const definitions = [

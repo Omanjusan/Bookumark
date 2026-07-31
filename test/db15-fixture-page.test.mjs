@@ -20,3 +20,12 @@ test("adds an idempotent child folder for official cross-folder D&D", async () =
   assert.match(source, /children\.some\(\s*\(child\) => child\.type === "folder"/);
   assert.match(source, /browser\.bookmarks\.create\(\{[\s\S]*parentId: backup\.fixtureRootId,[\s\S]*title: OFFICIAL_DND_FOLDER_TITLE/);
 });
+
+test("switches installed docking data to a long recovery notification fixture", async () => {
+  const html = await readFile("dev/db15-fixture.html", "utf8");
+  const source = await readFile("src/dev/db15-fixture-page.ts", "utf8");
+
+  assert.match(html, /id="long-notification-fixture"[^>]*>長文通知fixtureへ切替</);
+  assert.match(source, /createDb15LongNotificationFixture/);
+  assert.match(source, /saveFixtureDocuments\(createDb15LongNotificationFixture\(\)\)/);
+});

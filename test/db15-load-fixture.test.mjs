@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   createDb15BayEditingFixture,
   createDb15DockingFixture,
+  createDb15LongNotificationFixture,
   DB15_FIXTURE_COUNTS,
 } from "../dist/panel/lib/db15-load-fixture.js";
 import { createInternalDefaultDockingDocuments } from "../dist/panel/lib/docking-internal-defaults.js";
@@ -37,6 +38,19 @@ test("creates the agreed DB-15 high-load docking fixture", () => {
       [1, 2, 3, 4, 5],
     );
   }
+});
+
+test("creates 200 identifiable unknown chips for the long recovery dialog", () => {
+  const documents = createDb15LongNotificationFixture();
+  const chips = documents.bayConfigurations.bays.flatMap(({ chips }) => chips);
+  const active = documents.mainLayouts.layouts.find(({ id }) => id === "layout-2");
+
+  assert.equal(chips.length, 200);
+  assert.equal(new Set(chips.map(({ chipType }) => chipType)).size, 200);
+  assert.ok(chips.every(({ chipType }) => chipType.startsWith("db15-unknown-")));
+  assert.equal(documents.bayConfigurations.bays.length, 1);
+  assert.equal(documents.bayConfigurations.bays[0].name, "DB15長文通知ベイ");
+  assert.deepEqual(active.placements, [{ bayId: "bay-1", rail: "top", order: 1 }]);
 });
 
 test("creates a four-rail fixture with one identifiable bay per rail", () => {

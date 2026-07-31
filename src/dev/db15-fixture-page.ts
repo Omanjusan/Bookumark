@@ -1,6 +1,7 @@
 import {
   createDb15BayEditingFixture,
   createDb15DockingFixture,
+  createDb15LongNotificationFixture,
   DB15_FIXTURE_COUNTS,
 } from "../panel/lib/db15-load-fixture.js";
 import { DOCKING_STORAGE_KEYS } from "../panel/lib/docking-storage.js";
@@ -12,6 +13,7 @@ const install = requireButton("install");
 const editFixture = requireButton("edit-fixture");
 const loadFixture = requireButton("load-fixture");
 const officialDndFixture = requireButton("official-dnd-fixture");
+const longNotificationFixture = requireButton("long-notification-fixture");
 const open = requireButton("open");
 const restore = requireButton("restore");
 const status = requireStatus();
@@ -111,12 +113,19 @@ officialDndFixture.addEventListener("click", () => runLocked(async () => {
     : "公式整理D&D用フォルダを追加しました。Bookumarkを再読み込みしてください。");
 }));
 
+longNotificationFixture.addEventListener("click", () => runLocked(async () => {
+  await requireInstalledFixture();
+  await saveFixtureDocuments(createDb15LongNotificationFixture());
+  setStatus("長文通知fixtureへ切り替えました。Bookumarkを再読み込みしてください。");
+}));
+
 /** 多重操作を防いでfixture操作を実行し、失敗を画面へ報告する。 */
 async function runLocked(operation: () => Promise<void>): Promise<void> {
   install.disabled = true;
   editFixture.disabled = true;
   loadFixture.disabled = true;
   officialDndFixture.disabled = true;
+  longNotificationFixture.disabled = true;
   open.disabled = true;
   restore.disabled = true;
   setStatus("処理中…");
@@ -130,6 +139,7 @@ async function runLocked(operation: () => Promise<void>): Promise<void> {
     editFixture.disabled = false;
     loadFixture.disabled = false;
     officialDndFixture.disabled = false;
+    longNotificationFixture.disabled = false;
     open.disabled = false;
     restore.disabled = false;
   }
