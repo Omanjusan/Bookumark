@@ -114,9 +114,38 @@ test("ignores external drags and styles orientation-specific insertion markers",
   assert.match(css, /\.dock-rail--bay-drop-empty\s*\{[^}]*outline:\s*2px dashed/s);
 });
 
+test("continues edge pan while stationary and stops on leave, clear, and drop", () => {
+  const fake = harness();
+  const connection = bindBayRailInsertionDrop(fake.roots, fake.drag, () => {}, {
+    edgeThreshold: 40,
+    maxPanStep: 20,
+    requestFrame: fake.requestFrame,
+    cancelFrame: fake.cancelFrame,
+  });
+
+  fake.emit("top", "dragover", { clientY: 295 });
+  const afterDragOver = fake.scrollPosition("top");
+  assert.ok(afterDragOver > 0);
+  assert.equal(fake.pendingFrames(), 1);
+  fake.runFrame();
+  assert.ok(fake.scrollPosition("top") > afterDragOver);
+  assert.equal(fake.pendingFrames(), 1);
+
+  fake.emit("top", "dragleave", { relatedTarget: null });
+  assert.equal(fake.pendingFrames(), 0);
+  fake.emit("top", "dragover", { clientY: 295 });
+  connection.clear();
+  assert.equal(fake.pendingFrames(), 0);
+  fake.emit("top", "dragover", { clientY: 295 });
+  fake.emit("top", "drop", { clientY: 295 });
+  assert.equal(fake.pendingFrames(), 0);
+});
+
 function harness(overrides = {}) {
   let state = { bayId: "bay-2", sourceRail: "top" };
   let cancels = 0;
+  let nextFrameId = 1;
+  const frames = new Map();
   const bays = {
     top: [bay("bay-1", 0, 40, 0, 40), bay("bay-2", 0, 40, 42, 82), bay("bay-3", 0, 40, 84, 124)],
     left: [bay("bay-4", 10, 50, 0, 30), bay("bay-5", 60, 100, 0, 30)],
@@ -131,6 +160,22 @@ function harness(overrides = {}) {
     drag: { state: () => state, cancel: () => { state = null; cancels += 1; } },
     setState: (value) => { state = value; },
     cancelCalls: () => cancels,
+    requestFrame(callback) {
+      const id = nextFrameId;
+      nextFrameId += 1;
+      frames.set(id, callback);
+      return id;
+    },
+    cancelFrame(id) { frames.delete(id); },
+    pendingFrames: () => frames.size,
+    runFrame() {
+      const entry = frames.entries().next().value;
+      if (entry === undefined) return;
+      const [id, callback] = entry;
+      frames.delete(id);
+      callback(0);
+    },
+    scrollPosition: (rail) => roots[rail].position(),
     emit(rail, type, details = {}) {
       let prevented = false;
       roots[rail].listeners.get(type)?.({
@@ -147,6 +192,8 @@ function harness(overrides = {}) {
 
 function root(children) {
   const listeners = new Map();
+  let scrollLeft = 100;
+  let scrollTop = 100;
   return {
     listeners,
     classList: classList(),
@@ -157,7 +204,13 @@ function root(children) {
     contains: () => false,
     querySelectorAll: () => children,
     getBoundingClientRect: () => ({ left: 0, right: 300, top: 0, bottom: 300 }),
-    scrollBy() {},
+    get scrollLeft() { return scrollLeft; },
+    get scrollTop() { return scrollTop; },
+    scrollBy({ left, top }) {
+      scrollLeft = Math.min(200, Math.max(0, scrollLeft + left));
+      scrollTop = Math.min(200, Math.max(0, scrollTop + top));
+    },
+    position: () => scrollTop,
   };
 }
 

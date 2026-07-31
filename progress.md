@@ -230,3 +230,10 @@ DB-14の要求分析、懸念事項のインタビュー、仕様確定、テス
 - 同じレイアウトの再描画ではスクロール位置を維持し、初回構築またはactiveレイアウトID変更時だけ各レールを外側の先頭へ戻すようにした。
 - 対象位置計算・レイアウトライフサイクルテスト、全154テスト、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
 - リサイズとレイアウト切替のFirefox実機確認はDB15-E-01Gで行う。次はDB15-E-01E「連続端パン・停止」のGO確認から再開する。
+- DB15-E-01E「連続端パン・停止」をRed-Greenで完了した。
+- ベイD&Dの最新レール・ポインター位置を単一の`requestAnimationFrame`ループで保持し、ポインター静止中も端パンを継続するようにした。
+- 端から離れた場合、dragleave、clear、drop、disconnect、ドラッグ状態消失、レール終端で実移動できない場合にループを停止する。
+- 新しいdragoverが続いてもフレームを多重予約せず、端パン速度と上下縦・左右横の片軸契約を維持した。
+- Nodeテスト環境では短いタイマーへフォールバックし、Firefoxでは`requestAnimationFrame`を使用する。
+- 対象D&D・端パンテスト、全154テスト、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
+- 静止中の連続端パンと全終了経路のFirefox実機確認はDB15-E-01Gで行う。次はDB15-E-01F「保存・境界値・高負荷・回帰」のGO確認から再開する。

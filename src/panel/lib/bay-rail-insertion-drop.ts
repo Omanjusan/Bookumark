@@ -25,6 +25,14 @@ export interface BayRailInsertionDropConnection {
 interface BayRailInsertionDropOptions {
   readonly edgeThreshold?: number;
   readonly maxPanStep?: number;
+  readonly requestFrame?: (callback: FrameRequestCallback) => number;
+  readonly cancelFrame?: (handle: number) => void;
+}
+
+interface ActiveEdgePan {
+  readonly root: HTMLElement;
+  readonly orientation: BayOrientation;
+  readonly coordinate: number;
 }
 
 const RAILS: readonly RailId[] = ["top", "left", "right", "bottom"];
@@ -63,9 +71,19 @@ export function bindBayRailInsertionDrop(
 ): BayRailInsertionDropConnection {
   const edgeThreshold = options.edgeThreshold ?? 32;
   const maxPanStep = options.maxPanStep ?? 16;
+  const requestFrame = options.requestFrame
+    ?? ((callback: FrameRequestCallback) => typeof requestAnimationFrame === "function"
+      ? requestAnimationFrame(callback)
+      : globalThis.setTimeout(() => callback(performance.now()), 16));
+  const cancelFrame = options.cancelFrame ?? ((handle: number) => {
+    if (typeof cancelAnimationFrame === "function") cancelAnimationFrame(handle);
+    else globalThis.clearTimeout(handle);
+  });
   const removers: Array<() => void> = [];
   let markedRoot: HTMLElement | null = null;
   let markedBay: HTMLElement | null = null;
+  let activePan: ActiveEdgePan | null = null;
+  let panFrame: number | null = null;
 
   for (const rail of RAILS) {
     const root = roots[rail];
@@ -85,7 +103,7 @@ export function bindBayRailInsertionDrop(
         coordinate,
       );
       mark(root, candidates.map(({ element }) => element), orientation, reverse, index);
-      pan(root, orientation, physicalCoordinate, edgeThreshold, maxPanStep);
+      updatePan(root, orientation, physicalCoordinate);
       if (dragEvent.dataTransfer !== null) dragEvent.dataTransfer.dropEffect = "move";
     };
     const onDragLeave = (event: Event): void => {
@@ -123,7 +141,7 @@ export function bindBayRailInsertionDrop(
     reverse: boolean,
     index: number,
   ): void {
-    clearMark();
+    clearMarkerVisuals();
     markedRoot = root;
     if (candidates.length === 0) {
       root.classList.add("dock-rail--bay-drop-empty");
@@ -137,10 +155,60 @@ export function bindBayRailInsertionDrop(
 
   /** 全向きの挿入表示をイベント終了経路から解除する。 */
   function clearMark(): void {
+    stopPan();
+    clearMarkerVisuals();
+  }
+
+  /** 端パン状態を変えず、全向きの挿入表示だけを解除する。 */
+  function clearMarkerVisuals(): void {
     markedRoot?.classList.remove("dock-rail--bay-drop-empty");
     markedBay?.classList.remove(...MARKER_CLASSES);
     markedRoot = null;
     markedBay = null;
+  }
+
+  /** 最新ポインター位置を端パン対象にし、必要なら単一フレームを開始する。 */
+  function updatePan(
+    root: HTMLElement,
+    orientation: BayOrientation,
+    coordinate: number,
+  ): void {
+    activePan = { root, orientation, coordinate };
+    if (panFrame !== null) return;
+    if (applyActivePan()) schedulePan();
+    else activePan = null;
+  }
+
+  /** 現在の端パンを1回適用し、実際にスクロール位置が変わったかを返す。 */
+  function applyActivePan(): boolean {
+    if (activePan === null || drag.state() === null) return false;
+    const { root, orientation, coordinate } = activePan;
+    const before = orientation === "horizontal" ? root.scrollLeft : root.scrollTop;
+    const rect = root.getBoundingClientRect();
+    const step = applyDockingRailEdgePan(root, orientation, coordinate, {
+      start: orientation === "horizontal" ? rect.left : rect.top,
+      end: orientation === "horizontal" ? rect.right : rect.bottom,
+      threshold: edgeThreshold,
+      maxStep: maxPanStep,
+    });
+    const after = orientation === "horizontal" ? root.scrollLeft : root.scrollTop;
+    return step !== 0 && after !== before;
+  }
+
+  /** 静止ポインターでも端パンを継続する次フレームを一つだけ予約する。 */
+  function schedulePan(): void {
+    panFrame = requestFrame(() => {
+      panFrame = null;
+      if (applyActivePan()) schedulePan();
+      else activePan = null;
+    });
+  }
+
+  /** 予約済みフレームを破棄し、端パン対象を解除する。 */
+  function stopPan(): void {
+    if (panFrame !== null) cancelFrame(panFrame);
+    panFrame = null;
+    activePan = null;
   }
 
   return {
@@ -187,21 +255,4 @@ function isReverseRail(rail: RailId): boolean {
 /** 逆方向レールの物理座標を、保存順に増加する座標へ変換する。 */
 function normalizeCoordinate(coordinate: number, reverse: boolean): number {
   return reverse ? -coordinate : coordinate;
-}
-
-/** 精密drop中も既存の向き別端パン計算を適用する。 */
-function pan(
-  root: HTMLElement,
-  orientation: BayOrientation,
-  coordinate: number,
-  edgeThreshold: number,
-  maxPanStep: number,
-): void {
-  const rect = root.getBoundingClientRect();
-  applyDockingRailEdgePan(root, orientation, coordinate, {
-    start: orientation === "horizontal" ? rect.left : rect.top,
-    end: orientation === "horizontal" ? rect.right : rect.bottom,
-    threshold: edgeThreshold,
-    maxStep: maxPanStep,
-  });
 }
