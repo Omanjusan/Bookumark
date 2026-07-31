@@ -70,6 +70,24 @@ test("keeps folder and history state unchanged when navigation loading fails", (
   );
 });
 
+test("routes optimistic custom-order save failures to operation-specific notifications", () => {
+  assert.match(
+    source,
+    /currentItems = reorderItemsForTileDrop\(currentItems, drop\);\s*redraw\(\);\s*void persistCustomOrder\(/,
+  );
+  assert.match(
+    source,
+    /currentFolders = reorderItemsForTileDrop\(currentFolders,[\s\S]*?redraw\(\);\s*void persistCustomOrder\(/,
+  );
+  assert.match(
+    source,
+    /await saveFolderOrders\(nextFolderOrders\);\s*folderOrders = nextFolderOrders/,
+  );
+  assert.match(source, /panelErrorNotifications\.notify\("bookmark-custom-order-save", error\)/);
+  assert.match(source, /panelErrorNotifications\.notify\("folder-custom-order-save", error\)/);
+  assert.doesNotMatch(source, /custom order save failed:|folder custom order save failed:/);
+});
+
 test("routes basic chip changes through the validated shared control store", () => {
   assert.match(source, /createDockingBasicControlStore/);
   assert.match(source, /updateDockingControl\("search", nextQuery\)/);

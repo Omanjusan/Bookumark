@@ -2,12 +2,12 @@
 
 ## 1. 状態
 
-- 状態: `DB-16D_COMPLETE`
+- 状態: `DB-16E_COMPLETE`
 - 要求分析: 完了
 - 懸念事項インタビュー: 全6問完了
 - 仕様・テストケース: 確定
-- 実装許可: DB-16A〜D取得済み、DB-16E〜H未取得
-- 次の作業: DB-16E「仮想カスタム順序保存失敗トースト」のテストケース確認とRed-GreenのGO確認
+- 実装許可: DB-16A〜E取得済み、DB-16F〜H未取得
+- 次の作業: DB-16F「公式整理UI無効化とruntime正規化」のテストケース確認とRed-GreenのGO確認
 - 前提: DB15-E-01Gは`DB15-E-01G_FROZEN_WITH_KNOWN_LIMITATIONS`として凍結済み
 
 ## 2. 背景

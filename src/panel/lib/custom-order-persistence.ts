@@ -9,6 +9,10 @@ export async function persistCustomOrder(
   try {
     await saveOrder(items.map(({ guid }) => guid));
   } catch (error) {
-    reportError(error);
+    try {
+      reportError(error);
+    } catch {
+      // 通知失敗を楽観表示と次回の全量保存機会へ逆流させない。
+    }
   }
 }

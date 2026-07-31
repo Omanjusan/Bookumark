@@ -63,3 +63,33 @@ test("reports a synchronous save failure without rejecting", async () => {
 
   assert.deepEqual(reported, [failure]);
 });
+
+test("keeps the next save as the latest complete order after a failure", async () => {
+  const { persistCustomOrder } = await import(
+    "../dist/panel/lib/custom-order-persistence.js"
+  );
+  const saved = [];
+  let attempts = 0;
+  const save = async (order) => {
+    saved.push([...order]);
+    attempts += 1;
+    if (attempts === 1) throw new Error("first failed");
+  };
+
+  await persistCustomOrder([{ guid: "b" }, { guid: "a" }], save, () => {});
+  await persistCustomOrder([{ guid: "a" }, { guid: "c" }, { guid: "b" }], save, assert.fail);
+
+  assert.deepEqual(saved, [["b", "a"], ["a", "c", "b"]]);
+});
+
+test("does not reject when failure reporting itself throws", async () => {
+  const { persistCustomOrder } = await import(
+    "../dist/panel/lib/custom-order-persistence.js"
+  );
+
+  await assert.doesNotReject(() => persistCustomOrder(
+    [{ guid: "a" }],
+    async () => { throw new Error("save failed"); },
+    () => { throw new Error("notification failed"); },
+  ));
+});

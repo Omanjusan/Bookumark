@@ -622,16 +622,17 @@ bindPanelTileDrag(
       currentItems,
       async (directOrder) => {
         if (currentFolderGuid === null) return;
-        folderOrders = {
+        const nextFolderOrders = {
           ...folderOrders,
           [currentFolderGuid]: replaceFolderOrderSubset(
             folderOrders[currentFolderGuid] ?? [],
             directOrder,
           ),
         };
-        await saveFolderOrders(folderOrders);
+        await saveFolderOrders(nextFolderOrders);
+        folderOrders = nextFolderOrders;
       },
-      (error) => console.warn("custom order save failed:", error),
+      (error) => panelErrorNotifications.notify("bookmark-custom-order-save", error),
     );
   },
   {
@@ -674,16 +675,17 @@ bindPanelFolderDrag(
       currentFolders,
       async (directOrder) => {
         if (currentFolderGuid === null) return;
-        folderOrders = {
+        const nextFolderOrders = {
           ...folderOrders,
           [currentFolderGuid]: replaceFolderOrderSubset(
             folderOrders[currentFolderGuid] ?? [],
             directOrder,
           ),
         };
-        await saveFolderOrders(folderOrders);
+        await saveFolderOrders(nextFolderOrders);
+        folderOrders = nextFolderOrders;
       },
-      (error) => console.warn("folder custom order save failed:", error),
+      (error) => panelErrorNotifications.notify("folder-custom-order-save", error),
     );
   },
   {
