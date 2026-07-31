@@ -299,3 +299,10 @@ DB-14の要求分析、懸念事項のインタビュー、仕様確定、テス
 - `error`トーストは自動終了せず、同種失敗を既存キューで集約し、手動終了しても現在表示を変更しない既存契約を維持した。
 - DB-16E対象の全量再保存・通知隔離テストと通知・パネル接続回帰、全158テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
 - DB-16F〜Hの実装GOは未取得であり、次はDB-16F「公式整理UI無効化とruntime正規化」のテストケース確認とRed-Green GO確認から再開する。
+- DB-16F「公式整理UI無効化とruntime正規化」のRed-Greenを完了し、状態を`DB-16F_COMPLETE`とした。
+- 動的移動モードチップと旧入力bindingを「カスタム配置」「通常」の2択へ変更し、「公式整理」、Firefox本体反映の説明、専用選択スタイルをproduction UIから除外した。
+- 保存互換性と凍結コードのため`directory-move`型は維持し、起動・再構築・control更新のruntime境界で`custom-order`へ非破壊正規化する関数を追加した。
+- 正規化は入力共有状態を変更せず、Firefoxブックマーク、仮想順序、Docking保存文書へ書き戻さない。通常モードでは既存どおり並べ替えD&Dを許可しない。
+- 公式移動、正本再取得、Undoの実装は変更・削除せず、既存の公式移動モジュールテストがすべて成功することを確認した。
+- DB-16F対象の2択UI・runtime正規化テストと公式移動凍結回帰、全158テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
+- DB-16G〜Hの実装GOは未取得であり、次はDB-16G「開発限定・一回限りの失敗fixture」のテストケース確認とRed-Green GO確認から再開する。

@@ -65,6 +65,16 @@ test("disconnect removes every per-chip event listener", () => {
   assert.deepEqual(state.events, []);
 });
 
+test("renders only custom order and normal movement choices", () => {
+  const fake = createFakeDocument();
+  const runtime = runtimeFixture(fake);
+  const movement = runtime.renderers["movement-mode"](chip("chip-1", "movement-mode"));
+  const inputs = movement.findAllByTag("INPUT");
+
+  assert.deepEqual(inputs.map(({ value }) => value), ["custom-order", "normal"]);
+  assert.doesNotMatch(JSON.stringify(movement), /directory-move|公式整理|Firefox本体/);
+});
+
 function runtimeFixture(fake, state = defaultState()) {
   return createDockingBasicChipRuntime({
     document: fake.document,

@@ -54,6 +54,18 @@ export function createDefaultDockingSharedState(activeLayoutId: string): Docking
   };
 }
 
+/** 凍結した公式整理状態を保存値へ書き戻さず、runtime上だけ仮想カスタムへ戻す。 */
+export function normalizeDockingRuntimeSharedState(
+  state: DockingSharedState,
+): DockingSharedState {
+  return {
+    ...structuredClone(state),
+    movementMode: state.movementMode === "directory-move"
+      ? "custom-order"
+      : state.movementMode,
+  };
+}
+
 /** 標準キーを検証し、未知の拡張キーは制約せず保持可能にする。 */
 export function isValidDockingSharedState(
   value: ChipSharedState,

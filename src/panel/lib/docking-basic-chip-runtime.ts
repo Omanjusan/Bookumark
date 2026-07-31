@@ -47,7 +47,7 @@ export interface DockingBasicChipRuntime {
 
 const VISIT_VALUES: readonly VisitStatusFilterValue[] = ["all", "visited", "unvisited"];
 const VIEW_TYPES: readonly ViewType[] = ["panel", "icon", "card", "list"];
-const MOVEMENT_MODES: readonly MovementMode[] = ["custom-order", "normal", "directory-move"];
+const MOVEMENT_MODES: readonly MovementMode[] = ["custom-order", "normal"];
 const SORT_AXES: readonly StandardSortAxisId[] = [
   "title", "dateAdded", "visitCount", "lastVisitTime",
 ];
@@ -198,8 +198,8 @@ export function createDockingBasicChipRuntime(
       const input = appendRadioChoice(choices, {
         name: `movement-mode-${plan.instanceId}`,
         value,
-        label: ["カスタム配置", "通常", "公式整理"][index],
-        className: `movement-option movement-option--${["custom", "normal", "directory"][index]}`,
+        label: ["カスタム配置", "通常"][index],
+        className: `movement-option movement-option--${["custom", "normal"][index]}`,
       }, documentRef);
       listen(input, "change", () => { if (input.checked) options.onMovementMode(value); });
       return input;
@@ -208,10 +208,6 @@ export function createDockingBasicChipRuntime(
       for (const input of inputs) input.checked = input.value === snapshot.movementMode;
     });
     fieldset.appendChild(choices);
-    const note = documentRef.createElement("span");
-    note.className = "movement-mode-note";
-    note.textContent = "公式整理はFirefox本体へ反映";
-    fieldset.appendChild(note);
     root.appendChild(fieldset);
     return root;
   };

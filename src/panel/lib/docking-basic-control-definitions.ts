@@ -10,6 +10,7 @@ import type {
 } from "./chip-contract.js";
 import {
   isValidDockingSharedState,
+  normalizeDockingRuntimeSharedState,
 } from "./docking-shared-state.js";
 import type { DockingSharedState } from "./docking-shared-state.js";
 
@@ -91,7 +92,7 @@ export function createDockingBasicControlStore(
   if (!isValidDockingSharedState(initialState, activeLayoutId)) {
     throw new TypeError("invalid Docking shared state");
   }
-  let state = structuredClone(initialState);
+  let state = normalizeDockingRuntimeSharedState(initialState);
   const connections = new Set<ActiveControlConnection>();
 
   const read = (instance: ChipInstanceConfiguration): unknown => {
@@ -117,12 +118,12 @@ export function createDockingBasicControlStore(
     },
     read,
     update(instance, value): void {
-      const candidate = updateControlChipState(
+      const candidate = normalizeDockingRuntimeSharedState(updateControlChipState(
         BASIC_DOCKING_CONTROL_DEFINITIONS.get(instance.chipType),
         instance,
         structuredClone(state),
         structuredClone(value),
-      );
+      ) as DockingSharedState);
       if (!isValidDockingSharedState(candidate, activeLayoutId)) {
         throw new TypeError("invalid Docking shared state");
       }

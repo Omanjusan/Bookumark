@@ -752,7 +752,7 @@ header h1 {
 }
 .movement-mode-options {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 7px;
@@ -789,18 +789,6 @@ header h1 {
   background: var(--hover);
   color: var(--text);
 }
-.movement-option--directory input:checked + .movement-segment {
-  background: color-mix(in srgb, var(--mode-directory) 18%, var(--surface));
-  color: var(--mode-directory);
-}
-.movement-mode-note {
-  display: block;
-  margin-top: 3px;
-  color: var(--text-faint);
-  font-size: 10px;
-  text-align: right;
-}
-
 .bay-factory-dialog {
   width: min(600px, calc(100vw - 24px));
   max-width: none;

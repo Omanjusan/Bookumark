@@ -61,7 +61,7 @@ test("synchronizes duplicate and related controls after one shared-state update"
   });
 });
 
-test("updates every basic control without discarding extension state", () => {
+test("updates every basic control and normalizes frozen directory mode", () => {
   const initial = {
     ...createDefaultDockingSharedState("layout-1"),
     filters: { visitStatus: "all", futureFilter: 1 },
@@ -80,7 +80,7 @@ test("updates every basic control without discarding extension state", () => {
     folderHistory: history,
     sort: { axisId: "dateAdded", direction: "asc" },
     viewType: "list",
-    movementMode: "directory-move",
+    movementMode: "custom-order",
   });
 });
 
@@ -130,11 +130,24 @@ test("returns movement mode to normal for active search, filter, and standard so
   store.update(instance("search"), "book");
   assert.equal(store.getState().movementMode, "normal");
   store.update(instance("movement-mode"), "directory-move");
+  assert.equal(store.getState().movementMode, "custom-order");
   store.update(instance("visit-status"), "visited");
   assert.equal(store.getState().movementMode, "normal");
   store.update(instance("movement-mode"), "custom-order");
   store.update(instance("sort"), { axisId: "title", direction: "asc" });
   assert.equal(store.getState().movementMode, "normal");
+});
+
+test("normalizes a legacy directory-mode initial state at the runtime boundary", () => {
+  const initial = {
+    ...createDefaultDockingSharedState("layout-1"),
+    movementMode: "directory-move",
+  };
+  const before = structuredClone(initial);
+  const store = createDockingBasicControlStore(initial);
+
+  assert.equal(store.getState().movementMode, "custom-order");
+  assert.deepEqual(initial, before);
 });
 
 function instance(chipType, instanceId = `${chipType}-1`) {

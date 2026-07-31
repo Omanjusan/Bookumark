@@ -5,6 +5,7 @@ import {
   createDefaultDockingSharedState,
   evaluateDockingSharedStateConditions,
   isValidDockingSharedState,
+  normalizeDockingRuntimeSharedState,
 } from "../dist/panel/lib/docking-shared-state.js";
 
 test("creates the standard default state for the active layout", () => {
@@ -63,6 +64,25 @@ test("rejects an invalid standard value atomically and continues", () => {
     { instanceId: "invalid", chipType: "invalid", reason: "invalid-standard-state" },
     { instanceId: "switch", chipType: "switch-layout", reason: "invalid-standard-state" },
   ]);
+});
+
+test("normalizes frozen directory mode to custom order without mutating state", () => {
+  const legacy = {
+    ...createDefaultDockingSharedState("layout-1"),
+    movementMode: "directory-move",
+    futureState: { kept: true },
+  };
+  const before = structuredClone(legacy);
+
+  assert.deepEqual(normalizeDockingRuntimeSharedState(legacy), {
+    ...legacy,
+    movementMode: "custom-order",
+  });
+  assert.deepEqual(legacy, before);
+
+  const normal = createDefaultDockingSharedState("layout-1");
+  assert.deepEqual(normalizeDockingRuntimeSharedState(normal), normal);
+  assert.notEqual(normalizeDockingRuntimeSharedState(normal), normal);
 });
 
 function condition(chipType, apply) {

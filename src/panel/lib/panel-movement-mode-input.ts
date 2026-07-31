@@ -3,7 +3,6 @@ import type { MovementMode } from "./display-state.js";
 const MOVEMENT_MODES: readonly MovementMode[] = [
   "custom-order",
   "normal",
-  "directory-move",
 ];
 
 interface MovementModeRadio {
@@ -16,7 +15,7 @@ export interface MovementModeInputConnection {
   disconnect(): void;
 }
 
-/** 3択radio groupと排他的な移動モード状態を双方向に同期する。 */
+/** 正式な2択radio groupと排他的な移動モード状態を双方向に同期する。 */
 export function bindMovementModeInput(
   root: Pick<HTMLElement, "addEventListener" | "removeEventListener" | "querySelectorAll">,
   deliver: (mode: MovementMode) => void,

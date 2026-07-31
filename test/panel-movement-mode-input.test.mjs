@@ -9,18 +9,17 @@ const runtime = await readFile(new URL("../src/panel/lib/docking-basic-chip-runt
 test("provides accessible movement mode groups dynamically", () => {
   assert.doesNotMatch(html, /id="movement-mode"/);
   assert.match(runtime, /fieldset\.className = "movement-mode"/);
-  for (const value of ["custom-order", "normal", "directory-move"]) {
+  for (const value of ["custom-order", "normal"]) {
     assert.match(runtime, new RegExp(`"${value}"`));
   }
-  assert.match(runtime, /公式整理/);
-  assert.match(runtime, /Firefox本体へ反映/);
+  assert.doesNotMatch(runtime, /directory-move|公式整理|Firefox本体へ反映/);
 });
 
 test("styles the choices as one segmented control with distinct mode colors", () => {
-  assert.match(css, /\.movement-mode-options\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*repeat\(3,/s);
+  assert.match(css, /\.movement-mode-options\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*repeat\(2,/s);
   assert.match(css, /\.movement-option--custom/);
   assert.match(css, /\.movement-option--normal/);
-  assert.match(css, /\.movement-option--directory/);
+  assert.doesNotMatch(css, /\.movement-option--directory/);
   assert.match(css, /input:checked\s*\+\s*\.movement-segment/);
 });
 
@@ -32,15 +31,15 @@ test("delivers checked mode changes and synchronizes state back to radios", asyn
   const changes = [];
   const connection = bindMovementModeInput(fake.root, (mode) => changes.push(mode));
 
-  fake.change(fake.inputs[2], true);
-  assert.deepEqual(changes, ["directory-move"]);
+  fake.change(fake.inputs[0], true);
+  assert.deepEqual(changes, ["custom-order"]);
 
   connection.setMode("custom-order");
-  assert.deepEqual(fake.inputs.map(({ checked }) => checked), [true, false, false]);
+  assert.deepEqual(fake.inputs.map(({ checked }) => checked), [true, false]);
 
   connection.disconnect();
   fake.change(fake.inputs[1]);
-  assert.deepEqual(changes, ["directory-move"]);
+  assert.deepEqual(changes, ["custom-order"]);
 });
 
 test("ignores unchecked and invalid radio changes", async () => {
@@ -59,7 +58,7 @@ test("ignores unchecked and invalid radio changes", async () => {
 
 function harness() {
   const listeners = new Set();
-  const inputs = ["custom-order", "normal", "directory-move"].map((value) => ({
+  const inputs = ["custom-order", "normal"].map((value) => ({
     value,
     checked: value === "normal",
   }));

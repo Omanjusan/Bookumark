@@ -84,6 +84,7 @@ import type {
 import {
   createDefaultDockingSharedState,
   evaluateDockingSharedStateConditions,
+  normalizeDockingRuntimeSharedState,
 } from "./lib/docking-shared-state.js";
 import type { DockingSharedState } from "./lib/docking-shared-state.js";
 import { saveDockingDocuments } from "./lib/docking-storage.js";
@@ -1087,7 +1088,7 @@ function evaluatePanelDockingState(documents: DockingDocuments): DockingSharedSt
     BASIC_DOCKING_CONTROL_DEFINITIONS,
   );
   notifyDockingConditionFailures(evaluation.failures, documents, sequence);
-  return structuredClone(evaluation.state) as DockingSharedState;
+  return normalizeDockingRuntimeSharedState(evaluation.state as DockingSharedState);
 }
 
 /** condition失敗を診断ログと利用者向け集約トーストへ同時に接続する。 */
