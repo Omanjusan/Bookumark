@@ -3,18 +3,33 @@
 <head>
   <meta charset="utf-8">
   <title>Bookumark DB-15 fixture</title>
+  <style>
+    .fixture-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+  </style>
 </head>
 <body>
   <main>
     <h1>DB-15実機fixture</h1>
     <p>developプロファイル専用です。投入前のドッキング設定は自動で退避します。</p>
-    <button id="install" type="button">高負荷fixtureを投入</button>
-    <button id="edit-fixture" type="button">ベイ編集調査fixtureへ切替</button>
-    <button id="load-fixture" type="button">高負荷fixtureへ戻す</button>
-    <button id="official-dnd-fixture" type="button">公式整理D&D用フォルダを準備</button>
-    <button id="long-notification-fixture" type="button">長文通知fixtureへ切替</button>
-    <button id="open" type="button">fixtureをBookumarkで開く</button>
-    <button id="restore" type="button">投入前の状態へ復元</button>
+    <section class="fixture-actions" aria-label="fixtureの投入と復元">
+      <button id="install" type="button">高負荷fixtureを投入</button>
+      <button id="restore" type="button">投入前の状態へ復元</button>
+    </section>
+    <hr>
+    <section class="fixture-actions" aria-label="fixtureメニュー">
+      <button id="edit-fixture" type="button">ベイ編集調査fixtureへ切替</button>
+      <button id="load-fixture" type="button">高負荷fixtureへ戻す</button>
+      <button id="official-dnd-fixture" type="button">公式整理D&D用フォルダを準備</button>
+      <button id="long-notification-fixture" type="button">長文通知fixtureへ切替</button>
+    </section>
+    <hr>
+    <section class="fixture-actions" aria-label="アドオン起動">
+      <button id="open" type="button">アドオン実行</button>
+    </section>
     <pre id="status" role="status" aria-live="polite">待機中</pre>
   </main>
   <script type="module" src="db15-fixture-page.js"></script>

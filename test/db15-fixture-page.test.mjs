@@ -29,3 +29,13 @@ test("switches installed docking data to a long recovery notification fixture", 
   assert.match(source, /createDb15LongNotificationFixture/);
   assert.match(source, /saveFixtureDocuments\(createDb15LongNotificationFixture\(\)\)/);
 });
+
+test("groups fixture actions around two splitters and labels the panel launch action", async () => {
+  const html = await readFile("dev/db15-fixture.html", "utf8");
+
+  assert.match(
+    html,
+    /<section[^>]+aria-label="fixtureの投入と復元"[^>]*>[\s\S]*?id="install"[\s\S]*?id="restore"[\s\S]*?<\/section>\s*<hr>\s*<section[^>]+aria-label="fixtureメニュー"[^>]*>[\s\S]*?id="edit-fixture"[\s\S]*?id="load-fixture"[\s\S]*?id="official-dnd-fixture"[\s\S]*?id="long-notification-fixture"[\s\S]*?<\/section>\s*<hr>\s*<section[^>]+aria-label="アドオン起動"[^>]*>[\s\S]*?id="open"[^>]*>アドオン実行<\/button>[\s\S]*?<\/section>/,
+  );
+  assert.match(html, /\.fixture-actions\s*\{[^}]*display:\s*flex[^}]*flex-wrap:\s*wrap/s);
+});

@@ -256,3 +256,7 @@ DB-14の要求分析、懸念事項のインタビュー、仕様確定、テス
 - 編集開始前のページスクロール位置をセッション単位で退避し、通常終了、保存終了、変更破棄、削除終了の共通終了経路で通常runtime再接続後に復元する。
 - 対象レイアウト・編集ライフサイクルテスト、全155テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
 - 次はFirefox実機で編集時の中央空欄化、上下レール間距離、終了後の通常表示・ページ位置復元を確認してからTC-15を再開する。
+- DB-15 fixtureページの操作を、投入・復元、fixtureメニュー、アドオン起動の3グループへ再編成し、グループ間へスプリッターを追加した。
+- 「fixtureをBookumarkで開く」は、既存の起動処理とボタンIDを維持したまま「アドオン実行」へ名称変更した。
+- fixtureページ集中テスト、全155テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
+- 次は更新したfixtureページの表示をFirefox実機で確認し、中央空欄化の実機確認へ戻る。
