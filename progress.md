@@ -312,3 +312,8 @@ DB-14の要求分析、懸念事項のインタビュー、仕様確定、テス
 - development buildだけで失敗fixtureを`panel.js`より前に注入し、初期storage読み込みと`orderByFolder`を含むstorage保存を対象にした。production buildでは`dist/dev`、fixture UI、失敗スイッチ文字列、開発実行コードが存在しないことを確認した。
 - DB-16G対象7テスト、失敗スイッチの実動作確認、全158テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
 - DB-16Hの実装GOは未取得であり、次はDB-16H「Firefox実機、全体回帰、完了監査」のテストケース確認とGO確認から再開する。
+- DB-16H「Firefox実機、全体回帰、完了監査」を完了し、DB-16全体の状態を`DB-16_COMPLETE`とした。
+- TC-28は開発fixtureで次回初期読み込みを一回だけ失敗させ、共通ダイアログ、再試行中表示、多重実行防止、明示再試行後の正常復帰をFirefox実機で確認しPASSとした。
+- TC-29は仮想表示順保存を一回だけ失敗させ、共通エラートースト、楽観表示順維持、同種通知集約、手動終了をFirefox実機で確認しPASSとした。
+- TC-01〜27の自動契約とTC-28〜29の実機証跡を監査し、TC-01〜30がすべて成功してDB-16の完了条件を満たすことを確認した。DB15-E-01Gは既知制約付き凍結のままで再開していない。
+- 最終回帰は全158テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、production除外検査、`git diff --check`がすべて成功した。実機終了後はproduction成果物へ再構築済みである。
