@@ -25,6 +25,41 @@ test("returns a defensive unchanged configuration for valid stored data", () => 
   assert.notEqual(result.configuration.bays.top, stored.bays.top);
 });
 
+test("migrates schema v1 by adding the default bookmark summary without losing saved chips", () => {
+  const stored = createInitialTwoBayConfiguration();
+  stored.schemaVersion = 1;
+  stored.nextChipSequence = 7;
+  stored.bays.top.chips = stored.bays.top.chips
+    .filter(({ chipType }) => chipType !== "bookmark-summary")
+    .map((entry, index) => ({ ...entry, order: index + 1 }));
+  stored.bays.bottom.visibleRows = 1;
+  stored.bays.bottom.chips.push(chip("custom-id", "date", 1, 1, { kept: true }));
+
+  const result = normalizeTwoBayConfiguration(stored);
+
+  assert.equal(result.recovery, "normalized");
+  assert.equal(result.configuration.schemaVersion, 2);
+  assert.deepEqual(result.configuration.bays.top.chips.map(({ chipType }) => chipType), [
+    "bookmark-summary", "search", "visit-status", "folder-history", "sort", "view-type",
+    "movement-mode",
+  ]);
+  assert.deepEqual(result.configuration.bays.bottom.chips[0].settings, { kept: true });
+});
+
+test("keeps a bookmark summary removed from a saved schema v2 configuration", () => {
+  const stored = createInitialTwoBayConfiguration();
+  stored.bays.top.chips = stored.bays.top.chips
+    .filter(({ chipType }) => chipType !== "bookmark-summary")
+    .map((entry, index) => ({ ...entry, order: index + 1 }));
+
+  const result = normalizeTwoBayConfiguration(stored);
+
+  assert.equal(result.recovery, "unchanged");
+  assert.equal(result.configuration.bays.top.chips.some(
+    ({ chipType }) => chipType === "bookmark-summary",
+  ), false);
+});
+
 test("clamps row counts and keeps the selected system bay visible", () => {
   const stored = createInitialTwoBayConfiguration();
   stored.systemBay = "bottom";

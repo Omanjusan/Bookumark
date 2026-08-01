@@ -11,10 +11,10 @@ test("adds independent instances at the end of a visible row", () => {
   const added = second.bays.top.chips.slice(-2);
 
   assert.deepEqual(added.map(({ instanceId, order }) => [instanceId, order]), [
-    ["chip-7", 7], ["chip-8", 8],
+    ["chip-7", 8], ["chip-8", 9],
   ]);
   assert.equal(second.nextChipSequence, 9);
-  assert.equal(source.bays.top.chips.length, 6);
+  assert.equal(source.bays.top.chips.length, 7);
 });
 
 test("rejects hidden and out-of-range target rows without changing the source", () => {
@@ -29,4 +29,3 @@ test("rejects hidden and out-of-range target rows without changing the source", 
   );
   assert.equal(source.nextChipSequence, 7);
 });
-

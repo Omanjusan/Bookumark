@@ -20,7 +20,12 @@ test("plans only visible rows and sorts their chips without losing hidden chips"
     row: row.row,
     chips: row.chips.map(({ instanceId }) => instanceId),
   })), [
-    { row: 1, chips: ["chip-1", "chip-2", "chip-3", "chip-4", "chip-5", "chip-6"] },
+    {
+      row: 1,
+      chips: [
+        "chip-bookmark-summary", "chip-1", "chip-2", "chip-3", "chip-4", "chip-5", "chip-6",
+      ],
+    },
     { row: 2, chips: ["chip-8", "chip-7"] },
   ]);
   assert.deepEqual(plan.bottom.rows, []);

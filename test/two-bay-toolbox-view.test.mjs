@@ -19,7 +19,7 @@ test("renders tabs from definitions and switches the visible tool panel", () => 
   assert.equal(panels[0].hidden, true);
   assert.equal(panels[3].hidden, false);
   assert.deepEqual(panels[3].children.map((tool) => [tool.textContent, tool.draggable, tool.disabled]), [
-    ["日付", true, false], ["時計", true, false],
+    ["タイトル・件数", true, false], ["日付", true, false], ["時計", true, false],
   ]);
 });
 

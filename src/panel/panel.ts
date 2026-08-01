@@ -133,6 +133,12 @@ import { bindTwoBayToolboxDrag } from "./lib/two-bay-toolbox-drag.js";
 import { bindTwoBayChipDrag } from "./lib/two-bay-chip-drag.js";
 import { moveTwoBayChip, removeTwoBayChip } from "./lib/two-bay-chip-edit.js";
 import { createTwoBayMockChipRenderers } from "./lib/two-bay-mock-chip-renderers.js";
+import {
+  createTwoBayInformationChipRuntime,
+} from "./lib/two-bay-information-chip-runtime.js";
+import type {
+  TwoBayInformationChipRuntime,
+} from "./lib/two-bay-information-chip-runtime.js";
 import type { TwoBayConfiguration } from "./lib/two-bay-persistence-model.js";
 import { createFolderNavigationHistory } from "./lib/folder-navigation-history.js";
 import type { FolderNavigationHistory } from "./lib/folder-navigation-history.js";
@@ -349,6 +355,7 @@ let visitStatusValue: VisitStatusFilterValue = "all";
 let officialMovePending = false;
 let lastOfficialMove: BookmarkMoveSnapshot | null = null;
 let activeChipRuntime: DockingBasicChipRuntime | null = null;
+let activeInformationChipRuntime: TwoBayInformationChipRuntime | null = null;
 let activeDockingSharedState: DockingSharedState | null = null;
 let activeControlStore: DockingBasicControlStore | null = null;
 let activeDockingController: ActiveDockingLayoutController | null = null;
@@ -517,6 +524,7 @@ function syncMovementControls(): void {
 function redraw(): void {
   root.dataset.viewType = fixedDisplayState.activeViewType;
   activeChipRuntime?.sync();
+  activeInformationChipRuntime?.sync();
   renderPanelFolders(folderRoot, currentFolders, { draggable: dragEnabled() });
   if (currentItems === null) {
     renderPanelStatus(root, { status: "loading" });
@@ -984,12 +992,19 @@ function renderActiveTwoBayConfiguration(
 ): void {
   root.dataset.twoBaySystemBay = configuration.systemBay;
   activeChipRuntime?.disconnect();
+  activeInformationChipRuntime?.disconnect();
   activeControlStore?.disconnect();
   const initialTwoBayState = createDefaultDockingSharedState("two-bay");
   applyDockingSharedState(initialTwoBayState);
   activeControlStore = createDockingBasicControlStore(initialTwoBayState);
   const runtime = createPanelChipRuntime();
-  const registry = createDockingChipRendererRegistry(runtime.renderers, createTwoBayMockChipRenderers());
+  const informationRuntime = createTwoBayInformationChipRuntime({
+    bookmarkCount: () => currentItems?.length ?? 0,
+  });
+  const registry = createDockingChipRendererRegistry(runtime.renderers, {
+    ...createTwoBayMockChipRenderers(),
+    ...informationRuntime.renderers,
+  });
   const drawingPlan = buildTwoBayDrawingPlan(configuration);
   const topResult = renderTwoBay(dockingRailRoots.top, drawingPlan.top, registry, {
     edit: onRowsChange === undefined ? undefined : {
@@ -1008,6 +1023,7 @@ function renderActiveTwoBayConfiguration(
   const skippedChips = [...topResult.skippedChips, ...bottomResult.skippedChips];
   if (skippedChips.length > 0) console.warn("two-bay chips were skipped:", skippedChips);
   activeChipRuntime = runtime;
+  activeInformationChipRuntime = informationRuntime;
   runtime.sync();
   redraw();
 }

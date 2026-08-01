@@ -68,9 +68,10 @@ test("connects chip move and explicit removal drops to the active draft", () => 
   assert.match(active, /drop\.type === "remove"[\s\S]*?removeTwoBayChip[\s\S]*?moveTwoBayChip/);
 });
 
-test("registers inert date and clock renderers only in the active two-bay view", () => {
+test("registers mock and information renderers only in the active two-bay view", () => {
   assert.match(source, /createTwoBayMockChipRenderers/);
-  assert.match(source, /createDockingChipRendererRegistry\(runtime\.renderers, createTwoBayMockChipRenderers\(\)\)/);
+  assert.match(source, /createTwoBayInformationChipRuntime/);
+  assert.match(source, /createDockingChipRendererRegistry\(runtime\.renderers, \{[\s\S]*?createTwoBayMockChipRenderers\(\)[\s\S]*?informationRuntime\.renderers/);
 });
 
 test("adopts a successful edit save into the system switch baseline", () => {

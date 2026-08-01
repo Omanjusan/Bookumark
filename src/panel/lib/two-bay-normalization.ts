@@ -35,7 +35,8 @@ export function normalizeTwoBayConfiguration(stored: unknown): TwoBayNormalizati
     return { configuration: createInitialTwoBayConfiguration(), recovery: "fallback" };
   }
 
-  let changed = false;
+  const migrateBookmarkSummary = stored.schemaVersion === 1;
+  let changed = migrateBookmarkSummary;
   const usedIds = new Set<string>();
   const greatestStoredId = greatestValidChipSequence([
     ...stored.bays.top.chips,
@@ -93,6 +94,25 @@ export function normalizeTwoBayConfiguration(stored: unknown): TwoBayNormalizati
     bays[bayId] = { visibleRows, chips };
   }
 
+  if (migrateBookmarkSummary) {
+    const summaryInstanceId = usedIds.has("chip-bookmark-summary")
+      ? `chip-${nextChipSequence++}`
+      : "chip-bookmark-summary";
+    const summary: TwoBayChipInstance = {
+      instanceId: summaryInstanceId,
+      chipType: "bookmark-summary",
+      row: 1,
+      order: 1,
+      settings: {},
+    };
+    bays.top.chips = [
+      summary,
+      ...bays.top.chips.map((entry) => entry.row === 1
+        ? { ...entry, order: entry.order + 1 }
+        : entry),
+    ];
+  }
+
   const greatestNormalizedId = greatestValidChipSequence([
     ...bays.top.chips,
     ...bays.bottom.chips,
@@ -131,7 +151,7 @@ function hasTwoBayEnvelope(value: unknown): value is {
   bays: Record<TwoBayId, { visibleRows: unknown; chips: unknown[] }>;
 } {
   if (!isRecord(value)
-    || value.schemaVersion !== TWO_BAY_SCHEMA_VERSION
+    || (value.schemaVersion !== 1 && value.schemaVersion !== TWO_BAY_SCHEMA_VERSION)
     || (value.systemBay !== "top" && value.systemBay !== "bottom")
     || !isRecord(value.bays)) {
     return false;
@@ -214,8 +234,9 @@ function greatestValidChipSequence(values: unknown[]): number {
   return greatest;
 }
 
-/** instance IDが安全な正整数を持つ`chip-N`形式か判定する。 */
+/** instance IDが予約済み初期IDまたは安全な正整数を持つ`chip-N`形式か判定する。 */
 function isIssuedChipId(value: string): boolean {
+  if (value === "chip-bookmark-summary") return true;
   const match = /^chip-([1-9]\d*)$/.exec(value);
   return match !== null && Number.isSafeInteger(Number(match[1]));
 }

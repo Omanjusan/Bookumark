@@ -1,4 +1,4 @@
-export const TWO_BAY_SCHEMA_VERSION = 1;
+export const TWO_BAY_SCHEMA_VERSION = 2;
 export const MAX_BAY_ROWS = 3;
 
 export type TwoBayId = "top" | "bottom";
@@ -39,12 +39,13 @@ const INITIAL_TWO_BAY_CONFIGURATION: TwoBayConfiguration = {
     top: {
       visibleRows: 1,
       chips: [
-        chip("chip-1", "search", 1),
-        chip("chip-2", "visit-status", 2),
-        chip("chip-3", "folder-history", 3),
-        chip("chip-4", "sort", 4),
-        chip("chip-5", "view-type", 5),
-        chip("chip-6", "movement-mode", 6),
+        chip("chip-bookmark-summary", "bookmark-summary", 1),
+        chip("chip-1", "search", 2),
+        chip("chip-2", "visit-status", 3),
+        chip("chip-3", "folder-history", 4),
+        chip("chip-4", "sort", 5),
+        chip("chip-5", "view-type", 6),
+        chip("chip-6", "movement-mode", 7),
       ],
     },
     bottom: { visibleRows: 0, chips: [] },
