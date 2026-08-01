@@ -484,9 +484,17 @@ Firefox固有の固定配置、スクロール、D&D、再起動復元は自動�
 ## 18. 現在の状態
 
 ```text
-PLANNING_COMPLETE
-IMPLEMENTATION_NOT_STARTED
-NEXT_PHASE=TB-1
+TB-1_COMPLETE
+IMPLEMENTATION_IN_PROGRESS
+NEXT_PHASE=TB-2
 ```
 
-次回はTB-1の対象ファイル、Redテスト、受け入れ条件を短く再確認し、明示的なGOを得てから実装を開始する。
+### 2026-08-01 TB-1完了
+
+- 上下2ベイ専用の型、schema version、最大3行の単一定義を追加した。
+- 上1行、下0行、上system、既定6チップの初期構成を追加した。
+- systemベイ最低1行、表示行・所属行の範囲、instance IDと行内orderの一意性、採番境界を不変条件として追加した。
+- 非表示行のチップを正常な保存構成として許可し、初期値生成と構成複製を防御的コピーにした。
+- TB-1対象テスト、全159テスト、production build、Firefox拡張lint、`git diff --check`の成功を確認した。
+
+次回はTB-2「正規化、破損復旧、単一キー保存」のテストケースを確認し、明示的なGOを得てからRed-Greenを開始する。

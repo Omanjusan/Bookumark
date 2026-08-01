@@ -317,3 +317,8 @@ DB-14の要求分析、懸念事項のインタビュー、仕様確定、テス
 - TC-29は仮想表示順保存を一回だけ失敗させ、共通エラートースト、楽観表示順維持、同種通知集約、手動終了をFirefox実機で確認しPASSとした。
 - TC-01〜27の自動契約とTC-28〜29の実機証跡を監査し、TC-01〜30がすべて成功してDB-16の完了条件を満たすことを確認した。DB15-E-01Gは既知制約付き凍結のままで再開していない。
 - 最終回帰は全158テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、production除外検査、`git diff --check`がすべて成功した。実機終了後はproduction成果物へ再構築済みである。
+- 上下2ベイ再設計TB-1「新保存モデル、初期値、不変条件」のRed-Greenを完了し、状態を`TB-1_COMPLETE`とした。
+- 上下2ベイ専用のschema、最大3行の単一定義、上1行・下0行・上system・既定6チップの初期構成を追加した。
+- systemベイ最低1行、表示行・所属行の範囲、instance IDと行内orderの一意性、採番境界を表明し、非表示行チップを保持する契約と防御的コピーを追加した。
+- TB-1対象8テスト、全159テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
+- TB-2以降の実装GOは未取得であり、次はTB-2「正規化、破損復旧、単一キー保存」のテストケース確認とRed-Green GO確認から再開する。
