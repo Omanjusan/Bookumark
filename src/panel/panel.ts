@@ -124,6 +124,7 @@ import { bindTwoBaySettings } from "./lib/two-bay-settings-controller.js";
 import { createTwoBaySystemSwitchSession } from "./lib/two-bay-system-switch-session.js";
 import { createTwoBayEditSession } from "./lib/two-bay-edit-session.js";
 import { bindTwoBayEditMode } from "./lib/two-bay-edit-controller.js";
+import { changeTwoBayVisibleRows } from "./lib/two-bay-row-edit.js";
 import type { TwoBayConfiguration } from "./lib/two-bay-persistence-model.js";
 import { createFolderNavigationHistory } from "./lib/folder-navigation-history.js";
 import type { FolderNavigationHistory } from "./lib/folder-navigation-history.js";
@@ -961,7 +962,10 @@ function createPanelChipRuntime(): DockingBasicChipRuntime {
 }
 
 /** 保存済み上下2ベイ構成を通常位置へ描画し、基本チップruntimeを置き換える。 */
-function renderActiveTwoBayConfiguration(configuration: TwoBayConfiguration): void {
+function renderActiveTwoBayConfiguration(
+  configuration: TwoBayConfiguration,
+  onRowsChange?: (bay: "top" | "bottom", delta: -1 | 1) => void,
+): void {
   root.dataset.twoBaySystemBay = configuration.systemBay;
   activeChipRuntime?.disconnect();
   activeControlStore?.disconnect();
@@ -971,8 +975,20 @@ function renderActiveTwoBayConfiguration(configuration: TwoBayConfiguration): vo
   const runtime = createPanelChipRuntime();
   const registry = createDockingChipRendererRegistry(runtime.renderers);
   const drawingPlan = buildTwoBayDrawingPlan(configuration);
-  const topResult = renderTwoBay(dockingRailRoots.top, drawingPlan.top, registry);
-  const bottomResult = renderTwoBay(dockingRailRoots.bottom, drawingPlan.bottom, registry);
+  const topResult = renderTwoBay(dockingRailRoots.top, drawingPlan.top, registry, {
+    edit: onRowsChange === undefined ? undefined : {
+      visibleRows: configuration.bays.top.visibleRows,
+      isSystem: configuration.systemBay === "top",
+      onRowsChange: (delta) => onRowsChange("top", delta),
+    },
+  });
+  const bottomResult = renderTwoBay(dockingRailRoots.bottom, drawingPlan.bottom, registry, {
+    edit: onRowsChange === undefined ? undefined : {
+      visibleRows: configuration.bays.bottom.visibleRows,
+      isSystem: configuration.systemBay === "bottom",
+      onRowsChange: (delta) => onRowsChange("bottom", delta),
+    },
+  });
   const skippedChips = [...topResult.skippedChips, ...bottomResult.skippedChips];
   if (skippedChips.length > 0) console.warn("two-bay chips were skipped:", skippedChips);
   activeChipRuntime = runtime;
@@ -1229,6 +1245,16 @@ async function loadAndStartPanelRuntime(): Promise<void> {
     onCommitted: (configuration) => renderActiveTwoBayConfiguration(configuration),
   });
   const editSession = createTwoBayEditSession();
+  /** 行数操作後のdraftを再描画し、次の編集操作へ同じセッションを接続する。 */
+  const renderEditDraft = (configuration: TwoBayConfiguration): void => {
+    renderActiveTwoBayConfiguration(configuration, (bay, delta) => {
+      const next = editSession.update((draft) => {
+        const changed = changeTwoBayVisibleRows(draft, bay, delta);
+        draft.bays = changed.bays;
+      });
+      renderEditDraft(next);
+    });
+  };
   bindTwoBayEditMode({
     entry: systemBayEditEntry,
     menu: systemMenu,
@@ -1238,6 +1264,8 @@ async function loadAndStartPanelRuntime(): Promise<void> {
     cancel: twoBayEditCancel,
   }, editSession, {
     getConfiguration: () => systemSwitchSession.committed(),
+    onDraft: renderEditDraft,
+    onCancelled: (configuration) => renderActiveTwoBayConfiguration(configuration),
   });
 }
 

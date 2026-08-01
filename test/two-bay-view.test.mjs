@@ -48,6 +48,49 @@ test("hides a zero-row bay and skips unknown chips without omitting its visible 
   }]);
 });
 
+test("renders edit controls and a disabled placeholder for a zero-row bay", () => {
+  const fake = createFakeDocument();
+  const root = fake.element("div");
+  const changes = [];
+  renderTwoBay(root, { bay: "bottom", rows: [] }, registry(fake), {
+    document: fake.document,
+    edit: { visibleRows: 0, isSystem: false, onRowsChange: (delta) => changes.push(delta) },
+  });
+
+  assert.equal(root.hidden, false);
+  const editor = root.children[0];
+  const controls = editor.children[0];
+  const rows = editor.children[1];
+  assert.equal(controls.children[0].attributes["aria-label"], "下ベイの行を追加");
+  assert.equal(controls.children[0].disabled, false);
+  assert.equal(controls.children[1].disabled, true);
+  assert.equal(rows.children[0].dataset.dropDisabled, "true");
+  assert.equal(rows.children[0].children[0].textContent, "非表示設定が有効です");
+  controls.children[0].emit("click");
+  assert.deepEqual(changes, [1]);
+});
+
+test("disables decrement for a one-row system bay and increment at three rows", () => {
+  const fake = createFakeDocument();
+  const root = fake.element("div");
+  renderTwoBay(root, {
+    bay: "top",
+    rows: [
+      { row: 1, chips: [] }, { row: 2, chips: [] }, { row: 3, chips: [] },
+    ],
+  }, registry(fake), {
+    document: fake.document,
+    edit: { visibleRows: 3, isSystem: true, onRowsChange: () => {} },
+  });
+  assert.equal(root.children[0].children[0].children[0].disabled, true);
+
+  renderTwoBay(root, { bay: "top", rows: [{ row: 1, chips: [] }] }, registry(fake), {
+    document: fake.document,
+    edit: { visibleRows: 1, isSystem: true, onRowsChange: () => {} },
+  });
+  assert.equal(root.children[0].children[0].children[1].disabled, true);
+});
+
 function chip(instanceId, chipType, order) {
   return { instanceId, chipType, order, settings: {} };
 }
@@ -72,9 +115,13 @@ function createFakeDocument() {
     dataset: {},
     children: [],
     attributes: {},
+    disabled: false,
+    listeners: {},
     replaceChildren(...children) { this.children = children; },
     appendChild(child) { this.children.push(child); return child; },
     setAttribute(name, value) { this.attributes[name] = value; },
+    addEventListener(type, listener) { (this.listeners[type] ??= []).push(listener); },
+    emit(type) { for (const listener of this.listeners[type] ?? []) listener({ type }); },
   });
   return { document: { createElement: element }, element };
 }

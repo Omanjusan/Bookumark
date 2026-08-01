@@ -12,6 +12,8 @@ export interface TwoBayEditElements {
 
 interface TwoBayEditOptions {
   readonly getConfiguration: () => TwoBayConfiguration;
+  readonly onDraft: (configuration: TwoBayConfiguration) => void;
+  readonly onCancelled: (configuration: TwoBayConfiguration) => void;
 }
 
 /** ベイ編集導線と中央キャンバスの開始・キャンセル境界を接続する。 */
@@ -30,16 +32,17 @@ export function bindTwoBayEditMode(
   elements.confirm.disabled = true;
   elements.entry.addEventListener("click", () => {
     if (session.active) return;
-    session.begin(options.getConfiguration());
+    const draft = session.begin(options.getConfiguration());
     elements.menu.hidden = true;
     elements.frame.dataset.twoBayEditing = "true";
     elements.canvas.hidden = false;
+    options.onDraft(draft);
   });
   elements.cancel.addEventListener("click", () => {
     if (!session.active) return;
-    session.cancel();
+    const restored = session.cancel();
     exit();
+    options.onCancelled(restored);
   });
   exit();
 }
-

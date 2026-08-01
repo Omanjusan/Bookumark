@@ -26,5 +26,12 @@ test("connects the edit session to the active two-bay runtime", () => {
   assert.match(active, /createTwoBayEditSession\(\)/);
   assert.match(active, /bindTwoBayEditMode/);
   assert.match(active, /getConfiguration:[\s\S]*?systemSwitchSession\.committed/);
+  assert.match(active, /changeTwoBayVisibleRows/);
+  assert.match(active, /renderActiveTwoBayConfiguration\(configuration, \(bay, delta\)[\s\S]*?editSession\.update/);
 });
 
+test("styles edit-only controls and the hidden-bay overlay", () => {
+  assert.match(css, /\.two-bay-edit-controls\s*\{/);
+  assert.match(css, /\.two-bay-hidden-placeholder\s*\{[^}]*position:\s*relative/);
+  assert.match(css, /\.two-bay-hidden-overlay\s*\{[^}]*position:\s*absolute/);
+});
