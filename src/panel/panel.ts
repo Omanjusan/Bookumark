@@ -128,6 +128,8 @@ import { changeTwoBayVisibleRows } from "./lib/two-bay-row-edit.js";
 import { addTwoBayChip } from "./lib/two-bay-chip-add.js";
 import { renderTwoBayToolbox } from "./lib/two-bay-toolbox-view.js";
 import { bindTwoBayToolboxDrag } from "./lib/two-bay-toolbox-drag.js";
+import { bindTwoBayChipDrag } from "./lib/two-bay-chip-drag.js";
+import { moveTwoBayChip, removeTwoBayChip } from "./lib/two-bay-chip-edit.js";
 import type { TwoBayConfiguration } from "./lib/two-bay-persistence-model.js";
 import { createFolderNavigationHistory } from "./lib/folder-navigation-history.js";
 import type { FolderNavigationHistory } from "./lib/folder-navigation-history.js";
@@ -1278,6 +1280,16 @@ async function loadAndStartPanelRuntime(): Promise<void> {
       const changed = addTwoBayChip(draft, drop);
       draft.bays = changed.bays;
       draft.nextChipSequence = changed.nextChipSequence;
+    });
+    renderEditDraft(next);
+  });
+  bindTwoBayChipDrag(frameRoot, (drop) => {
+    if (!editSession.active) return;
+    const next = editSession.update((draft) => {
+      const changed = drop.type === "remove"
+        ? removeTwoBayChip(draft, drop.instanceId)
+        : moveTwoBayChip(draft, drop.instanceId, drop);
+      draft.bays = changed.bays;
     });
     renderEditDraft(next);
   });

@@ -70,6 +70,19 @@ test("renders edit controls and a disabled placeholder for a zero-row bay", () =
   assert.deepEqual(changes, [1]);
 });
 
+test("makes rendered chip instances draggable only while editing", () => {
+  const fake = createFakeDocument();
+  const root = fake.element("div");
+  const plan = { bay: "top", rows: [{ row: 1, chips: [chip("chip-1", "search", 1)] }] };
+  renderTwoBay(root, plan, registry(fake), { document: fake.document });
+  assert.equal(root.children[0].children[0].draggable, false);
+  renderTwoBay(root, plan, registry(fake), {
+    document: fake.document,
+    edit: { visibleRows: 1, isSystem: true, onRowsChange: () => {} },
+  });
+  assert.equal(root.children[0].children[1].children[0].children[0].draggable, true);
+});
+
 test("disables decrement for a one-row system bay and increment at three rows", () => {
   const fake = createFakeDocument();
   const root = fake.element("div");
@@ -116,6 +129,7 @@ function createFakeDocument() {
     children: [],
     attributes: {},
     disabled: false,
+    draggable: false,
     listeners: {},
     replaceChildren(...children) { this.children = children; },
     appendChild(child) { this.children.push(child); return child; },

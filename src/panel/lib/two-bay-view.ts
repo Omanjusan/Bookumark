@@ -62,6 +62,7 @@ export function renderTwoBay(
       chip.className = "dock-chip dock-chip--horizontal";
       chip.dataset.instanceId = chipPlan.instanceId;
       chip.dataset.chipType = chipPlan.chipType;
+      chip.draggable = options.edit !== undefined;
       const label = dockingChipFunctionLabel(chipPlan.chipType);
       if (label !== undefined) chip.setAttribute("aria-label", label);
       const result = renderDockingChips(chip, [chipPlan], registry);

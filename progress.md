@@ -368,3 +368,10 @@ DB-14の要求分析、懸念事項のインタビュー、仕様確定、テス
 - 情報タブの日付・時計は定義と表示まで追加し、モック描画を追加するTB-10までD&Dを無効にした。
 - TB-8対象7テスト、全177テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
 - TB-9以降の実装GOは未取得であり、次はTB-9「行内・行間・上下間移動、除去D&D」のテストケース確認とRed-Green GO確認から再開する。
+- 上下2ベイ再設計TB-9「行内・行間・上下間移動、除去D&D」のRed-Greenを完了し、状態を`TB-9_COMPLETE`とした。
+- 編集中の配置済みチップだけをドラッグ可能にし、instance ID基準で同一行内、別行、上下ベイ間へ移動するdraft操作を追加した。
+- drop位置を行内チップの中心境界から算出し、移動元と移動先のorderを1から再採番した。
+- 中央の明示的な除去領域へのdropだけで対象instanceを削除し、元の行のorderを再採番した。
+- 0行プレースホルダー、ベイ間の隙間、中央領域外へのdropとドラッグ中断は無効とし、ベイ自体にはドラッグ開始手段を設けなかった。
+- TB-9対象9テスト、全179テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
+- TB-10以降の実装GOは未取得であり、次はTB-10「日付・時計モックチップ」のテストケース確認とRed-Green GO確認から再開する。

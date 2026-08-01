@@ -178,6 +178,8 @@ body {
   color: var(--danger);
   text-align: center;
 }
+.frame[data-two-bay-editing="true"] .dock-chip[draggable="true"] { cursor: grab; }
+.frame[data-two-bay-editing="true"] #two-bay-chip-removal { transition: background 120ms ease; }
 .two-bay-edit-footer {
   position: sticky;
   bottom: 0;

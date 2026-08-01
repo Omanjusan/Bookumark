@@ -46,3 +46,12 @@ test("connects the data-driven toolbox and add drop to the active draft", () => 
   assert.match(active, /renderTwoBayToolbox\(twoBayChipToolbox\)/);
   assert.match(active, /bindTwoBayToolboxDrag[\s\S]*?editSession\.update[\s\S]*?addTwoBayChip/);
 });
+
+test("connects chip move and explicit removal drops to the active draft", () => {
+  const active = source.slice(
+    source.indexOf("async function loadAndStartPanelRuntime"),
+    source.indexOf("export async function loadAndStartLegacyPanelRuntime"),
+  );
+  assert.match(active, /bindTwoBayChipDrag[\s\S]*?editSession\.update/);
+  assert.match(active, /drop\.type === "remove"[\s\S]*?removeTwoBayChip[\s\S]*?moveTwoBayChip/);
+});
