@@ -117,6 +117,7 @@ import {
 import type {
   PanelInitialLoadController,
 } from "./lib/panel-initial-load-controller.js";
+import { loadPanelTwoBayState } from "./lib/panel-two-bay-bootstrap.js";
 import { createFolderNavigationHistory } from "./lib/folder-navigation-history.js";
 import type { FolderNavigationHistory } from "./lib/folder-navigation-history.js";
 import { renderListView } from "./lib/list-view.js";
@@ -1127,7 +1128,52 @@ function rebuildActiveDockingLayout(
   }
 }
 
+/** 新しい上下2ベイ構成とブックマーク候補だけを原子的に通常runtimeへ公開する。 */
 async function loadAndStartPanelRuntime(): Promise<void> {
+  const twoBayState = await loadPanelTwoBayState();
+  const candidateTreeItems = await getBookmarkTreeItems();
+  const savedFolderOrders = await loadFolderOrders();
+  let candidateFolderOrders: CustomOrderByFolder;
+  if (savedFolderOrders === null) {
+    candidateFolderOrders = migrateLegacyOrder(await loadOrder(), candidateTreeItems);
+    await saveFolderOrders(candidateFolderOrders);
+  } else {
+    const reconciled = reconcileFolderOrders(savedFolderOrders, candidateTreeItems);
+    candidateFolderOrders = reconciled.orders;
+    if (reconciled.changed) await saveFolderOrders(candidateFolderOrders);
+  }
+
+  const savedFolder = await loadCurrentFolder();
+  const candidateFolderGuid = resolveCurrentFolderGuid(candidateTreeItems, savedFolder);
+  if (candidateFolderGuid === null) throw new Error("Firefox bookmark root was not found");
+  const candidateFolder = await loadPanelFolderCandidate({
+    treeItems: candidateTreeItems,
+    folderOrders: candidateFolderOrders,
+    movementMode: fixedDisplayState.display.movementMode,
+    folderGuid: candidateFolderGuid,
+  }, {
+    loadHistory: loadBookmarkHistory,
+    saveCurrentFolder,
+  });
+
+  // 新構成とブックマークの全非同期ロード成功後にだけ通常runtimeへ公開する。
+  treeItems = candidateTreeItems;
+  folderOrders = candidateFolderOrders;
+  currentFolderGuid = candidateFolder.folderGuid;
+  currentFolders = candidateFolder.folders;
+  currentItems = candidateFolder.items;
+  countEl.textContent = `${currentItems.length}件`;
+  folderHistory = createFolderNavigationHistory([
+    ...candidateFolder.storedFolder.ancestorGuids,
+    candidateFolder.storedFolder.guid,
+  ]);
+  delete root.dataset.activeLayoutId;
+  root.dataset.twoBaySystemBay = twoBayState.configuration.systemBay;
+  redraw();
+}
+
+/** 旧4方向Dockingのコードを保存したまま、通常起動から外した凍結runtime。 */
+export async function loadAndStartLegacyPanelRuntime(): Promise<void> {
   const loadedDockingState = await loadPanelDockingState();
   let startupDocuments: DockingDocuments | null = null;
   await runPanelDockingStartup(
@@ -1519,6 +1565,32 @@ const panelErrorNotifications = createPanelErrorNotificationAdapter({
     console.error("panel error notification failed:", failure);
   },
 });
+
+/** 旧レイアウト管理とベイ工場をDOMに残したまま利用者の導線から切り離す。 */
+function disconnectLegacyDockingSurface(): void {
+  const legacyEntryPoints: readonly HTMLElement[] = [
+    layoutSelect,
+    layoutDefault,
+    layoutManage,
+    layoutEditEntry,
+    layoutEditUnavailable,
+    layoutEditBar,
+    layoutEditDiscardConfirmation,
+    bayPicker,
+    bayFactoryAdd,
+    bayFactoryEntry,
+    bayFactorySelection,
+    layoutBayTrash,
+    layoutDialog,
+    bayFactoryDialog,
+    dockingRailRoots.left,
+    dockingRailRoots.right,
+  ];
+  for (const element of legacyEntryPoints) element.hidden = true;
+  frameRoot.dataset.dockingRuntime = "two-bay";
+}
+
+disconnectLegacyDockingSurface();
 initialLoadController = createPanelInitialLoadController({
   load: loadAndStartPanelRuntime,
   publish: () => {},
