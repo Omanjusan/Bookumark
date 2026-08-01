@@ -414,3 +414,7 @@ DB-14の要求分析、懸念事項のインタビュー、仕様確定、テス
 - 空行案内は`aria-hidden`かつ`pointer-events: none`とし、未知チップの保存状態、ツールボックス追加、配置済みチップ移動のD&D契約を変更していない。
 - UI-4対象テスト、全183テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
 - UI-5の実行GOは未取得であり、次はUI-5「全自動回帰とFirefox表示確認」から再開する。
+- UI改善 UI-5「全自動回帰とFirefox表示確認」を完了し、状態を`UI-5_COMPLETE`とした。
+- Firefox実機で統合ツールバー、タイトル情報チップ、system固定枠、3面の視覚階層、空ベイ表示を確認し、ユーザーから全項目の正常動作確認を得た。
+- UI-5Aとして、開発ビルドのDB-15性能計測処理と保存契約を維持したまま、左下の計測パネルを常時非表示にした。
+- UI-5A対象テスト、全183テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。

@@ -77,6 +77,7 @@ function render(): void {
 /** 開発計測パネルをbody末尾へ生成する。 */
 function createView(): { output: HTMLElement } {
   const details = document.createElement("details");
+  details.hidden = true;
   details.style.cssText = "position:fixed;z-index:9999;left:8px;bottom:8px;max-width:calc(100vw - 16px);padding:6px;background:#111;color:#eee;border:1px solid #777;font:11px monospace";
   const summary = document.createElement("summary");
   summary.textContent = "DB-15性能計測";

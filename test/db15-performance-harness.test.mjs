@@ -10,6 +10,7 @@ test("injects the DB-15 performance harness into development builds only", async
   assert.match(build, /<script type="module" src="\.\.\/dev\/db15-performance\.js"><\/script>/);
   assert.match(harness, /requestAnimationFrame\(\(\) => requestAnimationFrame/);
   assert.match(harness, /sessionStorage/);
+  assert.match(harness, /details\.hidden = true/);
   for (const metric of ["startup", "view-switch", "search", "sort", "layout-switch", "layout-edit", "drop-redraw"]) {
     assert.match(harness, new RegExp(`"${metric}"`));
   }
