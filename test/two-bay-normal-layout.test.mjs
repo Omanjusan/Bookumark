@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const css = await readFile(new URL("../panel/panel.css", import.meta.url), "utf8");
+const html = await readFile(new URL("../panel/panel.html", import.meta.url), "utf8");
 const source = await readFile(new URL("../src/panel/panel.ts", import.meta.url), "utf8");
 const viewSource = await readFile(new URL("../src/panel/lib/two-bay-view.ts", import.meta.url), "utf8");
 
@@ -12,6 +13,17 @@ test("uses a full-height three-row layout without page scrolling", () => {
   assert.match(css, /\.frame\[data-docking-runtime="two-bay"\]\s*\{[^}]*height:\s*100vh/s);
   assert.match(css, /\.frame\[data-docking-runtime="two-bay"\]\s+\.docking-grid\s*\{[^}]*grid-template-areas:[^}]*"top"[^}]*"center"[^}]*"bottom"/s);
   assert.match(css, /\.frame\[data-docking-runtime="two-bay"\]\s+#docking-center\s*\{[^}]*overflow-y:\s*auto/s);
+});
+
+test("removes the legacy title row from the active two-bay layout", () => {
+  assert.match(html, /<header>[\s\S]*?<h1>Bookumark<\/h1>[\s\S]*?id="count"/);
+  assert.match(css, /\.frame > header\[hidden\]\s*\{\s*display:\s*none/);
+  assert.match(source, /const legacyPanelHeader = document\.querySelector\("\.frame > header"\)/);
+  const disconnect = source.slice(
+    source.indexOf("function disconnectLegacyDockingSurface"),
+    source.indexOf("disconnectLegacyDockingSurface();"),
+  );
+  assert.match(disconnect, /legacyPanelHeader/);
 });
 
 test("gives every visible bay row its own horizontal scroll viewport", () => {

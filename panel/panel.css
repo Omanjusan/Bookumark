@@ -231,6 +231,7 @@ header {
   gap: 8px;
   padding: 4px 4px 10px;
 }
+.frame > header[hidden] { display: none; }
 header button {
   flex: none;
   white-space: nowrap;

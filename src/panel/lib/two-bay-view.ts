@@ -57,9 +57,12 @@ export function renderTwoBay(
     row.className = "two-bay-row";
     row.dataset.bay = plan.bay;
     row.dataset.row = String(rowPlan.row);
-    row.setAttribute("aria-label", `${plan.bay === "top" ? "上" : "下"}ベイ${rowPlan.row}行目`);
+    const rowLabel = `${plan.bay === "top" ? "上" : "下"}ベイ${rowPlan.row}行目`;
+    row.setAttribute("aria-label", rowLabel);
 
     if (rowPlan.row === 1 && options.systemSlot !== undefined) {
+      row.className += " two-bay-row--system";
+      row.setAttribute("aria-label", `${rowLabel}・統合ツールバー`);
       options.systemSlot.dataset.bay = plan.bay;
       options.systemSlot.draggable = false;
       row.appendChild(options.systemSlot);

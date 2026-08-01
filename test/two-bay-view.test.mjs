@@ -92,6 +92,8 @@ test("keeps the independent system slot first in the selected bay during normal 
 
   renderTwoBay(root, plan, registry(fake), { document: fake.document, systemSlot: slot });
   assert.equal(root.children[0].children[0], slot);
+  assert.equal(root.children[0].className, "two-bay-row two-bay-row--system");
+  assert.equal(root.children[0].attributes["aria-label"], "下ベイ1行目・統合ツールバー");
   assert.equal(slot.dataset.bay, "bottom");
   assert.equal(slot.draggable, false);
 

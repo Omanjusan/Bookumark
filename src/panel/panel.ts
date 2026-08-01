@@ -198,6 +198,7 @@ import type { ViewType } from "./lib/view-type.js";
 
 const root = document.getElementById("app") as HTMLElement;
 const frameRoot = document.querySelector(".frame") as HTMLElement;
+const legacyPanelHeader = document.querySelector(".frame > header") as HTMLElement;
 const folderRoot = document.getElementById("folders") as HTMLElement;
 const countEl = document.getElementById("count") as HTMLElement;
 const systemMenuSlot = document.getElementById("system-menu-slot") as HTMLElement;
@@ -1749,6 +1750,7 @@ const panelErrorNotifications = createPanelErrorNotificationAdapter({
 /** 旧レイアウト管理とベイ工場をDOMに残したまま利用者の導線から切り離す。 */
 function disconnectLegacyDockingSurface(): void {
   const legacyEntryPoints: readonly HTMLElement[] = [
+    legacyPanelHeader,
     layoutSelect,
     layoutDefault,
     layoutManage,

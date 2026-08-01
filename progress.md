@@ -401,3 +401,9 @@ DB-14の要求分析、懸念事項のインタビュー、仕様確定、テス
 - メニュー本体は横スクロール領域外に維持し、固定枠の実座標から上段では下向き、下段では上向きにviewport基準で配置するようにした。
 - UI-2対象テスト、全183テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
 - UI-3以降の実装GOは未取得であり、次はUI-3「旧タイトル段撤去と統合レイアウト」のテストケース確認とRed-Green GO確認から再開する。
+- UI改善 UI-3「旧タイトル段撤去と統合レイアウト」のRed-Greenを完了し、状態を`UI-3_COMPLETE`とした。
+- 上下2ベイruntime開始時に、旧タイトル、旧件数、旧レイアウト管理、旧ベイ工場導線を含むheader全体を非表示化し、通常UIでの専有高を0にした。
+- 凍結した旧runtimeのDOM参照互換性を維持するためheader要素自体は削除せず、既存の旧surface切断境界へheaderを追加した。
+- system固定枠を持つ1行目へ`two-bay-row--system`と「統合ツールバー」のアクセシブル名を付け、固定枠と情報・操作チップが同じ段であることを明示した。
+- UI-3対象テスト、全183テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
+- UI-4以降の実装GOは未取得であり、次はUI-4「3面の視覚階層、余白、空ベイ表示」のテストケース確認とRed-Green GO確認から再開する。
