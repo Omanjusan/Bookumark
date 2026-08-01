@@ -15,13 +15,14 @@ test("uses a full-height three-row layout without page scrolling", () => {
 });
 
 test("gives every visible bay row its own horizontal scroll viewport", () => {
-  assert.match(css, /\.two-bay-row\s*\{[^}]*display:\s*flex[^}]*overflow-x:\s*auto[^}]*overflow-y:\s*hidden/s);
+  assert.match(css, /\.two-bay-row\s*\{[^}]*display:\s*flex[^}]*width:\s*100%[^}]*box-sizing:\s*border-box[^}]*overflow-x:\s*auto[^}]*overflow-y:\s*hidden/s);
   assert.match(css, /\.frame\[data-docking-runtime="two-bay"\]\s+\.dock-rail--bottom\s*\{[^}]*flex-direction:\s*column-reverse/s);
 });
 
 test("groups normal rows inside one expanding bay frame", () => {
   assert.match(css, /\.dock-rail\[data-two-bay-presentation="normal"\]\s*\{[^}]*gap:\s*0[^}]*border:\s*1px solid var\(--border\)[^}]*border-radius:/s);
   assert.match(css, /\.dock-rail\[data-two-bay-presentation="normal"\] > \.two-bay-row\s*\{[^}]*border:\s*0[^}]*border-radius:\s*0[^}]*background:\s*transparent/s);
+  assert.doesNotMatch(css, /data-two-bay-presentation="normal"\][^{]*\.two-bay-row \+ \.two-bay-row\s*\{/);
   assert.match(viewSource, /root\.dataset\.twoBayPresentation\s*=\s*options\.edit === undefined \? "normal" : "edit"/);
 });
 

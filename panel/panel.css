@@ -552,12 +552,6 @@ header h1 {
   border-radius: 0;
   background: transparent;
 }
-.frame[data-docking-runtime="two-bay"] .dock-rail--top[data-two-bay-presentation="normal"] > .two-bay-row + .two-bay-row {
-  border-top: 1px solid var(--border);
-}
-.frame[data-docking-runtime="two-bay"] .dock-rail--bottom[data-two-bay-presentation="normal"] > .two-bay-row + .two-bay-row {
-  border-bottom: 1px solid var(--border);
-}
 .two-bay-row {
   display: flex;
   flex: none;
@@ -565,6 +559,8 @@ header h1 {
   gap: 6px;
   min-height: 38px;
   min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
   padding: 5px;
   overflow-x: auto;
   overflow-y: hidden;
@@ -613,13 +609,6 @@ header h1 {
   border: 0;
   border-radius: 0;
   background: transparent;
-}
-.two-bay-edit-rows .two-bay-row + .two-bay-row {
-  border-top: 1px solid var(--border);
-}
-.dock-rail--bottom .two-bay-edit-rows .two-bay-row + .two-bay-row {
-  border-top: 0;
-  border-bottom: 1px solid var(--border);
 }
 .two-bay-hidden-placeholder {
   position: relative;
