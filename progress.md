@@ -322,3 +322,9 @@ DB-14の要求分析、懸念事項のインタビュー、仕様確定、テス
 - systemベイ最低1行、表示行・所属行の範囲、instance IDと行内orderの一意性、採番境界を表明し、非表示行チップを保持する契約と防御的コピーを追加した。
 - TB-1対象8テスト、全159テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
 - TB-2以降の実装GOは未取得であり、次はTB-2「正規化、破損復旧、単一キー保存」のテストケース確認とRed-Green GO確認から再開する。
+- 上下2ベイ再設計TB-2「正規化、破損復旧、単一キー保存」のRed-Greenを完了し、状態を`TB-2_COMPLETE`とした。
+- `twoBayConfiguration.v1`だけを読み書きする独立ストレージ境界を追加し、旧3キーを読込・保存要求へ含めない契約を固定した。
+- 新キー未保存と構造破損は内部初期値候補へ復旧し、部分破損は表示行数、system最低1行、chip ID、所属行、行内order、settings、採番境界だけを補正する。未知chip typeと非表示行チップは保持する。
+- 正常構成は暗黙保存せず、補正・fallback候補だけを保存する。復旧保存失敗は呼び出し元へ伝播し、候補保存成功前に通常runtimeを開始させない境界を用意した。
+- TB-2対象12テスト、全161テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
+- TB-3以降の実装GOは未取得であり、次はTB-3「新起動境界と旧ランタイム切断」のテストケース確認とRed-Green GO確認から再開する。

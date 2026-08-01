@@ -484,9 +484,9 @@ Firefox固有の固定配置、スクロール、D&D、再起動復元は自動�
 ## 18. 現在の状態
 
 ```text
-TB-1_COMPLETE
+TB-2_COMPLETE
 IMPLEMENTATION_IN_PROGRESS
-NEXT_PHASE=TB-2
+NEXT_PHASE=TB-3
 ```
 
 ### 2026-08-01 TB-1完了
@@ -497,4 +497,14 @@ NEXT_PHASE=TB-2
 - 非表示行のチップを正常な保存構成として許可し、初期値生成と構成複製を防御的コピーにした。
 - TB-1対象テスト、全159テスト、production build、Firefox拡張lint、`git diff --check`の成功を確認した。
 
-次回はTB-2「正規化、破損復旧、単一キー保存」のテストケースを確認し、明示的なGOを得てからRed-Greenを開始する。
+TB-1完了時点の次フェーズをTB-2「正規化、破損復旧、単一キー保存」とした。
+
+### 2026-08-01 TB-2完了
+
+- `twoBayConfiguration.v1`だけを読み書きする独立ストレージ境界を追加した。
+- 正常構成を防御的コピーのまま変更せず返し、新キー未保存または構造破損では内部初期値候補へ復旧する正規化を追加した。
+- 表示行数、system最低1行、chip ID、所属行、行内order、settings、next sequenceを部分補正し、未知chip typeと非表示行チップを保持するようにした。
+- 補正・fallback候補だけを保存し、保存失敗を呼び出し元へ伝播して通常runtime開始前に止められる境界を追加した。
+- TB-2対象12テスト、全161テスト、production build、Firefox拡張lint、`git diff --check`の成功を確認した。
+
+次回はTB-3「新起動境界と旧ランタイム切断」のテストケースを確認し、明示的なGOを得てからRed-Greenを開始する。
