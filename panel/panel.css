@@ -202,6 +202,13 @@ body {
   border-top: 1px solid var(--border);
   background: var(--surface);
 }
+.frame[data-two-bay-edit-blocked="true"] .two-bay-edit-bay,
+.frame[data-two-bay-edit-blocked="true"] #two-bay-chip-toolbox,
+.frame[data-two-bay-edit-blocked="true"] #two-bay-chip-removal {
+  pointer-events: none;
+  opacity: 0.55;
+}
+#two-bay-edit-status { margin-right: auto; color: var(--text-muted); }
 
 header {
   display: flex;

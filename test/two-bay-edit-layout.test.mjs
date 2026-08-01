@@ -9,6 +9,11 @@ const source = await readFile(new URL("../src/panel/panel.ts", import.meta.url),
 test("provides the edit canvas, removal area, and persistent action footer", () => {
   assert.match(html, /id="two-bay-edit-canvas"[^>]*hidden[\s\S]*?id="two-bay-chip-toolbox"/);
   assert.match(html, /id="two-bay-chip-removal"[\s\S]*?id="two-bay-edit-confirm"[^>]*disabled[\s\S]*?id="two-bay-edit-cancel"/);
+  assert.match(html, /id="two-bay-edit-retry"[^>]*hidden[\s\S]*?id="two-bay-edit-status"/);
+});
+
+test("blocks editing surfaces while a failed save candidate is pending", () => {
+  assert.match(css, /data-two-bay-edit-blocked="true"[\s\S]*?pointer-events:\s*none/);
 });
 
 test("hides normal center content and scrolls only the minimum-sized edit canvas", () => {
@@ -59,4 +64,8 @@ test("connects chip move and explicit removal drops to the active draft", () => 
 test("registers inert date and clock renderers only in the active two-bay view", () => {
   assert.match(source, /createTwoBayMockChipRenderers/);
   assert.match(source, /createDockingChipRendererRegistry\(runtime\.renderers, createTwoBayMockChipRenderers\(\)\)/);
+});
+
+test("adopts a successful edit save into the system switch baseline", () => {
+  assert.match(source, /onCommitted:[\s\S]*?systemSwitchSession\.adopt\(configuration\)[\s\S]*?renderActiveTwoBayConfiguration/);
 });

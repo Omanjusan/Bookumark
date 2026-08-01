@@ -66,3 +66,14 @@ test("does not save when the selected system bay is unchanged", async () => {
   assert.equal((await session.switchTo("top")).systemBay, "top");
   assert.equal(writes, 0);
 });
+
+test("adopts a configuration committed by the edit transaction without saving it again", () => {
+  const session = createTwoBaySystemSwitchSession(createInitialTwoBayConfiguration(), {
+    save: async () => { throw new Error("must not save"); },
+  });
+  const edited = createInitialTwoBayConfiguration();
+  edited.bays.bottom.visibleRows = 1;
+  session.adopt(edited);
+  edited.bays.bottom.visibleRows = 2;
+  assert.equal(session.committed().bays.bottom.visibleRows, 1);
+});

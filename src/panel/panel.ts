@@ -206,7 +206,9 @@ const systemBayStatus = document.getElementById("system-bay-status") as HTMLElem
 const twoBayReset = document.getElementById("two-bay-reset") as HTMLButtonElement;
 const twoBayEditCanvas = document.getElementById("two-bay-edit-canvas") as HTMLElement;
 const twoBayEditConfirm = document.getElementById("two-bay-edit-confirm") as HTMLButtonElement;
+const twoBayEditRetry = document.getElementById("two-bay-edit-retry") as HTMLButtonElement;
 const twoBayEditCancel = document.getElementById("two-bay-edit-cancel") as HTMLButtonElement;
+const twoBayEditStatus = document.getElementById("two-bay-edit-status") as HTMLElement;
 const twoBayChipToolbox = document.getElementById("two-bay-chip-toolbox") as HTMLElement;
 const commonNotificationDialog = document.getElementById(
   "common-notification-dialog",
@@ -1252,6 +1254,7 @@ async function loadAndStartPanelRuntime(): Promise<void> {
     onCommitted: (configuration) => renderActiveTwoBayConfiguration(configuration),
   });
   const editSession = createTwoBayEditSession();
+  let editController: ReturnType<typeof bindTwoBayEditMode> | null = null;
   renderTwoBayToolbox(twoBayChipToolbox);
   /** 行数操作後のdraftを再描画し、次の編集操作へ同じセッションを接続する。 */
   const renderEditDraft = (configuration: TwoBayConfiguration): void => {
@@ -1261,19 +1264,26 @@ async function loadAndStartPanelRuntime(): Promise<void> {
         draft.bays = changed.bays;
       });
       renderEditDraft(next);
+      editController?.refresh();
     });
   };
-  bindTwoBayEditMode({
+  editController = bindTwoBayEditMode({
     entry: systemBayEditEntry,
     menu: systemMenu,
     frame: frameRoot,
     canvas: twoBayEditCanvas,
     confirm: twoBayEditConfirm,
+    retry: twoBayEditRetry,
     cancel: twoBayEditCancel,
+    status: twoBayEditStatus,
   }, editSession, {
     getConfiguration: () => systemSwitchSession.committed(),
     onDraft: renderEditDraft,
     onCancelled: (configuration) => renderActiveTwoBayConfiguration(configuration),
+    onCommitted: (configuration) => {
+      systemSwitchSession.adopt(configuration);
+      renderActiveTwoBayConfiguration(configuration);
+    },
   });
   bindTwoBayToolboxDrag(twoBayChipToolbox, frameRoot, (drop) => {
     if (!editSession.active) return;
@@ -1283,6 +1293,7 @@ async function loadAndStartPanelRuntime(): Promise<void> {
       draft.nextChipSequence = changed.nextChipSequence;
     });
     renderEditDraft(next);
+    editController?.refresh();
   });
   bindTwoBayChipDrag(frameRoot, (drop) => {
     if (!editSession.active) return;
@@ -1293,6 +1304,7 @@ async function loadAndStartPanelRuntime(): Promise<void> {
       draft.bays = changed.bays;
     });
     renderEditDraft(next);
+    editController?.refresh();
   });
 }
 

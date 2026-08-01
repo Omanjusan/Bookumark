@@ -19,6 +19,7 @@ export interface TwoBaySystemSwitchSession {
   cancel(): TwoBayConfiguration;
   committed(): TwoBayConfiguration;
   candidate(): TwoBayConfiguration | null;
+  adopt(configuration: TwoBayConfiguration): void;
 }
 
 /** systemベイ切り替え候補を保存成功後だけ正本へ昇格するセッションを生成する。 */
@@ -82,5 +83,9 @@ export function createTwoBaySystemSwitchSession(
     candidate: (): TwoBayConfiguration | null => candidate === null
       ? null
       : cloneTwoBayConfiguration(candidate),
+    adopt(configuration): void {
+      if (saving || candidate !== null) throw new Error("system switch session is busy");
+      committed = cloneTwoBayConfiguration(configuration);
+    },
   };
 }

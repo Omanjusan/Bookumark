@@ -42,3 +42,44 @@ test("cancels by returning the baseline and discarding the draft", () => {
   assert.equal(session.draft(), null);
 });
 
+test("saves the whole draft once and closes only after success", async () => {
+  const saved = [];
+  const session = createTwoBayEditSession({ save: async (value) => saved.push(value) });
+  session.begin(createInitialTwoBayConfiguration());
+  session.update((draft) => { draft.bays.bottom.visibleRows = 1; });
+
+  const committed = await session.confirm();
+  assert.equal(saved.length, 1);
+  assert.equal(saved[0].bays.bottom.visibleRows, 1);
+  assert.equal(committed.bays.bottom.visibleRows, 1);
+  assert.equal(session.active, false);
+});
+
+test("retains an identical failed candidate for retry and blocks further edits", async () => {
+  const saved = [];
+  let fail = true;
+  const session = createTwoBayEditSession({
+    save: async (value) => { saved.push(value); if (fail) throw new Error("failed"); },
+  });
+  session.begin(createInitialTwoBayConfiguration());
+  session.update((draft) => { draft.bays.bottom.visibleRows = 1; });
+
+  await assert.rejects(session.confirm(), /failed/);
+  assert.equal(session.pending, true);
+  assert.throws(() => session.update(() => {}), /pending/);
+  fail = false;
+  const committed = await session.retry();
+  assert.deepEqual(saved[1], saved[0]);
+  assert.equal(committed.bays.bottom.visibleRows, 1);
+});
+
+test("cancels a failed save candidate back to its baseline", async () => {
+  const session = createTwoBayEditSession({ save: async () => { throw new Error("failed"); } });
+  session.begin(createInitialTwoBayConfiguration());
+  session.update((draft) => { draft.bays.bottom.visibleRows = 1; });
+  await assert.rejects(session.confirm());
+  const restored = session.cancel();
+  assert.equal(restored.bays.bottom.visibleRows, 0);
+  assert.equal(session.pending, false);
+  assert.equal(session.active, false);
+});
