@@ -375,3 +375,10 @@ DB-14の要求分析、懸念事項のインタビュー、仕様確定、テス
 - 0行プレースホルダー、ベイ間の隙間、中央領域外へのdropとドラッグ中断は無効とし、ベイ自体にはドラッグ開始手段を設けなかった。
 - TB-9対象9テスト、全179テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
 - TB-10以降の実装GOは未取得であり、次はTB-10「日付・時計モックチップ」のテストケース確認とRed-Green GO確認から再開する。
+- 上下2ベイ再設計TB-10「日付・時計モックチップ」のRed-Greenを完了し、状態を`TB-10_COMPLETE`とした。
+- 情報タブの日付・時計を有効化し、既存チップと同じ追加・移動・除去D&Dへ接続した。
+- 日付と時計を固定文言で描画する追加rendererを実装し、同型の複数instanceも独立DOMとして保持した。
+- モックrendererは実日時取得、定期更新、書式設定、イベントlistener、共有状態のread/updateを行わない。
+- 既存6チップのregistry契約を維持し、日付・時計は新しい上下2ベイruntimeにだけ追加登録した。
+- TB-10対象6テスト、全180テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
+- TB-11以降の実装GOは未取得であり、次はTB-11「確定、キャンセル、保存失敗再試行」のテストケース確認とRed-Green GO確認から再開する。

@@ -55,3 +55,8 @@ test("connects chip move and explicit removal drops to the active draft", () => 
   assert.match(active, /bindTwoBayChipDrag[\s\S]*?editSession\.update/);
   assert.match(active, /drop\.type === "remove"[\s\S]*?removeTwoBayChip[\s\S]*?moveTwoBayChip/);
 });
+
+test("registers inert date and clock renderers only in the active two-bay view", () => {
+  assert.match(source, /createTwoBayMockChipRenderers/);
+  assert.match(source, /createDockingChipRendererRegistry\(runtime\.renderers, createTwoBayMockChipRenderers\(\)\)/);
+});

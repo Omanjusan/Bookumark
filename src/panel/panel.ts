@@ -130,6 +130,7 @@ import { renderTwoBayToolbox } from "./lib/two-bay-toolbox-view.js";
 import { bindTwoBayToolboxDrag } from "./lib/two-bay-toolbox-drag.js";
 import { bindTwoBayChipDrag } from "./lib/two-bay-chip-drag.js";
 import { moveTwoBayChip, removeTwoBayChip } from "./lib/two-bay-chip-edit.js";
+import { createTwoBayMockChipRenderers } from "./lib/two-bay-mock-chip-renderers.js";
 import type { TwoBayConfiguration } from "./lib/two-bay-persistence-model.js";
 import { createFolderNavigationHistory } from "./lib/folder-navigation-history.js";
 import type { FolderNavigationHistory } from "./lib/folder-navigation-history.js";
@@ -979,7 +980,7 @@ function renderActiveTwoBayConfiguration(
   applyDockingSharedState(initialTwoBayState);
   activeControlStore = createDockingBasicControlStore(initialTwoBayState);
   const runtime = createPanelChipRuntime();
-  const registry = createDockingChipRendererRegistry(runtime.renderers);
+  const registry = createDockingChipRendererRegistry(runtime.renderers, createTwoBayMockChipRenderers());
   const drawingPlan = buildTwoBayDrawingPlan(configuration);
   const topResult = renderTwoBay(dockingRailRoots.top, drawingPlan.top, registry, {
     edit: onRowsChange === undefined ? undefined : {

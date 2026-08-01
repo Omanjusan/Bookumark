@@ -484,9 +484,9 @@ Firefox固有の固定配置、スクロール、D&D、再起動復元は自動�
 ## 18. 現在の状態
 
 ```text
-TB-9_COMPLETE
+TB-10_COMPLETE
 IMPLEMENTATION_IN_PROGRESS
-NEXT_PHASE=TB-10
+NEXT_PHASE=TB-11
 ```
 
 ### 2026-08-01 TB-1完了
@@ -587,4 +587,15 @@ TB-8完了時点の次フェーズをTB-9「行内・行間・上下間移動、
 - ベイ自体にはドラッグ開始手段を設けず、除去できない構造を維持した。
 - TB-9対象9テスト、全179テスト、production build、Firefox拡張lint、`git diff --check`の成功を確認した。
 
-TB-9完了時点の次フェーズをTB-10「日付・時計モックチップ」とする。
+TB-9完了時点の次フェーズをTB-10「日付・時計モックチップ」とした。
+
+### 2026-08-01 TB-10完了
+
+- 情報タブの日付・時計ツールを有効化し、既存チップと同じ追加・移動・除去D&Dへ接続した。
+- 日付と時計を固定文言のプレースホルダーとして描画する追加rendererを実装した。
+- 同じモックchip typeを複数配置しても、instance IDごとに独立したDOMとして描画するようにした。
+- モックrendererは実日時の取得、定期更新、書式設定、イベントlistener、共有状態のread/updateを行わない。
+- 既存6チップのregistry契約を維持し、日付・時計rendererは新しい上下2ベイruntimeにだけ追加登録した。
+- TB-10対象6テスト、全180テスト、production build、Firefox拡張lint、`git diff --check`の成功を確認した。
+
+TB-10完了時点の次フェーズをTB-11「確定、キャンセル、保存失敗再試行」とする。

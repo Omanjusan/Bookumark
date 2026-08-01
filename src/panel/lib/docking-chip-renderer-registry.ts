@@ -29,10 +29,14 @@ export interface DockingChipRenderResult {
 /** 基本6チップの描画関数を未知種へ安全に応答するレジストリへ変換する。 */
 export function createDockingChipRendererRegistry(
   renderers: BasicDockingChipRenderers,
+  additionalRenderers: Readonly<Record<string, DockingChipRenderer>> = {},
 ): DockingChipRendererRegistry {
   const entries = new Map<string, DockingChipRenderer>(
     BASIC_DOCKING_CHIP_TYPES.map((chipType) => [chipType, renderers[chipType]]),
   );
+  for (const [chipType, renderer] of Object.entries(additionalRenderers)) {
+    if (!entries.has(chipType)) entries.set(chipType, renderer);
+  }
   return {
     has: (chipType): boolean => entries.has(chipType),
     get: (chipType): DockingChipRenderer | undefined => entries.get(chipType),

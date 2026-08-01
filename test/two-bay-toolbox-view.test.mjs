@@ -19,7 +19,7 @@ test("renders tabs from definitions and switches the visible tool panel", () => 
   assert.equal(panels[0].hidden, true);
   assert.equal(panels[3].hidden, false);
   assert.deepEqual(panels[3].children.map((tool) => [tool.textContent, tool.draggable, tool.disabled]), [
-    ["日付", false, true], ["時計", false, true],
+    ["日付", true, false], ["時計", true, false],
   ]);
 });
 
@@ -35,4 +35,3 @@ function createFakeDocument() {
   });
   return { document: { createElement: element }, element };
 }
-

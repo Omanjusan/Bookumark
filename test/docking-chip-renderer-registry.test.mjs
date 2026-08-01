@@ -79,6 +79,16 @@ test("skips unknown and failed chips while continuing the same bay", () => {
   });
 });
 
+test("accepts inert two-bay renderers without changing the basic registry contract", () => {
+  const registry = createDockingChipRendererRegistry(rendererSet(), {
+    date: () => ({ chipType: "date" }),
+    clock: () => ({ chipType: "clock" }),
+  });
+  assert.equal(registry.has("date"), true);
+  assert.equal(registry.has("clock"), true);
+  assert.equal(registry.has("future-chip"), false);
+});
+
 function rendererSet(overrides = {}) {
   return Object.fromEntries(BASIC_DOCKING_CHIP_TYPES.map((chipType) => [
     chipType,

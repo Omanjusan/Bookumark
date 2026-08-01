@@ -17,7 +17,7 @@ export const TWO_BAY_TOOLBOX_CATEGORIES: readonly TwoBayToolCategory[] = [
     tool("folder-history", "フォルダ履歴"), tool("movement-mode", "移動モード"),
   ]),
   category("display", "表示", [tool("sort", "ソート"), tool("view-type", "表示形式")]),
-  category("information", "情報", [tool("date", "日付", false), tool("clock", "時計", false)]),
+  category("information", "情報", [tool("date", "日付"), tool("clock", "時計")]),
 ];
 
 /** category定義を簡潔に生成する。 */
@@ -29,4 +29,3 @@ function category(id: string, label: string, tools: readonly TwoBayToolDefinitio
 function tool(chipType: string, label: string, enabled = true): TwoBayToolDefinition {
   return { chipType, label, enabled };
 }
-

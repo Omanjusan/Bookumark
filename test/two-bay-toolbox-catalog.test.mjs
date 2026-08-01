@@ -12,6 +12,5 @@ test("defines display categories independently from chip types", () => {
     "search", "visit-status",
   ]);
   assert.deepEqual(TWO_BAY_TOOLBOX_CATEGORIES[3].tools.map((tool) => tool.label), ["日付", "時計"]);
-  assert.equal(TWO_BAY_TOOLBOX_CATEGORIES[3].tools.every((tool) => !tool.enabled), true);
+  assert.equal(TWO_BAY_TOOLBOX_CATEGORIES[3].tools.every((tool) => tool.enabled), true);
 });
-

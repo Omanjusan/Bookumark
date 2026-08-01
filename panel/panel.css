@@ -170,6 +170,17 @@ body {
 .two-bay-toolbox-panel[hidden] { display: none; }
 .two-bay-tool:not(:disabled) { cursor: grab; }
 .two-bay-tool:disabled { color: var(--text-faint); }
+.two-bay-mock-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--hover);
+  color: var(--text);
+  white-space: nowrap;
+}
 #two-bay-chip-removal {
   flex: none;
   padding: 18px;
