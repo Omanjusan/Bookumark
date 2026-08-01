@@ -122,6 +122,8 @@ import { buildTwoBayDrawingPlan } from "./lib/two-bay-drawing-plan.js";
 import { renderTwoBay } from "./lib/two-bay-view.js";
 import { bindTwoBaySettings } from "./lib/two-bay-settings-controller.js";
 import { createTwoBaySystemSwitchSession } from "./lib/two-bay-system-switch-session.js";
+import { createTwoBayEditSession } from "./lib/two-bay-edit-session.js";
+import { bindTwoBayEditMode } from "./lib/two-bay-edit-controller.js";
 import type { TwoBayConfiguration } from "./lib/two-bay-persistence-model.js";
 import { createFolderNavigationHistory } from "./lib/folder-navigation-history.js";
 import type { FolderNavigationHistory } from "./lib/folder-navigation-history.js";
@@ -195,6 +197,9 @@ const systemBayRetry = document.getElementById("system-bay-retry") as HTMLButton
 const systemBayCancel = document.getElementById("system-bay-cancel") as HTMLButtonElement;
 const systemBayStatus = document.getElementById("system-bay-status") as HTMLElement;
 const twoBayReset = document.getElementById("two-bay-reset") as HTMLButtonElement;
+const twoBayEditCanvas = document.getElementById("two-bay-edit-canvas") as HTMLElement;
+const twoBayEditConfirm = document.getElementById("two-bay-edit-confirm") as HTMLButtonElement;
+const twoBayEditCancel = document.getElementById("two-bay-edit-cancel") as HTMLButtonElement;
 const commonNotificationDialog = document.getElementById(
   "common-notification-dialog",
 ) as HTMLDialogElement;
@@ -1222,6 +1227,17 @@ async function loadAndStartPanelRuntime(): Promise<void> {
     reset: twoBayReset,
   }, systemSwitchSession, {
     onCommitted: (configuration) => renderActiveTwoBayConfiguration(configuration),
+  });
+  const editSession = createTwoBayEditSession();
+  bindTwoBayEditMode({
+    entry: systemBayEditEntry,
+    menu: systemMenu,
+    frame: frameRoot,
+    canvas: twoBayEditCanvas,
+    confirm: twoBayEditConfirm,
+    cancel: twoBayEditCancel,
+  }, editSession, {
+    getConfiguration: () => systemSwitchSession.committed(),
   });
 }
 

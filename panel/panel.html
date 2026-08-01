@@ -67,6 +67,18 @@
     <div id="docking-rail-top" class="dock-rail dock-rail--top" aria-label="上レール"></div>
     <div id="docking-rail-left" class="dock-rail dock-rail--left" aria-label="左レール"></div>
     <div id="docking-center" class="docking-center">
+    <section id="two-bay-edit-canvas" class="two-bay-edit-scroll" aria-label="ベイ構成編集" hidden>
+      <div class="two-bay-edit-canvas">
+        <section id="two-bay-chip-toolbox" aria-label="チップツールボックス">
+          <h2>チップツールボックス</h2>
+        </section>
+        <div id="two-bay-chip-removal" aria-label="チップ除去領域">ここへドロップしてチップを除去</div>
+        <footer class="two-bay-edit-footer">
+          <button id="two-bay-edit-confirm" type="button" disabled>確定</button>
+          <button id="two-bay-edit-cancel" type="button">キャンセル</button>
+        </footer>
+      </div>
+    </section>
     <nav id="folders" class="folder-region" aria-label="フォルダ" hidden></nav>
     <div
       id="official-move-notice"

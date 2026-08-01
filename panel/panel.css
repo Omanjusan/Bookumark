@@ -121,6 +121,53 @@ body {
 #system-bay-status { color: var(--text-muted); }
 #two-bay-reset { margin-top: 18px; }
 
+.frame[data-two-bay-editing="true"] #folders,
+.frame[data-two-bay-editing="true"] #official-move-notice,
+.frame[data-two-bay-editing="true"] #app { display: none; }
+.two-bay-edit-scroll {
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+.two-bay-edit-scroll[hidden] { display: none; }
+.two-bay-edit-canvas {
+  display: flex;
+  flex-direction: column;
+  min-width: 640px;
+  min-height: 360px;
+  height: 100%;
+  padding: 16px;
+  gap: 16px;
+}
+#two-bay-chip-toolbox {
+  flex: 1 0 auto;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 12px;
+  background: var(--surface);
+}
+#two-bay-chip-toolbox h2 { margin: 0; font-size: 15px; }
+#two-bay-chip-removal {
+  flex: none;
+  padding: 18px;
+  border: 2px dashed var(--danger);
+  border-radius: 9px;
+  color: var(--danger);
+  text-align: center;
+}
+.two-bay-edit-footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex: none;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
 header {
   display: flex;
   align-items: center;
