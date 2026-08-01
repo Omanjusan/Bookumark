@@ -36,6 +36,8 @@
 }
 
 * { box-sizing: border-box; }
+html,
+body { height: 100%; }
 body {
   margin: 0;
   background: var(--bg);
@@ -43,6 +45,7 @@ body {
   font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
   font-size: 13px;
   min-width: 0;
+  overflow: hidden;
 }
 
 .frame {
@@ -340,6 +343,48 @@ header h1 {
   min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
+}
+
+.frame[data-docking-runtime="two-bay"] {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+.frame[data-docking-runtime="two-bay"] .docking-grid {
+  flex: 1 1 auto;
+  grid-template-areas:
+    "top"
+    "center"
+    "bottom";
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: 0;
+}
+.frame[data-docking-runtime="two-bay"] #docking-center {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+.frame[data-docking-runtime="two-bay"] .dock-rail--top,
+.frame[data-docking-runtime="two-bay"] .dock-rail--bottom {
+  max-height: none;
+  overflow: visible;
+  margin: 0;
+}
+.frame[data-docking-runtime="two-bay"] .dock-rail--bottom {
+  flex-direction: column-reverse;
+}
+.two-bay-row {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 5px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
 }
 .dock-rail--bay-drop-end {
   outline: 2px dashed var(--mode-custom);

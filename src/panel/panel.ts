@@ -118,6 +118,8 @@ import type {
   PanelInitialLoadController,
 } from "./lib/panel-initial-load-controller.js";
 import { loadPanelTwoBayState } from "./lib/panel-two-bay-bootstrap.js";
+import { buildTwoBayDrawingPlan } from "./lib/two-bay-drawing-plan.js";
+import { renderTwoBay } from "./lib/two-bay-view.js";
 import { createFolderNavigationHistory } from "./lib/folder-navigation-history.js";
 import type { FolderNavigationHistory } from "./lib/folder-navigation-history.js";
 import { renderListView } from "./lib/list-view.js";
@@ -1169,6 +1171,20 @@ async function loadAndStartPanelRuntime(): Promise<void> {
   ]);
   delete root.dataset.activeLayoutId;
   root.dataset.twoBaySystemBay = twoBayState.configuration.systemBay;
+  activeChipRuntime?.disconnect();
+  activeControlStore?.disconnect();
+  const initialTwoBayState = createDefaultDockingSharedState("two-bay");
+  applyDockingSharedState(initialTwoBayState);
+  activeControlStore = createDockingBasicControlStore(initialTwoBayState);
+  const runtime = createPanelChipRuntime();
+  const registry = createDockingChipRendererRegistry(runtime.renderers);
+  const drawingPlan = buildTwoBayDrawingPlan(twoBayState.configuration);
+  const topResult = renderTwoBay(dockingRailRoots.top, drawingPlan.top, registry);
+  const bottomResult = renderTwoBay(dockingRailRoots.bottom, drawingPlan.bottom, registry);
+  const skippedChips = [...topResult.skippedChips, ...bottomResult.skippedChips];
+  if (skippedChips.length > 0) console.warn("two-bay chips were skipped:", skippedChips);
+  activeChipRuntime = runtime;
+  runtime.sync();
   redraw();
 }
 
