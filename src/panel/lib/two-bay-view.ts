@@ -36,6 +36,7 @@ export function renderTwoBay(
   const renderedInstanceIds: string[] = [];
   const skippedChips: SkippedDockingChip[] = [];
   root.replaceChildren();
+  root.dataset.twoBayPresentation = options.edit === undefined ? "normal" : "edit";
   root.hidden = plan.rows.length === 0 && options.edit === undefined;
   let rowRoot: HTMLElement = root;
 

@@ -41,6 +41,14 @@ test("styles edit-only controls and the hidden-bay overlay", () => {
   assert.match(css, /\.two-bay-hidden-overlay\s*\{[^}]*position:\s*absolute/);
 });
 
+test("keeps empty rows full-height inside one expanding edit-bay frame", () => {
+  assert.match(css, /\.two-bay-row\s*\{[^}]*min-height:\s*38px/);
+  assert.match(css, /\.two-bay-edit-rows\s*\{[^}]*gap:\s*0[^}]*border:\s*1px solid var\(--border\)[^}]*border-radius:/);
+  assert.match(css, /\.two-bay-edit-rows \.two-bay-row\s*\{[^}]*border:\s*0[^}]*border-radius:\s*0[^}]*background:\s*transparent/);
+  assert.match(css, /\.two-bay-edit-rows \.two-bay-row \+ \.two-bay-row\s*\{[^}]*border-top:/);
+  assert.match(css, /\.dock-rail--bottom \.two-bay-edit-rows \.two-bay-row \+ \.two-bay-row\s*\{[^}]*border-top:\s*0[^}]*border-bottom:/);
+});
+
 test("connects the data-driven toolbox and add drop to the active draft", () => {
   const active = source.slice(
     source.indexOf("async function loadAndStartPanelRuntime"),

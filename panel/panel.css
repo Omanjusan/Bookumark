@@ -540,11 +540,30 @@ header h1 {
 .frame[data-docking-runtime="two-bay"] .dock-rail--bottom {
   flex-direction: column-reverse;
 }
+.frame[data-docking-runtime="two-bay"] .dock-rail[data-two-bay-presentation="normal"] {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+}
+.frame[data-docking-runtime="two-bay"] .dock-rail[data-two-bay-presentation="normal"] > .two-bay-row {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.frame[data-docking-runtime="two-bay"] .dock-rail--top[data-two-bay-presentation="normal"] > .two-bay-row + .two-bay-row {
+  border-top: 1px solid var(--border);
+}
+.frame[data-docking-runtime="two-bay"] .dock-rail--bottom[data-two-bay-presentation="normal"] > .two-bay-row + .two-bay-row {
+  border-bottom: 1px solid var(--border);
+}
 .two-bay-row {
   display: flex;
   flex: none;
   align-items: center;
   gap: 6px;
+  min-height: 38px;
   min-width: 0;
   padding: 5px;
   overflow-x: auto;
@@ -582,10 +601,26 @@ header h1 {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
   min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
 }
 .dock-rail--bottom .two-bay-edit-rows { flex-direction: column-reverse; }
+.two-bay-edit-rows .two-bay-row {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.two-bay-edit-rows .two-bay-row + .two-bay-row {
+  border-top: 1px solid var(--border);
+}
+.dock-rail--bottom .two-bay-edit-rows .two-bay-row + .two-bay-row {
+  border-top: 0;
+  border-bottom: 1px solid var(--border);
+}
 .two-bay-hidden-placeholder {
   position: relative;
   min-height: 38px;
