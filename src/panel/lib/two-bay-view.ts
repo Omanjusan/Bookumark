@@ -68,6 +68,7 @@ export function renderTwoBay(
       row.appendChild(options.systemSlot);
     }
 
+    const renderedBeforeRow = renderedInstanceIds.length;
     for (const chipPlan of rowPlan.chips) {
       const chip = documentRef.createElement("div");
       chip.className = "dock-chip dock-chip--horizontal";
@@ -81,12 +82,26 @@ export function renderTwoBay(
       skippedChips.push(...result.skippedChips);
       if (result.renderedInstanceIds.length > 0) row.appendChild(chip);
     }
+    if (renderedInstanceIds.length === renderedBeforeRow) {
+      row.appendChild(createEmptyPlaceholder(documentRef));
+    }
     rowRoot.appendChild(row);
   }
   if (plan.rows.length === 0 && options.edit !== undefined) {
     rowRoot.appendChild(createHiddenPlaceholder(plan, documentRef));
   }
   return { renderedInstanceIds, skippedChips };
+}
+
+/** 表示中だが描画チップがない行へ、D&Dを妨げない用途案内を生成する。 */
+function createEmptyPlaceholder(
+  documentRef: Pick<Document, "createElement">,
+): HTMLElement {
+  const placeholder = documentRef.createElement("span");
+  placeholder.className = "two-bay-empty-placeholder";
+  placeholder.textContent = "チップを配置できます";
+  placeholder.setAttribute("aria-hidden", "true");
+  return placeholder;
 }
 
 /** 編集中だけ表示するベイ単位の行数操作ボタンを生成する。 */

@@ -38,6 +38,18 @@ test("groups normal rows inside one expanding bay frame", () => {
   assert.match(viewSource, /root\.dataset\.twoBayPresentation\s*=\s*options\.edit === undefined \? "normal" : "edit"/);
 });
 
+test("separates control, content, and lower-bay surfaces with spacing and boundaries", () => {
+  assert.match(css, /--content-surface:\s*#[0-9a-f]{6}/i);
+  assert.match(css, /@media \(prefers-color-scheme: dark\)[\s\S]*?--content-surface:\s*#[0-9a-f]{6}/i);
+  assert.match(css, /\.frame\[data-docking-runtime="two-bay"\]\s+\.docking-grid\s*\{[^}]*row-gap:\s*10px/s);
+  assert.match(css, /\.frame\[data-docking-runtime="two-bay"\]\s+#docking-center\s*\{[^}]*background:\s*var\(--content-surface\)[^}]*border-block:/s);
+  assert.match(css, /\.dock-rail\[data-two-bay-presentation="normal"\]\s*\{[^}]*background:\s*var\(--surface\)[^}]*box-shadow:/s);
+});
+
+test("styles empty visible rows as placement areas without consuming pointer input", () => {
+  assert.match(css, /\.two-bay-empty-placeholder\s*\{[^}]*border:\s*1px dashed var\(--border\)[^}]*pointer-events:\s*none/s);
+});
+
 test("renders the normalized two-bay plan before the first bookmark redraw", () => {
   const start = source.indexOf("async function loadAndStartPanelRuntime");
   const end = source.indexOf("export async function loadAndStartLegacyPanelRuntime");

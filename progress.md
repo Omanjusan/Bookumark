@@ -407,3 +407,10 @@ DB-14の要求分析、懸念事項のインタビュー、仕様確定、テス
 - system固定枠を持つ1行目へ`two-bay-row--system`と「統合ツールバー」のアクセシブル名を付け、固定枠と情報・操作チップが同じ段であることを明示した。
 - UI-3対象テスト、全183テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
 - UI-4以降の実装GOは未取得であり、次はUI-4「3面の視覚階層、余白、空ベイ表示」のテストケース確認とRed-Green GO確認から再開する。
+- UI改善 UI-4「3面の視覚階層、余白、空ベイ表示」のRed-Greenを完了し、状態を`UI-4_COMPLETE`とした。
+- ライト／ダークテーマへ中央専用の`--content-surface`を追加し、操作ベイの`--surface`より暗いブックマーク面として適用した。
+- 上ベイ、中央、下ベイのgrid行間へ10pxの余白を設け、中央面へ上下境界線、角丸、内側余白を、通常ベイ面へ薄いshadowを追加した。
+- 表示行に描画成功したチップが0件の場合は、点線枠の「チップを配置できます」を表示する。0行設定の非systemベイは従来どおり非表示とした。
+- 空行案内は`aria-hidden`かつ`pointer-events: none`とし、未知チップの保存状態、ツールボックス追加、配置済みチップ移動のD&D契約を変更していない。
+- UI-4対象テスト、全183テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
+- UI-5の実行GOは未取得であり、次はUI-5「全自動回帰とFirefox表示確認」から再開する。

@@ -48,6 +48,28 @@ test("hides a zero-row bay and skips unknown chips without omitting its visible 
   }]);
 });
 
+test("shows a non-interactive placement hint in each visible row without rendered chips", () => {
+  const fake = createFakeDocument();
+  const root = fake.element("div");
+  const slot = fake.element("div");
+
+  renderTwoBay(root, {
+    bay: "top",
+    rows: [{ row: 1, chips: [] }, { row: 2, chips: [] }],
+  }, registry(fake), { document: fake.document, systemSlot: slot });
+
+  assert.equal(root.children[0].children[0], slot);
+  assert.deepEqual(root.children.map((row) => row.children.at(-1).textContent), [
+    "チップを配置できます", "チップを配置できます",
+  ]);
+  assert.deepEqual(root.children.map((row) => row.children.at(-1).className), [
+    "two-bay-empty-placeholder", "two-bay-empty-placeholder",
+  ]);
+  assert.deepEqual(root.children.map((row) => row.children.at(-1).attributes["aria-hidden"]), [
+    "true", "true",
+  ]);
+});
+
 test("renders edit controls and a disabled placeholder for a zero-row bay", () => {
   const fake = createFakeDocument();
   const root = fake.element("div");
