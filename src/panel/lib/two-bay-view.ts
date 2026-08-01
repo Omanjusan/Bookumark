@@ -53,6 +53,7 @@ export function renderTwoBay(
   for (const rowPlan of plan.rows) {
     const row = documentRef.createElement("section");
     row.className = "two-bay-row";
+    row.dataset.bay = plan.bay;
     row.dataset.row = String(rowPlan.row);
     row.setAttribute("aria-label", `${plan.bay === "top" ? "上" : "下"}ベイ${rowPlan.row}行目`);
 

@@ -35,3 +35,14 @@ test("styles edit-only controls and the hidden-bay overlay", () => {
   assert.match(css, /\.two-bay-hidden-placeholder\s*\{[^}]*position:\s*relative/);
   assert.match(css, /\.two-bay-hidden-overlay\s*\{[^}]*position:\s*absolute/);
 });
+
+test("connects the data-driven toolbox and add drop to the active draft", () => {
+  const active = source.slice(
+    source.indexOf("async function loadAndStartPanelRuntime"),
+    source.indexOf("export async function loadAndStartLegacyPanelRuntime"),
+  );
+  assert.match(html, /id="two-bay-chip-toolbox"[^>]*aria-label="チップツールボックス"/);
+  assert.match(css, /\.two-bay-toolbox-tabs\s*\{/);
+  assert.match(active, /renderTwoBayToolbox\(twoBayChipToolbox\)/);
+  assert.match(active, /bindTwoBayToolboxDrag[\s\S]*?editSession\.update[\s\S]*?addTwoBayChip/);
+});

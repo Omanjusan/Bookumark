@@ -147,7 +147,29 @@ body {
   padding: 12px;
   background: var(--surface);
 }
-#two-bay-chip-toolbox h2 { margin: 0; font-size: 15px; }
+.two-bay-toolbox-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.two-bay-toolbox-tabs button,
+.two-bay-tool {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 9px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+.two-bay-toolbox-tabs button[aria-selected="true"] {
+  border-color: var(--mode-custom);
+  color: var(--mode-custom);
+}
+.two-bay-toolbox-panel { display: flex; flex-wrap: wrap; gap: 6px; }
+.two-bay-toolbox-panel[hidden] { display: none; }
+.two-bay-tool:not(:disabled) { cursor: grab; }
+.two-bay-tool:disabled { color: var(--text-faint); }
 #two-bay-chip-removal {
   flex: none;
   padding: 18px;

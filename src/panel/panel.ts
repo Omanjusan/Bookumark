@@ -125,6 +125,9 @@ import { createTwoBaySystemSwitchSession } from "./lib/two-bay-system-switch-ses
 import { createTwoBayEditSession } from "./lib/two-bay-edit-session.js";
 import { bindTwoBayEditMode } from "./lib/two-bay-edit-controller.js";
 import { changeTwoBayVisibleRows } from "./lib/two-bay-row-edit.js";
+import { addTwoBayChip } from "./lib/two-bay-chip-add.js";
+import { renderTwoBayToolbox } from "./lib/two-bay-toolbox-view.js";
+import { bindTwoBayToolboxDrag } from "./lib/two-bay-toolbox-drag.js";
 import type { TwoBayConfiguration } from "./lib/two-bay-persistence-model.js";
 import { createFolderNavigationHistory } from "./lib/folder-navigation-history.js";
 import type { FolderNavigationHistory } from "./lib/folder-navigation-history.js";
@@ -201,6 +204,7 @@ const twoBayReset = document.getElementById("two-bay-reset") as HTMLButtonElemen
 const twoBayEditCanvas = document.getElementById("two-bay-edit-canvas") as HTMLElement;
 const twoBayEditConfirm = document.getElementById("two-bay-edit-confirm") as HTMLButtonElement;
 const twoBayEditCancel = document.getElementById("two-bay-edit-cancel") as HTMLButtonElement;
+const twoBayChipToolbox = document.getElementById("two-bay-chip-toolbox") as HTMLElement;
 const commonNotificationDialog = document.getElementById(
   "common-notification-dialog",
 ) as HTMLDialogElement;
@@ -1245,6 +1249,7 @@ async function loadAndStartPanelRuntime(): Promise<void> {
     onCommitted: (configuration) => renderActiveTwoBayConfiguration(configuration),
   });
   const editSession = createTwoBayEditSession();
+  renderTwoBayToolbox(twoBayChipToolbox);
   /** 行数操作後のdraftを再描画し、次の編集操作へ同じセッションを接続する。 */
   const renderEditDraft = (configuration: TwoBayConfiguration): void => {
     renderActiveTwoBayConfiguration(configuration, (bay, delta) => {
@@ -1266,6 +1271,15 @@ async function loadAndStartPanelRuntime(): Promise<void> {
     getConfiguration: () => systemSwitchSession.committed(),
     onDraft: renderEditDraft,
     onCancelled: (configuration) => renderActiveTwoBayConfiguration(configuration),
+  });
+  bindTwoBayToolboxDrag(twoBayChipToolbox, frameRoot, (drop) => {
+    if (!editSession.active) return;
+    const next = editSession.update((draft) => {
+      const changed = addTwoBayChip(draft, drop);
+      draft.bays = changed.bays;
+      draft.nextChipSequence = changed.nextChipSequence;
+    });
+    renderEditDraft(next);
   });
 }
 
