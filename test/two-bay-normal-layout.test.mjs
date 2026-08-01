@@ -22,8 +22,12 @@ test("renders the normalized two-bay plan before the first bookmark redraw", () 
   const start = source.indexOf("async function loadAndStartPanelRuntime");
   const end = source.indexOf("export async function loadAndStartLegacyPanelRuntime");
   const active = source.slice(start, end);
-  assert.match(active, /buildTwoBayDrawingPlan\(twoBayState\.configuration\)/);
-  assert.match(active, /renderTwoBay\(dockingRailRoots\.top/);
-  assert.match(active, /renderTwoBay\(dockingRailRoots\.bottom/);
-  assert.ok(active.indexOf("renderTwoBay(dockingRailRoots.top") < active.indexOf("redraw()"));
+  const renderStart = source.indexOf("function renderActiveTwoBayConfiguration");
+  const renderEnd = source.indexOf("/** 動的4レール", renderStart);
+  const render = source.slice(renderStart, renderEnd);
+  assert.match(active, /renderActiveTwoBayConfiguration\(twoBayState\.configuration\)/);
+  assert.match(render, /buildTwoBayDrawingPlan\(configuration\)/);
+  assert.match(render, /renderTwoBay\(dockingRailRoots\.top/);
+  assert.match(render, /renderTwoBay\(dockingRailRoots\.bottom/);
+  assert.ok(render.indexOf("renderTwoBay(dockingRailRoots.top") < render.indexOf("redraw()"));
 });

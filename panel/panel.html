@@ -6,6 +6,11 @@
   <link rel="stylesheet" href="panel.css">
 </head>
 <body>
+  <button id="system-menu-button" type="button" aria-label="システムメニューを開く">︙</button>
+  <nav id="system-menu" aria-label="システムメニュー" hidden>
+    <button id="system-settings-entry" type="button">設定</button>
+    <button id="system-bay-edit-entry" type="button" disabled>ベイ編集</button>
+  </nav>
   <div class="frame">
     <header>
       <h1>Bookumark</h1>
@@ -87,6 +92,23 @@
     <footer id="docking-rail-bottom" class="panel-tools dock-rail dock-rail--bottom" aria-label="下レール"></footer>
     </div>
   </div>
+  <dialog id="two-bay-settings-dialog" aria-labelledby="two-bay-settings-title">
+    <div class="two-bay-settings-heading">
+      <h2 id="two-bay-settings-title">設定</h2>
+      <button id="two-bay-settings-close" type="button" aria-label="設定を閉じる">×</button>
+    </div>
+    <fieldset>
+      <legend>システムベイ</legend>
+      <label><input id="system-bay-top" type="radio" name="system-bay" value="top"> 上ベイ</label>
+      <label><input id="system-bay-bottom" type="radio" name="system-bay" value="bottom"> 下ベイ</label>
+    </fieldset>
+    <div class="two-bay-settings-recovery">
+      <button id="system-bay-retry" type="button" hidden>保存を再試行</button>
+      <button id="system-bay-cancel" type="button" hidden>変更を取り消す</button>
+      <span id="system-bay-status" role="status" aria-live="polite"></span>
+    </div>
+    <button id="two-bay-reset" type="button" disabled>ベイ状態を初期値に戻す</button>
+  </dialog>
   <dialog id="layout-dialog" class="layout-dialog" aria-labelledby="layout-dialog-title">
     <div class="layout-dialog-heading">
       <h2 id="layout-dialog-title">レイアウト管理</h2>

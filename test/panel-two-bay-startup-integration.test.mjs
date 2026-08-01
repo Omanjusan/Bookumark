@@ -8,7 +8,8 @@ test("routes active panel startup through the independent two-bay boundary", () 
   const activeStartup = functionSection("loadAndStartPanelRuntime", "loadAndStartLegacyPanelRuntime");
 
   assert.match(activeStartup, /loadPanelTwoBayState\(\)/);
-  assert.match(activeStartup, /dataset\.twoBaySystemBay = twoBayState\.configuration\.systemBay/);
+  assert.match(activeStartup, /renderActiveTwoBayConfiguration\(twoBayState\.configuration\)/);
+  assert.match(source, /dataset\.twoBaySystemBay = configuration\.systemBay/);
   assert.doesNotMatch(activeStartup, /loadPanelDockingState/);
   assert.doesNotMatch(activeStartup, /runPanelDockingStartup/);
   assert.doesNotMatch(activeStartup, /saveDockingDocuments/);

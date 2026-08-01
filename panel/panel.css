@@ -55,6 +55,72 @@ body {
   padding: 12px;
 }
 
+#system-menu-button {
+  position: fixed;
+  z-index: 50;
+  top: 8px;
+  left: 8px;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+#system-menu {
+  position: fixed;
+  z-index: 49;
+  top: 44px;
+  left: 8px;
+  display: grid;
+  gap: 4px;
+  min-width: 132px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--text) 16%, transparent);
+}
+#system-menu[hidden] { display: none; }
+#system-menu button,
+#two-bay-settings-dialog button {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 9px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+#system-menu button:not(:disabled),
+#two-bay-settings-dialog button:not(:disabled) { cursor: pointer; }
+#system-menu button:disabled,
+#two-bay-settings-dialog button:disabled { color: var(--text-faint); }
+#two-bay-settings-dialog {
+  width: min(420px, calc(100vw - 24px));
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+}
+#two-bay-settings-dialog::backdrop { background: rgb(0 0 0 / 45%); }
+.two-bay-settings-heading,
+.two-bay-settings-recovery {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.two-bay-settings-heading { justify-content: space-between; }
+.two-bay-settings-heading h2 { margin: 0; font-size: 16px; }
+#two-bay-settings-dialog fieldset { margin: 16px 0; }
+#two-bay-settings-dialog fieldset label { margin-right: 12px; }
+#system-bay-status { color: var(--text-muted); }
+#two-bay-reset { margin-top: 18px; }
+
 header {
   display: flex;
   align-items: center;

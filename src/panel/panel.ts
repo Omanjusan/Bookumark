@@ -120,6 +120,9 @@ import type {
 import { loadPanelTwoBayState } from "./lib/panel-two-bay-bootstrap.js";
 import { buildTwoBayDrawingPlan } from "./lib/two-bay-drawing-plan.js";
 import { renderTwoBay } from "./lib/two-bay-view.js";
+import { bindTwoBaySettings } from "./lib/two-bay-settings-controller.js";
+import { createTwoBaySystemSwitchSession } from "./lib/two-bay-system-switch-session.js";
+import type { TwoBayConfiguration } from "./lib/two-bay-persistence-model.js";
 import { createFolderNavigationHistory } from "./lib/folder-navigation-history.js";
 import type { FolderNavigationHistory } from "./lib/folder-navigation-history.js";
 import { renderListView } from "./lib/list-view.js";
@@ -180,6 +183,18 @@ const root = document.getElementById("app") as HTMLElement;
 const frameRoot = document.querySelector(".frame") as HTMLElement;
 const folderRoot = document.getElementById("folders") as HTMLElement;
 const countEl = document.getElementById("count") as HTMLElement;
+const systemMenuButton = document.getElementById("system-menu-button") as HTMLButtonElement;
+const systemMenu = document.getElementById("system-menu") as HTMLElement;
+const systemSettingsEntry = document.getElementById("system-settings-entry") as HTMLButtonElement;
+const systemBayEditEntry = document.getElementById("system-bay-edit-entry") as HTMLButtonElement;
+const twoBaySettingsDialog = document.getElementById("two-bay-settings-dialog") as HTMLDialogElement;
+const twoBaySettingsClose = document.getElementById("two-bay-settings-close") as HTMLButtonElement;
+const systemBayTop = document.getElementById("system-bay-top") as HTMLInputElement;
+const systemBayBottom = document.getElementById("system-bay-bottom") as HTMLInputElement;
+const systemBayRetry = document.getElementById("system-bay-retry") as HTMLButtonElement;
+const systemBayCancel = document.getElementById("system-bay-cancel") as HTMLButtonElement;
+const systemBayStatus = document.getElementById("system-bay-status") as HTMLElement;
+const twoBayReset = document.getElementById("two-bay-reset") as HTMLButtonElement;
 const commonNotificationDialog = document.getElementById(
   "common-notification-dialog",
 ) as HTMLDialogElement;
@@ -940,6 +955,26 @@ function createPanelChipRuntime(): DockingBasicChipRuntime {
   });
 }
 
+/** 保存済み上下2ベイ構成を通常位置へ描画し、基本チップruntimeを置き換える。 */
+function renderActiveTwoBayConfiguration(configuration: TwoBayConfiguration): void {
+  root.dataset.twoBaySystemBay = configuration.systemBay;
+  activeChipRuntime?.disconnect();
+  activeControlStore?.disconnect();
+  const initialTwoBayState = createDefaultDockingSharedState("two-bay");
+  applyDockingSharedState(initialTwoBayState);
+  activeControlStore = createDockingBasicControlStore(initialTwoBayState);
+  const runtime = createPanelChipRuntime();
+  const registry = createDockingChipRendererRegistry(runtime.renderers);
+  const drawingPlan = buildTwoBayDrawingPlan(configuration);
+  const topResult = renderTwoBay(dockingRailRoots.top, drawingPlan.top, registry);
+  const bottomResult = renderTwoBay(dockingRailRoots.bottom, drawingPlan.bottom, registry);
+  const skippedChips = [...topResult.skippedChips, ...bottomResult.skippedChips];
+  if (skippedChips.length > 0) console.warn("two-bay chips were skipped:", skippedChips);
+  activeChipRuntime = runtime;
+  runtime.sync();
+  redraw();
+}
+
 /** 描画済みベイ寸法からレールの間隔とスクロール状態をDOMへ反映する。 */
 function applyDockingRailOverflow(
   rail: HTMLElement,
@@ -1170,22 +1205,24 @@ async function loadAndStartPanelRuntime(): Promise<void> {
     candidateFolder.storedFolder.guid,
   ]);
   delete root.dataset.activeLayoutId;
-  root.dataset.twoBaySystemBay = twoBayState.configuration.systemBay;
-  activeChipRuntime?.disconnect();
-  activeControlStore?.disconnect();
-  const initialTwoBayState = createDefaultDockingSharedState("two-bay");
-  applyDockingSharedState(initialTwoBayState);
-  activeControlStore = createDockingBasicControlStore(initialTwoBayState);
-  const runtime = createPanelChipRuntime();
-  const registry = createDockingChipRendererRegistry(runtime.renderers);
-  const drawingPlan = buildTwoBayDrawingPlan(twoBayState.configuration);
-  const topResult = renderTwoBay(dockingRailRoots.top, drawingPlan.top, registry);
-  const bottomResult = renderTwoBay(dockingRailRoots.bottom, drawingPlan.bottom, registry);
-  const skippedChips = [...topResult.skippedChips, ...bottomResult.skippedChips];
-  if (skippedChips.length > 0) console.warn("two-bay chips were skipped:", skippedChips);
-  activeChipRuntime = runtime;
-  runtime.sync();
-  redraw();
+  renderActiveTwoBayConfiguration(twoBayState.configuration);
+  const systemSwitchSession = createTwoBaySystemSwitchSession(twoBayState.configuration);
+  bindTwoBaySettings({
+    menuButton: systemMenuButton,
+    menu: systemMenu,
+    settings: systemSettingsEntry,
+    bayEdit: systemBayEditEntry,
+    dialog: twoBaySettingsDialog,
+    close: twoBaySettingsClose,
+    top: systemBayTop,
+    bottom: systemBayBottom,
+    retry: systemBayRetry,
+    cancel: systemBayCancel,
+    status: systemBayStatus,
+    reset: twoBayReset,
+  }, systemSwitchSession, {
+    onCommitted: (configuration) => renderActiveTwoBayConfiguration(configuration),
+  });
 }
 
 /** 旧4方向Dockingのコードを保存したまま、通常起動から外した凍結runtime。 */
