@@ -25,6 +25,7 @@ test("renders list rows with the common tile and drag-boundary contracts", () =>
   assert.equal(row.className, "panel-tile list-tile");
   assert.equal(row.dataset.guid, "alpha");
   assert.equal(row.dataset.url, "https://example.com/alpha");
+  assert.equal(row.dataset.panelFlavor, undefined);
   assert.equal(row.draggable, true);
   assert.equal(row.children[1].textContent, "Alpha");
   assert.equal(row.children[2].textContent, "example.com");

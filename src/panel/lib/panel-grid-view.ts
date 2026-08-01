@@ -1,10 +1,15 @@
 import type { PanelInformationField, PanelTileModel } from "./panel-tile-model.js";
+import { createPanelFlavorSeed, panelFlavorForGuid } from "./panel-flavor.js";
 
 const FALLBACK_FAVICON_PATH = "icons/bookmark.svg";
 
 interface PanelGridViewOptions {
   readonly draggable?: boolean;
+  readonly document?: Document;
+  readonly flavorSeed?: number;
 }
+
+const SESSION_FLAVOR_SEED = createPanelFlavorSeed();
 
 /** 表示順に並んだモデルからパネルグリッドを描画する。 */
 export function renderPanelGrid(
@@ -15,22 +20,28 @@ export function renderPanelGrid(
   root.textContent = "";
 
   const draggable = options.draggable ?? false;
+  const documentRef = options.document ?? document;
+  const flavorSeed = options.flavorSeed ?? SESSION_FLAVOR_SEED;
   if (draggable && tiles.length > 0) {
-    root.appendChild(boundaryElementOf("start", tiles[0].guid));
+    root.appendChild(boundaryElementOf("start", tiles[0].guid, documentRef));
   }
-  const grid = document.createElement("ul");
+  const grid = documentRef.createElement("ul");
   grid.className = "panel-grid";
   for (const tile of tiles) {
-    grid.appendChild(tileElementOf(tile, draggable));
+    grid.appendChild(tileElementOf(tile, draggable, flavorSeed, documentRef));
   }
   root.appendChild(grid);
   if (draggable && tiles.length > 0) {
-    root.appendChild(boundaryElementOf("end", tiles[tiles.length - 1].guid));
+    root.appendChild(boundaryElementOf("end", tiles[tiles.length - 1].guid, documentRef));
   }
 }
 
-function boundaryElementOf(position: "start" | "end", targetGuid: string): HTMLDivElement {
-  const boundary = document.createElement("div");
+function boundaryElementOf(
+  position: "start" | "end",
+  targetGuid: string,
+  documentRef: Document,
+): HTMLDivElement {
+  const boundary = documentRef.createElement("div");
   boundary.className = "panel-drop-boundary";
   boundary.dataset.boundary = position;
   boundary.dataset.targetGuid = targetGuid;
@@ -38,17 +49,23 @@ function boundaryElementOf(position: "start" | "end", targetGuid: string): HTMLD
   return boundary;
 }
 
-function tileElementOf(tile: PanelTileModel, draggable: boolean): HTMLLIElement {
-  const element = document.createElement("li");
+function tileElementOf(
+  tile: PanelTileModel,
+  draggable: boolean,
+  flavorSeed: number,
+  documentRef: Document,
+): HTMLLIElement {
+  const element = documentRef.createElement("li");
   element.className = "panel-tile";
   element.dataset.guid = tile.guid;
   element.dataset.url = tile.url;
   element.dataset.size = tile.size;
+  element.dataset.panelFlavor = panelFlavorForGuid(tile.guid, flavorSeed);
   element.title = tile.url;
   element.draggable = draggable;
 
   if (hasField(tile, "favicon")) {
-    const favicon = document.createElement("img");
+    const favicon = documentRef.createElement("img");
     favicon.className = "panel-favicon";
     favicon.src = tile.faviconUrl ?? FALLBACK_FAVICON_PATH;
     favicon.alt = "";
@@ -62,20 +79,20 @@ function tileElementOf(tile: PanelTileModel, draggable: boolean): HTMLLIElement 
   }
 
   if (hasField(tile, "title")) {
-    const title = document.createElement("span");
+    const title = documentRef.createElement("span");
     title.className = "panel-title";
     title.textContent = tile.title;
     element.appendChild(title);
   }
 
   if (hasField(tile, "domain") && tile.domain) {
-    appendText(element, "panel-domain", tile.domain);
+    appendText(element, "panel-domain", tile.domain, documentRef);
   }
   if (hasField(tile, "scaleValue") && tile.scaleValue) {
-    appendText(element, "panel-scale-value", tile.scaleValue);
+    appendText(element, "panel-scale-value", tile.scaleValue, documentRef);
   }
   if (hasField(tile, "auxiliary") && tile.auxiliary) {
-    appendText(element, "panel-auxiliary", tile.auxiliary);
+    appendText(element, "panel-auxiliary", tile.auxiliary, documentRef);
   }
 
   return element;
@@ -85,8 +102,13 @@ function hasField(tile: PanelTileModel, field: PanelInformationField): boolean {
   return tile.fields.includes(field);
 }
 
-function appendText(parent: HTMLElement, className: string, text: string): void {
-  const element = document.createElement("span");
+function appendText(
+  parent: HTMLElement,
+  className: string,
+  text: string,
+  documentRef: Document,
+): void {
+  const element = documentRef.createElement("span");
   element.className = className;
   element.textContent = text;
   parent.appendChild(element);

@@ -25,6 +25,7 @@ test("renders icon items with the common tile and drag-boundary contracts", () =
   assert.equal(tile.className, "panel-tile icon-tile");
   assert.equal(tile.dataset.guid, "alpha");
   assert.equal(tile.dataset.url, "https://example.com/alpha");
+  assert.equal(tile.dataset.panelFlavor, undefined);
   assert.equal(tile.draggable, true);
   assert.equal(tile.children[0].className, "icon-view-image");
   assert.equal(tile.children[1].textContent, "Alpha Guide");

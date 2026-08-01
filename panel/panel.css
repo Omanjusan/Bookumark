@@ -16,6 +16,18 @@
   --badge-fg-l: 28%;
   --dock-vertical-chip-width: 40px;
   --panel-frame-width: 96%;
+  --panel-flavor-text: #1c1f26;
+  --panel-flavor-text-muted: #3f4650;
+  --panel-flavor-text-faint: #505864;
+  --panel-flavor-border: #69717d;
+  --panel-flavor-coral-bg: #ffd9d6;
+  --panel-flavor-amber-bg: #ffe3bf;
+  --panel-flavor-lemon-bg: #fff1b8;
+  --panel-flavor-green-bg: #dff3cf;
+  --panel-flavor-teal-bg: #cfeee8;
+  --panel-flavor-blue-bg: #d8e9ff;
+  --panel-flavor-violet-bg: #e4ddff;
+  --panel-flavor-pink-bg: #f3d9ef;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -34,6 +46,18 @@
     --badge-l: 26%;
     --badge-fg-s: 40%;
     --badge-fg-l: 82%;
+    --panel-flavor-text: #f4f5f7;
+    --panel-flavor-text-muted: #d2d6dc;
+    --panel-flavor-text-faint: #c0c6ce;
+    --panel-flavor-border: #9ba3ae;
+    --panel-flavor-coral-bg: #482729;
+    --panel-flavor-amber-bg: #49331f;
+    --panel-flavor-lemon-bg: #45401e;
+    --panel-flavor-green-bg: #253d26;
+    --panel-flavor-teal-bg: #1f3d39;
+    --panel-flavor-blue-bg: #24364b;
+    --panel-flavor-violet-bg: #342d4e;
+    --panel-flavor-pink-bg: #472a43;
   }
 }
 
@@ -1402,6 +1426,22 @@ header h1 {
   background: var(--surface);
   cursor: pointer;
 }
+.panel-grid .panel-tile[data-panel-flavor] {
+  --text: var(--panel-flavor-text);
+  --text-muted: var(--panel-flavor-text-muted);
+  --text-faint: var(--panel-flavor-text-faint);
+  --border: var(--panel-flavor-border);
+  color: var(--text);
+  border-color: var(--border);
+}
+.panel-grid .panel-tile[data-panel-flavor="coral"] { background: var(--panel-flavor-coral-bg); }
+.panel-grid .panel-tile[data-panel-flavor="amber"] { background: var(--panel-flavor-amber-bg); }
+.panel-grid .panel-tile[data-panel-flavor="lemon"] { background: var(--panel-flavor-lemon-bg); }
+.panel-grid .panel-tile[data-panel-flavor="green"] { background: var(--panel-flavor-green-bg); }
+.panel-grid .panel-tile[data-panel-flavor="teal"] { background: var(--panel-flavor-teal-bg); }
+.panel-grid .panel-tile[data-panel-flavor="blue"] { background: var(--panel-flavor-blue-bg); }
+.panel-grid .panel-tile[data-panel-flavor="violet"] { background: var(--panel-flavor-violet-bg); }
+.panel-grid .panel-tile[data-panel-flavor="pink"] { background: var(--panel-flavor-pink-bg); }
 .panel-tile.dragging { opacity: 0.4; }
 .panel-tile.drag-over-before { box-shadow: inset 0 3px 0 var(--text-faint); }
 .panel-tile.drag-over-after { box-shadow: inset 0 -3px 0 var(--text-faint); }

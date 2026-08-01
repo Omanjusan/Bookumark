@@ -27,6 +27,7 @@ test("renders two full metadata lines with the common tile contract", () => {
   assert.equal(card.className, "panel-tile card-tile");
   assert.equal(card.dataset.guid, "alpha");
   assert.equal(card.dataset.url, "https://example.com/alpha");
+  assert.equal(card.dataset.panelFlavor, undefined);
   assert.equal(card.draggable, true);
   const content = card.children[1];
   assert.equal(content.children[2].textContent, "訪問回数: 12回");
