@@ -18,6 +18,7 @@ export interface TwoBaySettingsElements {
 
 interface TwoBaySettingsOptions {
   readonly onCommitted?: (configuration: TwoBayConfiguration) => void;
+  readonly viewportHeight?: () => number;
 }
 
 /** 固定システムメニューとsystemベイ即時保存UIを接続する。 */
@@ -26,6 +27,8 @@ export function bindTwoBaySettings(
   session: TwoBaySystemSwitchSession,
   options: TwoBaySettingsOptions = {},
 ): void {
+  const viewportHeight = options.viewportHeight ?? (() => globalThis.innerHeight ?? 0);
+
   /** 保存済み構成または失敗候補をラジオ選択へ反映する。 */
   const renderSelection = (configuration: TwoBayConfiguration): void => {
     elements.top.checked = configuration.systemBay === "top";
@@ -63,6 +66,7 @@ export function bindTwoBaySettings(
   };
 
   elements.menuButton.addEventListener("click", () => {
+    if (elements.menu.hidden) positionSystemMenu(elements, viewportHeight());
     elements.menu.hidden = !elements.menu.hidden;
   });
   elements.settings.addEventListener("click", () => {
@@ -92,4 +96,19 @@ export function bindTwoBaySettings(
   elements.bayEdit.disabled = true;
   renderSelection(session.committed());
   renderAvailability();
+}
+
+/** system固定枠の上下位置から、メニューをスクロール領域外のviewportへ配置する。 */
+function positionSystemMenu(elements: TwoBaySettingsElements, viewportHeight: number): void {
+  const slot = elements.menuButton.parentElement;
+  if (slot === null) return;
+  const rect = slot.getBoundingClientRect();
+  elements.menu.style.left = `${rect.left}px`;
+  if (slot.dataset.bay === "bottom") {
+    elements.menu.style.top = "";
+    elements.menu.style.bottom = `${viewportHeight - rect.top + 4}px`;
+    return;
+  }
+  elements.menu.style.top = `${rect.bottom + 4}px`;
+  elements.menu.style.bottom = "";
 }

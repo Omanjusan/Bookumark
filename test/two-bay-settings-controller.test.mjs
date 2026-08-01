@@ -19,6 +19,20 @@ test("opens the system menu and settings dialog while bay editing remains unavai
   assert.equal(fake.elements.top.checked, true);
 });
 
+test("positions the menu below the top slot and above the bottom slot", () => {
+  const fake = harness();
+  bindTwoBaySettings(fake.elements, fake.session, { viewportHeight: () => 500 });
+
+  fake.slot.dataset.bay = "top";
+  fake.elements.menuButton.emit("click");
+  assert.deepEqual(fake.elements.menu.style, { left: "12px", top: "44px", bottom: "" });
+
+  fake.elements.menuButton.emit("click");
+  fake.slot.dataset.bay = "bottom";
+  fake.elements.menuButton.emit("click");
+  assert.deepEqual(fake.elements.menu.style, { left: "12px", top: "", bottom: "64px" });
+});
+
 test("shows retry and cancel after save failure, then restores the baseline on cancel", async () => {
   const fake = harness({ fail: true });
   bindTwoBaySettings(fake.elements, fake.session);
@@ -48,6 +62,8 @@ function harness(options = {}) {
     checked: false,
     open: false,
     textContent: "",
+    dataset: {},
+    style: {},
     listeners: {},
     addEventListener(type, listener) { (this.listeners[type] ??= []).push(listener); },
     emit(type) {
@@ -62,17 +78,24 @@ function harness(options = {}) {
     showModalCalls: 0,
     showModal() { this.open = true; this.showModalCalls += 1; },
     close() { this.open = false; },
+    getBoundingClientRect() {
+      return this.dataset.bay === "bottom"
+        ? { top: 440, right: 44, bottom: 472, left: 12 }
+        : { top: 8, right: 44, bottom: 40, left: 12 };
+    },
   });
+  const slot = element();
   const elements = {
     menuButton: element(), menu: element(), settings: element(), bayEdit: element(),
     dialog: element(), close: element(), top: element(), bottom: element(),
     retry: element(), cancel: element(), status: element(), reset: element(),
   };
+  elements.menuButton.parentElement = slot;
   elements.menu.hidden = true;
   const session = createTwoBaySystemSwitchSession(createInitialTwoBayConfiguration(), {
     save: async () => { if (options.fail) throw new Error("failed"); },
   });
-  return { elements, session };
+  return { elements, session, slot };
 }
 
 async function settle() {

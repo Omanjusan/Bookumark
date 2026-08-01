@@ -200,6 +200,7 @@ const root = document.getElementById("app") as HTMLElement;
 const frameRoot = document.querySelector(".frame") as HTMLElement;
 const folderRoot = document.getElementById("folders") as HTMLElement;
 const countEl = document.getElementById("count") as HTMLElement;
+const systemMenuSlot = document.getElementById("system-menu-slot") as HTMLElement;
 const systemMenuButton = document.getElementById("system-menu-button") as HTMLButtonElement;
 const systemMenu = document.getElementById("system-menu") as HTMLElement;
 const systemSettingsEntry = document.getElementById("system-settings-entry") as HTMLButtonElement;
@@ -1007,6 +1008,7 @@ function renderActiveTwoBayConfiguration(
   });
   const drawingPlan = buildTwoBayDrawingPlan(configuration);
   const topResult = renderTwoBay(dockingRailRoots.top, drawingPlan.top, registry, {
+    systemSlot: configuration.systemBay === "top" ? systemMenuSlot : undefined,
     edit: onRowsChange === undefined ? undefined : {
       visibleRows: configuration.bays.top.visibleRows,
       isSystem: configuration.systemBay === "top",
@@ -1014,6 +1016,7 @@ function renderActiveTwoBayConfiguration(
     },
   });
   const bottomResult = renderTwoBay(dockingRailRoots.bottom, drawingPlan.bottom, registry, {
+    systemSlot: configuration.systemBay === "bottom" ? systemMenuSlot : undefined,
     edit: onRowsChange === undefined ? undefined : {
       visibleRows: configuration.bays.bottom.visibleRows,
       isSystem: configuration.systemBay === "bottom",

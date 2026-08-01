@@ -18,6 +18,7 @@ interface TwoBayEditRenderOptions {
 interface TwoBayRenderOptions {
   readonly document?: Pick<Document, "createElement">;
   readonly edit?: TwoBayEditRenderOptions;
+  readonly systemSlot?: HTMLElement;
 }
 
 export interface TwoBayRenderResult {
@@ -57,6 +58,12 @@ export function renderTwoBay(
     row.dataset.bay = plan.bay;
     row.dataset.row = String(rowPlan.row);
     row.setAttribute("aria-label", `${plan.bay === "top" ? "上" : "下"}ベイ${rowPlan.row}行目`);
+
+    if (rowPlan.row === 1 && options.systemSlot !== undefined) {
+      options.systemSlot.dataset.bay = plan.bay;
+      options.systemSlot.draggable = false;
+      row.appendChild(options.systemSlot);
+    }
 
     for (const chipPlan of rowPlan.chips) {
       const chip = documentRef.createElement("div");

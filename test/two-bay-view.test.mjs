@@ -83,6 +83,26 @@ test("makes rendered chip instances draggable only while editing", () => {
   assert.equal(root.children[0].children[1].children[0].children[0].draggable, true);
 });
 
+test("keeps the independent system slot first in the selected bay during normal and edit rendering", () => {
+  const fake = createFakeDocument();
+  const root = fake.element("div");
+  const slot = fake.element("div");
+  slot.id = "system-menu-slot";
+  const plan = { bay: "bottom", rows: [{ row: 1, chips: [chip("chip-1", "search", 1)] }] };
+
+  renderTwoBay(root, plan, registry(fake), { document: fake.document, systemSlot: slot });
+  assert.equal(root.children[0].children[0], slot);
+  assert.equal(slot.dataset.bay, "bottom");
+  assert.equal(slot.draggable, false);
+
+  renderTwoBay(root, plan, registry(fake), {
+    document: fake.document,
+    systemSlot: slot,
+    edit: { visibleRows: 1, isSystem: true, onRowsChange: () => {} },
+  });
+  assert.equal(root.children[0].children[1].children[0].children[0], slot);
+});
+
 test("disables decrement for a one-row system bay and increment at three rows", () => {
   const fake = createFakeDocument();
   const root = fake.element("div");
