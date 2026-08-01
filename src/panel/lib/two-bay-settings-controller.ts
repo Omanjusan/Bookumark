@@ -38,6 +38,7 @@ export function bindTwoBaySettings(
     elements.top.disabled = blocked;
     elements.bottom.disabled = blocked;
     elements.close.disabled = blocked;
+    elements.reset.disabled = blocked;
     elements.retry.hidden = !session.pending;
     elements.cancel.hidden = !session.pending;
   };
@@ -89,7 +90,6 @@ export function bindTwoBaySettings(
   });
 
   elements.bayEdit.disabled = true;
-  elements.reset.disabled = true;
   renderSelection(session.committed());
   renderAvailability();
 }

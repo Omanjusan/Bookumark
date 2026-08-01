@@ -87,7 +87,8 @@ body {
 }
 #system-menu[hidden] { display: none; }
 #system-menu button,
-#two-bay-settings-dialog button {
+#two-bay-settings-dialog button,
+#two-bay-reset-dialog button {
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 6px 9px;
@@ -96,10 +97,13 @@ body {
   font: inherit;
 }
 #system-menu button:not(:disabled),
-#two-bay-settings-dialog button:not(:disabled) { cursor: pointer; }
+#two-bay-settings-dialog button:not(:disabled),
+#two-bay-reset-dialog button:not(:disabled) { cursor: pointer; }
 #system-menu button:disabled,
-#two-bay-settings-dialog button:disabled { color: var(--text-faint); }
-#two-bay-settings-dialog {
+#two-bay-settings-dialog button:disabled,
+#two-bay-reset-dialog button:disabled { color: var(--text-faint); }
+#two-bay-settings-dialog,
+#two-bay-reset-dialog {
   width: min(420px, calc(100vw - 24px));
   padding: 18px;
   border: 1px solid var(--border);
@@ -107,7 +111,15 @@ body {
   background: var(--surface);
   color: var(--text);
 }
-#two-bay-settings-dialog::backdrop { background: rgb(0 0 0 / 45%); }
+#two-bay-settings-dialog::backdrop,
+#two-bay-reset-dialog::backdrop { background: rgb(0 0 0 / 45%); }
+.two-bay-reset-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#two-bay-reset-dialog h2 { margin-top: 0; font-size: 16px; }
+#two-bay-reset-status { color: var(--text-muted); }
 .two-bay-settings-heading,
 .two-bay-settings-recovery {
   display: flex;

@@ -55,6 +55,20 @@ test("keeps failed draft visible with retry or cancel as the only available acti
   assert.equal("twoBayEditBlocked" in fake.elements.frame.dataset, false);
 });
 
+test("discards an active draft without restoring it when an external reset commits", () => {
+  const fake = harness(); let cancelled = 0;
+  const controller = bindTwoBayEditMode(fake.elements, fake.session, {
+    getConfiguration: createInitialTwoBayConfiguration,
+    onDraft: () => {}, onCancelled: () => { cancelled += 1; }, onCommitted: () => {},
+  });
+  fake.elements.entry.emit("click");
+  fake.session.update((draft) => { draft.bays.bottom.visibleRows = 1; });
+  controller.reset();
+  assert.equal(fake.session.active, false);
+  assert.equal(fake.elements.canvas.hidden, true);
+  assert.equal(cancelled, 0);
+});
+
 function harness(options = {}) {
   const element = () => ({
     hidden: false,

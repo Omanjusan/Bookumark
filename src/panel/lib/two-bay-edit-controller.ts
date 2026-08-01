@@ -21,6 +21,7 @@ interface TwoBayEditOptions {
 
 export interface TwoBayEditController {
   refresh(): void;
+  reset(): void;
 }
 
 /** ベイ編集導線と中央キャンバスの開始・キャンセル境界を接続する。 */
@@ -85,5 +86,13 @@ export function bindTwoBayEditMode(
   });
   exit();
   renderAvailability();
-  return { refresh: renderAvailability };
+  return {
+    refresh: renderAvailability,
+    reset(): void {
+      if (session.active && !session.saving) session.cancel();
+      elements.status.textContent = "";
+      exit();
+      renderAvailability();
+    },
+  };
 }

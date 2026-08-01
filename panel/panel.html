@@ -119,7 +119,17 @@
       <button id="system-bay-cancel" type="button" hidden>変更を取り消す</button>
       <span id="system-bay-status" role="status" aria-live="polite"></span>
     </div>
-    <button id="two-bay-reset" type="button" disabled>ベイ状態を初期値に戻す</button>
+    <button id="two-bay-reset" type="button">ベイ状態を初期値に戻す</button>
+  </dialog>
+  <dialog id="two-bay-reset-dialog" aria-labelledby="two-bay-reset-title">
+    <h2 id="two-bay-reset-title">ベイ状態を初期値に戻しますか？</h2>
+    <p>上下ベイの行数、チップ構成、チップ固有設定を初期化します。</p>
+    <div class="two-bay-reset-actions">
+      <button id="two-bay-reset-confirm" type="button">初期値に戻す</button>
+      <button id="two-bay-reset-retry" type="button" hidden>保存を再試行</button>
+      <button id="two-bay-reset-dismiss" type="button">キャンセル</button>
+      <span id="two-bay-reset-status" role="status" aria-live="polite"></span>
+    </div>
   </dialog>
   <dialog id="layout-dialog" class="layout-dialog" aria-labelledby="layout-dialog-title">
     <div class="layout-dialog-heading">

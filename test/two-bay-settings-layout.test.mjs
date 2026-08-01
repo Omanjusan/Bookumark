@@ -10,7 +10,8 @@ test("provides the persistent system button, menu, and functional settings contr
   assert.match(html, /id="system-menu-button"[^>]*aria-label="システムメニューを開く"[^>]*>︙<\/button>/);
   assert.match(html, /id="system-menu"[^>]*hidden[\s\S]*?id="system-settings-entry"[\s\S]*?id="system-bay-edit-entry"[^>]*disabled/);
   assert.match(html, /id="two-bay-settings-dialog"[\s\S]*?name="system-bay"[^>]*value="top"[\s\S]*?name="system-bay"[^>]*value="bottom"/);
-  assert.match(html, /id="two-bay-reset"[^>]*disabled/);
+  assert.match(html, /id="two-bay-reset"[^>]*>ベイ状態を初期値に戻す/);
+  assert.match(html, /id="two-bay-reset-dialog"[\s\S]*?id="two-bay-reset-confirm"[\s\S]*?id="two-bay-reset-dismiss"/);
 });
 
 test("fixes the independent system button and menu above every normal surface", () => {
@@ -32,4 +33,6 @@ test("connects settings after the active two-bay configuration is rendered", () 
   assert.match(active, /createTwoBaySystemSwitchSession\(twoBayState\.configuration/);
   assert.match(active, /bindTwoBaySettings/);
   assert.match(active, /onCommitted:[\s\S]*?renderActiveTwoBayConfiguration/);
+  assert.match(active, /createTwoBayResetSession[\s\S]*?bindTwoBayReset/);
+  assert.match(active, /onCommitted:[\s\S]*?editController\?\.reset\(\)[\s\S]*?systemSwitchSession\.adopt\(configuration\)[\s\S]*?renderActiveTwoBayConfiguration\(configuration\)/);
 });

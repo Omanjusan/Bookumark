@@ -122,6 +122,8 @@ import { buildTwoBayDrawingPlan } from "./lib/two-bay-drawing-plan.js";
 import { renderTwoBay } from "./lib/two-bay-view.js";
 import { bindTwoBaySettings } from "./lib/two-bay-settings-controller.js";
 import { createTwoBaySystemSwitchSession } from "./lib/two-bay-system-switch-session.js";
+import { createTwoBayResetSession } from "./lib/two-bay-reset-session.js";
+import { bindTwoBayReset } from "./lib/two-bay-reset-controller.js";
 import { createTwoBayEditSession } from "./lib/two-bay-edit-session.js";
 import { bindTwoBayEditMode } from "./lib/two-bay-edit-controller.js";
 import { changeTwoBayVisibleRows } from "./lib/two-bay-row-edit.js";
@@ -204,6 +206,11 @@ const systemBayRetry = document.getElementById("system-bay-retry") as HTMLButton
 const systemBayCancel = document.getElementById("system-bay-cancel") as HTMLButtonElement;
 const systemBayStatus = document.getElementById("system-bay-status") as HTMLElement;
 const twoBayReset = document.getElementById("two-bay-reset") as HTMLButtonElement;
+const twoBayResetDialog = document.getElementById("two-bay-reset-dialog") as HTMLDialogElement;
+const twoBayResetConfirm = document.getElementById("two-bay-reset-confirm") as HTMLButtonElement;
+const twoBayResetRetry = document.getElementById("two-bay-reset-retry") as HTMLButtonElement;
+const twoBayResetDismiss = document.getElementById("two-bay-reset-dismiss") as HTMLButtonElement;
+const twoBayResetStatus = document.getElementById("two-bay-reset-status") as HTMLElement;
 const twoBayEditCanvas = document.getElementById("two-bay-edit-canvas") as HTMLElement;
 const twoBayEditConfirm = document.getElementById("two-bay-edit-confirm") as HTMLButtonElement;
 const twoBayEditRetry = document.getElementById("two-bay-edit-retry") as HTMLButtonElement;
@@ -1281,6 +1288,24 @@ async function loadAndStartPanelRuntime(): Promise<void> {
     onDraft: renderEditDraft,
     onCancelled: (configuration) => renderActiveTwoBayConfiguration(configuration),
     onCommitted: (configuration) => {
+      systemSwitchSession.adopt(configuration);
+      renderActiveTwoBayConfiguration(configuration);
+    },
+  });
+  const resetSession = createTwoBayResetSession();
+  bindTwoBayReset({
+    reset: twoBayReset,
+    settingsDialog: twoBaySettingsDialog,
+    dialog: twoBayResetDialog,
+    confirm: twoBayResetConfirm,
+    retry: twoBayResetRetry,
+    dismiss: twoBayResetDismiss,
+    status: twoBayResetStatus,
+  }, resetSession, {
+    getConfiguration: () => systemSwitchSession.committed(),
+    onCommitted: (configuration) => {
+      // 初期値の保存成功後だけ未確定draftを破棄し、全runtimeの正本を揃える。
+      editController?.reset();
       systemSwitchSession.adopt(configuration);
       renderActiveTwoBayConfiguration(configuration);
     },
