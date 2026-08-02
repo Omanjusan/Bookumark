@@ -51,6 +51,50 @@ test("synchronizes duplicated search and view controls through shared state", ()
   ]);
 });
 
+test("renders five accessible glyph choices and keeps favorite as an exclusive visual mock", () => {
+  const fake = createFakeDocument();
+  const state = defaultState();
+  const runtime = runtimeFixture(fake, state);
+  const firstView = runtime.renderers["view-type"](chip("chip-1", "view-type"));
+  const secondView = runtime.renderers["view-type"](chip("chip-2", "view-type"));
+  const firstInputs = firstView.findAllByTag("INPUT");
+  const firstLabels = firstView.findAllByTag("LABEL");
+
+  assert.deepEqual(firstInputs.map(({ value }) => value), [
+    "favorite", "panel", "icon", "card", "list",
+  ]);
+  assert.deepEqual(firstInputs.map(({ attributes }) => attributes["aria-label"]), [
+    "お気に入り", "パネル", "アイコン", "カード", "一覧",
+  ]);
+  assert.deepEqual(firstLabels.map(({ className }) => className), [
+    "view-type-option view-type-option--favorite",
+    "view-type-option view-type-option--panel",
+    "view-type-option view-type-option--icon",
+    "view-type-option view-type-option--card",
+    "view-type-option view-type-option--list",
+  ]);
+  assert.equal(firstLabels[2].findByTag("IMG").attributes.src, "icons/bookmark.svg");
+
+  firstInputs[0].checked = true;
+  firstInputs[0].emit("change");
+
+  assert.equal(state.snapshot.viewType, "panel");
+  assert.deepEqual(state.events, []);
+  assert.equal(firstInputs[0].checked, true);
+  assert.equal(secondView.findAllByTag("INPUT")[0].checked, true);
+  assert.equal(firstInputs.filter(({ checked }) => checked).length, 1);
+
+  const card = firstInputs.find(({ value }) => value === "card");
+  card.checked = true;
+  card.emit("change");
+  runtime.sync();
+
+  assert.equal(state.snapshot.viewType, "card");
+  assert.deepEqual(state.events, [["view", "card"]]);
+  assert.equal(firstInputs[0].checked, false);
+  assert.equal(card.checked, true);
+});
+
 test("disconnect removes every per-chip event listener", () => {
   const fake = createFakeDocument();
   const state = defaultState();

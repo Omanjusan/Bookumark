@@ -866,12 +866,52 @@ header h1 {
   pointer-events: none;
 }
 .view-type-option span {
-  display: block;
-  padding: 4px 8px;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  inline-size: 32px;
+  block-size: 28px;
+  padding: 5px 7px;
   border-left: 1px solid var(--border);
   color: var(--text-muted);
-  white-space: nowrap;
   cursor: pointer;
+}
+.view-type-glyph {
+  display: block;
+  inline-size: 18px;
+  block-size: 18px;
+  color: currentColor;
+}
+.view-type-glyph--favorite {
+  font-size: 17px;
+  line-height: 18px;
+  text-align: center;
+}
+.view-type-glyph--panel {
+  background: currentColor;
+  mask:
+    radial-gradient(circle at 0 0, transparent 0 3px, #000 3.5px) 0 0 / 50% 50% no-repeat,
+    radial-gradient(circle at 100% 0, transparent 0 3px, #000 3.5px) 100% 0 / 50% 50% no-repeat,
+    radial-gradient(circle at 0 100%, transparent 0 3px, #000 3.5px) 0 100% / 50% 50% no-repeat,
+    radial-gradient(circle at 100% 100%, transparent 0 3px, #000 3.5px) 100% 100% / 50% 50% no-repeat;
+}
+.view-type-glyph--icon {
+  object-fit: contain;
+}
+.view-type-glyph--card {
+  box-sizing: border-box;
+  inline-size: 20px;
+  block-size: 13px;
+  border: 2px solid currentColor;
+  clip-path: polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 0 100%);
+}
+.view-type-glyph--list {
+  block-size: 17px;
+  background: repeating-linear-gradient(
+    to bottom,
+    currentColor 0 2px,
+    transparent 2px 5px
+  );
 }
 .view-type-option:first-child span { border-left: 0; }
 .view-type-option input:checked + span {

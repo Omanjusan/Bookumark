@@ -51,6 +51,12 @@ const MOVEMENT_MODES: readonly MovementMode[] = ["custom-order", "normal"];
 const SORT_AXES: readonly StandardSortAxisId[] = [
   "title", "dateAdded", "visitCount", "lastVisitTime",
 ];
+const VIEW_TYPE_LABELS: Readonly<Record<ViewType, string>> = {
+  panel: "パネル",
+  icon: "アイコン",
+  card: "カード",
+  list: "一覧",
+};
 
 /** 基本6チップの実DOM生成、イベント解除、共有状態同期を1つのruntimeとして作る。 */
 export function createDockingBasicChipRuntime(
@@ -59,6 +65,8 @@ export function createDockingBasicChipRuntime(
   const documentRef = options.document ?? document;
   const cleanups: Array<() => void> = [];
   const syncers: Array<(snapshot: DockingBasicChipSnapshot) => void> = [];
+  const viewTypeInputs: HTMLInputElement[] = [];
+  let favoriteSelected = false;
 
   /** listenerを登録し、runtime切断時の解除処理を記録する。 */
   const listen = (
@@ -169,22 +177,47 @@ export function createDockingBasicChipRuntime(
     appendLegend(fieldset, "表示形式", documentRef);
     const choices = documentRef.createElement("div");
     choices.className = "view-type-options";
-    const inputs = VIEW_TYPES.map((value, index) => {
+    const favorite = appendRadioChoice(choices, {
+      name: `view-type-${plan.instanceId}`,
+      value: "favorite",
+      label: "お気に入り",
+      className: "view-type-option view-type-option--favorite",
+      glyph: "favorite",
+    }, documentRef);
+    listen(favorite, "change", () => {
+      if (!favorite.checked) return;
+      favoriteSelected = true;
+      syncViewTypeInputs(options.snapshot());
+    });
+    const inputs = VIEW_TYPES.map((value) => {
       const input = appendRadioChoice(choices, {
         name: `view-type-${plan.instanceId}`,
         value,
-        label: ["パネル", "アイコン", "カード", "一覧"][index],
-        className: "view-type-option",
+        label: VIEW_TYPE_LABELS[value],
+        className: `view-type-option view-type-option--${value}`,
+        glyph: value,
       }, documentRef);
-      listen(input, "change", () => { if (input.checked) options.onViewType(value); });
+      listen(input, "change", () => {
+        if (!input.checked) return;
+        favoriteSelected = false;
+        options.onViewType(value);
+      });
       return input;
     });
-    syncers.push((snapshot) => {
-      for (const input of inputs) input.checked = input.value === snapshot.viewType;
-    });
+    viewTypeInputs.push(favorite, ...inputs);
+    syncers.push(syncViewTypeInputs);
     fieldset.appendChild(choices);
     root.appendChild(fieldset);
     return root;
+  };
+
+  /** 正式モードまたは一時的なお気に入りモックを全表示形式チップへ排他反映する。 */
+  const syncViewTypeInputs = (snapshot: DockingBasicChipSnapshot): void => {
+    for (const input of viewTypeInputs) {
+      input.checked = favoriteSelected
+        ? input.value === "favorite"
+        : input.value === snapshot.viewType;
+    }
   };
 
   const renderMovementMode = (plan: DockingChipDrawingPlan): Node => {
@@ -246,7 +279,13 @@ function appendLegend(
 /** ラベル付きradioを選択肢コンテナーへ追加する。 */
 function appendRadioChoice(
   root: HTMLElement,
-  model: { readonly name: string; readonly value: string; readonly label: string; readonly className: string },
+  model: {
+    readonly name: string;
+    readonly value: string;
+    readonly label: string;
+    readonly className: string;
+    readonly glyph?: "favorite" | ViewType;
+  },
   documentRef: Pick<Document, "createElement">,
 ): HTMLInputElement {
   const label = documentRef.createElement("label");
@@ -255,9 +294,21 @@ function appendRadioChoice(
   input.type = "radio";
   input.name = model.name;
   input.value = model.value;
+  input.setAttribute("aria-label", model.label);
   const span = documentRef.createElement("span");
   span.className = model.className.startsWith("movement-option") ? "movement-segment" : "";
-  span.textContent = model.label;
+  if (model.glyph) {
+    const glyph = model.glyph === "icon"
+      ? documentRef.createElement("img")
+      : documentRef.createElement("i");
+    glyph.className = `view-type-glyph view-type-glyph--${model.glyph}`;
+    glyph.setAttribute("aria-hidden", "true");
+    if (model.glyph === "icon") glyph.setAttribute("src", "icons/bookmark.svg");
+    if (model.glyph === "favorite") glyph.textContent = "★";
+    span.appendChild(glyph);
+  } else {
+    span.textContent = model.label;
+  }
   label.appendChild(input);
   label.appendChild(span);
   root.appendChild(label);
