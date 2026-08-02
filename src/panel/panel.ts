@@ -160,6 +160,16 @@ import {
 import type {
   ListDateFormatPreferences,
 } from "./lib/list-date-format-preferences.js";
+import {
+  loadListColumnWidthPreferences,
+  normalizeListColumnWidthPreferences,
+  saveListColumnWidthPreferences,
+  setListColumnWidth,
+} from "./lib/list-column-width-preferences.js";
+import type {
+  ListColumnId,
+  ListColumnWidthPreferences,
+} from "./lib/list-column-width-preferences.js";
 import { bindListDateSettings } from "./lib/list-date-settings-controller.js";
 import type { FolderHistoryDirection } from "./lib/panel-folder-history-input.js";
 import { bindLayoutManagement } from "./lib/layout-management-controller.js";
@@ -391,6 +401,8 @@ let folderHistory: FolderNavigationHistory | null = null;
 let folderNavigationPending = false;
 let panelFlavorPreferences: PanelFlavorPreferences = createPanelFlavorPreferences();
 let listDatePreferences: ListDateFormatPreferences = { version: 1, format: "browser" };
+let listColumnWidthPreferences: ListColumnWidthPreferences =
+  normalizeListColumnWidthPreferences(undefined).preferences;
 let gridCells = { columns: 0, rows: 0 };
 let fixedDisplayState = INITIAL_FIXED_DISPLAY_STATE;
 let visitStatusValue: VisitStatusFilterValue = "all";
@@ -639,9 +651,23 @@ function redraw(): void {
         sort: fixedDisplayState.display.lastStandardSort,
         onSort: setListSort,
         onDateSettings: () => listDateSettings.open(listDatePreferences.format),
+        columnWidths: listColumnWidthPreferences.widths,
+        onColumnResize: persistListColumnWidth,
       });
     },
   });
+}
+
+/** ドラッグ完了した1列だけを保存し、成功後に正式状態へ反映する。 */
+async function persistListColumnWidth(columnId: ListColumnId, width: number): Promise<void> {
+  const candidate = setListColumnWidth(listColumnWidthPreferences, columnId, width);
+  try {
+    await saveListColumnWidthPreferences(candidate);
+    listColumnWidthPreferences = candidate;
+  } catch (error) {
+    console.error("list column width save failed:", error);
+  }
+  redraw();
 }
 
 /** 一覧列見出しから共有ソート状態を更新し、全ソートUIを同期する。 */
@@ -1320,8 +1346,12 @@ async function loadAndStartPanelRuntime(): Promise<void> {
   const candidateTreeItems = await getBookmarkTreeItems();
   const storedFlavorPreferences = await loadPanelFlavorPreferences();
   const storedListDatePreferences = await loadListDateFormatPreferences();
+  const storedListColumnWidthPreferences = await loadListColumnWidthPreferences();
   const candidateListDatePreferences = normalizeListDateFormatPreferences(
     storedListDatePreferences,
+  );
+  const candidateListColumnWidthPreferences = normalizeListColumnWidthPreferences(
+    storedListColumnWidthPreferences,
   );
   const candidateFlavorState = preparePanelFlavorPreferences(
     storedFlavorPreferences,
@@ -1358,10 +1388,14 @@ async function loadAndStartPanelRuntime(): Promise<void> {
   if (candidateListDatePreferences.changed) {
     await saveListDateFormatPreferences(candidateListDatePreferences.preferences);
   }
+  if (candidateListColumnWidthPreferences.changed) {
+    await saveListColumnWidthPreferences(candidateListColumnWidthPreferences.preferences);
+  }
 
   // 新構成とブックマークの全非同期ロード成功後にだけ通常runtimeへ公開する。
   panelFlavorPreferences = candidateFlavorState.preferences;
   listDatePreferences = candidateListDatePreferences.preferences;
+  listColumnWidthPreferences = candidateListColumnWidthPreferences.preferences;
   treeItems = candidateTreeItems;
   folderOrders = candidateFolderOrders;
   currentFolderGuid = candidateFolder.folderGuid;

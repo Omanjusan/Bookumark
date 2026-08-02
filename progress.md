@@ -467,3 +467,9 @@ DB-14の要求分析、懸念事項のインタビュー、仕様確定、テス
 - 各列を独立して更新し最小幅へ補正する不変モデルと、専用`storage.local`キー`listColumnWidthPreferences.v1`の読み書きを追加した。未保存・破損・余剰項目を含む保存値は既定値または最小幅へ正常化する。
 - LIST-5A対象4テスト、全193テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
 - LIST-5Bの実装GOは未取得であり、次はLIST-5B「5本の列境界ハンドルと一覧UI統合」のRed-Green GO確認から再開する。
+- 一覧列幅変更 LIST-5B「5本の列境界ハンドルと一覧UI統合」のRed-Greenを完了し、状態を`LIST-5B_GREEN`とした。
+- 全列の見出し右端へ`|`形の境界線と9pxの水平リサイズ領域を追加した。右端を含む各ハンドルは左側の対象1列だけを変更し、表全幅の増減を既存の横スクロールへ反映する。
+- ドラッグ中は列と表全幅へ即時反映し、完了時だけ対象列を`listColumnWidthPreferences.v1`へ保存する。キャンセル時は開始幅へ戻し、保存失敗時は正式状態を更新せず保存済み幅へ再描画する。
+- 起動時に保存済み列幅を読み込み、正常化・補正保存が成功してから通常runtimeへ公開する接続を追加した。
+- LIST-5B対象8テスト、全193テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
+- 自動回帰は成功済みであり、次はFirefox実機で列境界、最小幅、横スクロール、再起動後の永続化を確認する。

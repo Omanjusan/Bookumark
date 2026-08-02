@@ -6,6 +6,7 @@ import {
   nextListSortSelection,
   renderListView,
 } from "../dist/panel/lib/list-view.js";
+import { DEFAULT_LIST_COLUMN_WIDTHS } from "../dist/panel/lib/list-column-width-preferences.js";
 
 const css = await readFile(new URL("../panel/panel.css", import.meta.url), "utf8");
 
@@ -33,7 +34,8 @@ test("renders a semantic five-column table with the common row contract", () => 
   assert.equal(table.tagName, "TABLE");
   assert.equal(table.className, "list-view");
   const headerCells = table.children[1].children[0].children;
-  assert.equal(headerCells[0].children.length, 0);
+  assert.equal(headerCells[0].children.length, 1);
+  assert.equal(headerCells[0].children[0].dataset.columnResize, "icon");
   assert.deepEqual(headerCells.slice(1).map((cell) => cell.children[0].textContent), [
     "タイトル", "登録日時", "最終訪問日時", "訪問回数",
   ]);
@@ -90,6 +92,57 @@ test("renders a labelled top-right date settings gear", () => {
   assert.equal(opened, 1);
 });
 
+test("renders five right-edge resize handles and commits only the dragged left column", () => {
+  const fake = createFakeDocument();
+  const root = fake.element("main");
+  const changes = [];
+  renderListView(root, [item], {
+    document: fake.document,
+    columnWidths: DEFAULT_LIST_COLUMN_WIDTHS,
+    onColumnResize: (columnId, width) => changes.push([columnId, width]),
+  });
+
+  const table = root.children[0].children[0];
+  const columns = table.children[0].children;
+  const headers = table.children[1].children[0].children;
+  assert.deepEqual(columns.map((column) => column.style.width), [
+    "24px", "292px", "160px", "160px", "84px",
+  ]);
+  assert.equal(table.style.width, "720px");
+  assert.deepEqual(headers.map((header) => header.children.at(-1).dataset.columnResize), [
+    "icon", "title", "dateAdded", "lastVisitTime", "visitCount",
+  ]);
+
+  const titleHandle = headers[1].children.at(-1);
+  titleHandle.emit("pointerdown", { button: 0, pointerId: 7, clientX: 300 });
+  titleHandle.emit("pointermove", { pointerId: 7, clientX: 340 });
+  assert.equal(columns[1].style.width, "332px");
+  assert.equal(columns[2].style.width, "160px");
+  assert.equal(table.style.width, "760px");
+  titleHandle.emit("pointerup", { pointerId: 7, clientX: 340 });
+  assert.deepEqual(changes, [["title", 332]]);
+});
+
+test("clamps a dragged column at its minimum and does not commit a cancelled drag", () => {
+  const fake = createFakeDocument();
+  const root = fake.element("main");
+  const changes = [];
+  renderListView(root, [item], {
+    document: fake.document,
+    columnWidths: DEFAULT_LIST_COLUMN_WIDTHS,
+    onColumnResize: (columnId, width) => changes.push([columnId, width]),
+  });
+
+  const table = root.children[0].children[0];
+  const titleHandle = table.children[1].children[0].children[1].children.at(-1);
+  titleHandle.emit("pointerdown", { button: 0, pointerId: 1, clientX: 300 });
+  titleHandle.emit("pointermove", { pointerId: 1, clientX: 0 });
+  assert.equal(table.children[0].children[1].style.width, "60px");
+  titleHandle.emit("pointercancel", { pointerId: 1 });
+  assert.equal(table.children[0].children[1].style.width, "292px");
+  assert.deepEqual(changes, []);
+});
+
 test("selects a new list axis ascending and toggles only the active axis", () => {
   assert.deepEqual(
     nextListSortSelection({ axisId: "visitCount", direction: "desc" }, "title"),
@@ -117,7 +170,8 @@ test("renders an empty table without boundaries and keeps rows non-draggable whe
 
 test("uses the agreed dense transparent table layout without hiding narrow columns", () => {
   assert.match(css, /\.list-view-scroll\s*\{[^}]*overflow-x:\s*auto/s);
-  assert.match(css, /\.list-view\s*\{[^}]*min-width:\s*760px[^}]*border-collapse:\s*collapse/s);
+  assert.match(css, /\.list-view\s*\{[^}]*border-collapse:\s*collapse/s);
+  assert.match(css, /\.list-column-resize-handle\s*\{[^}]*cursor:\s*col-resize/s);
   assert.match(css, /\.list-tile\s*\{[^}]*height:\s*24px[^}]*background:\s*transparent/s);
   assert.match(css, /\.list-cell\s*\{[^}]*padding:\s*0 4px[^}]*text-align:\s*left/s);
   assert.match(css, /\.list-icon\s*\{[^}]*inline-size:\s*16px[^}]*block-size:\s*16px/s);
@@ -137,10 +191,15 @@ function createFakeDocument() {
     children: [],
     attributes: {},
     listeners: {},
+    style: {},
     appendChild(child) { this.children.push(child); return child; },
     setAttribute(name, value) { this.attributes[name] = value; },
     addEventListener(type, listener) { this.listeners[type] = listener; },
-    emit(type) { this.listeners[type]?.({ target: this }); },
+    setPointerCapture() {},
+    releasePointerCapture() {},
+    emit(type, event = {}) {
+      this.listeners[type]?.({ target: this, preventDefault() {}, ...event });
+    },
   });
   return { document: { createElement: element }, element };
 }
