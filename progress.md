@@ -445,3 +445,9 @@ DB-14の要求分析、懸念事項のインタビュー、仕様確定、テス
 - 一覧日時設定を専用v1文書として定義し、初期値をブラウザー方式、対応方式をブラウザー、ISO、日本、米国、英国、欧州として正常化するモデルと`storage.local`読み書きを追加した。
 - 地域方式は`Intl.DateTimeFormat`へ委譲し、ISO方式もブラウザーと同じローカルタイムゾーンで秒を省略する。対象2テスト、全190テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
 - LIST-2以降の実装GOは未取得であり、次はLIST-2「高密度テーブル描画」のRed-Green GO確認から再開する。
+- 一覧表改善 LIST-2「高密度テーブル描画」のRed-Greenを完了し、状態を`LIST-2_COMPLETE`とした。
+- 一覧DOMを5列の意味的tableへ置き換え、アイコン見出しを可視表示せず、タイトル、登録日時、最終訪問日時、訪問回数の見出しと値を描画した。
+- 行高24px、favicon 16px、全セル左揃え、通常行の透明背景、hover行だけのグレー背景へ変更し、一覧全体の背景と外枠を撤去した。
+- テーブル最小幅760pxと横スクロール容器を追加し、狭幅でも列を非表示にしない契約へ変更した。現行の行クリック、data属性、キーボードフォーカス、D&D境界契約は維持している。
+- LIST-2対象2テスト、全190テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
+- LIST-3以降の実装GOは未取得であり、次はLIST-3「列ヘッダーソート」のRed-Green GO確認から再開する。

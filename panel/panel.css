@@ -1602,58 +1602,64 @@ header h1 {
 }
 
 /* 一覧表示モード */
+.list-view-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
 .list-view {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin: 0;
-  padding: 4px;
-  list-style: none;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  table-layout: fixed;
+  background: transparent;
+  text-align: left;
+}
+.list-col-icon { width: 24px; }
+.list-col-date-added,
+.list-col-last-visit { width: 160px; }
+.list-col-visit-count { width: 84px; }
+.list-header {
+  height: 24px;
+  padding: 0 4px;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .list-tile {
-  display: flex;
+  display: table-row;
   grid-column: auto;
   grid-row: auto;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  min-height: 38px;
-  padding: 6px 8px;
-  overflow: hidden;
+  height: 24px;
+  padding: 0;
   border: 0;
-  border-radius: 7px;
   background: transparent;
 }
-.list-tile:hover { background: var(--hover); }
+.list-cell {
+  height: 24px;
+  padding: 0 4px;
+  overflow: hidden;
+  background: transparent;
+  font-size: 12px;
+  line-height: 24px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.list-tile:hover .list-cell { background: var(--hover); }
+.list-icon-cell { line-height: 0; }
 .list-icon {
-  flex: none;
-  inline-size: 24px;
-  block-size: 24px;
+  inline-size: 16px;
+  block-size: 16px;
+  vertical-align: middle;
   object-fit: contain;
 }
-.list-title {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.list-domain {
-  flex: none;
-  max-width: 40%;
-  overflow: hidden;
-  color: var(--text-faint);
-  font-size: 11px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-@media (max-width: 440px) {
-  .list-domain { display: none; }
-}
+.list-date-added,
+.list-last-visit,
+.list-visit-count { color: var(--text-faint); }
 
 /* アイコン表示モード */
 .icon-view {
