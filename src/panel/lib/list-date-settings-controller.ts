@@ -1,7 +1,7 @@
 import type { ListDateFormatId } from "./list-date-format-preferences.js";
 
 interface ListDateSettingsElements {
-  readonly root: HTMLElement;
+  readonly root: HTMLDialogElement;
   readonly close: HTMLButtonElement;
   readonly select: HTMLSelectElement;
   readonly status: HTMLElement;
@@ -24,8 +24,9 @@ export function bindListDateSettings(
   let pending = false;
 
   elements.close.addEventListener("click", () => {
-    if (!pending) elements.root.hidden = true;
+    if (!pending) elements.root.close();
   });
+  elements.root.addEventListener("cancel", (event) => event.preventDefault());
   elements.select.addEventListener("change", async () => {
     if (pending) return;
     const candidate = elements.select.value as ListDateFormatId;
@@ -52,7 +53,7 @@ export function bindListDateSettings(
       current = format;
       elements.select.value = format;
       elements.status.textContent = "";
-      elements.root.hidden = false;
+      if (!elements.root.open) elements.root.showModal();
       elements.select.focus();
     },
   };

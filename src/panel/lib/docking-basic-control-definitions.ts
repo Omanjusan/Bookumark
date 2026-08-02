@@ -75,12 +75,23 @@ export const BASIC_DOCKING_CONTROL_DEFINITIONS: ChipDefinitionRegistry = new Map
   ["view-type", controlDefinition(
     "view-type",
     (state) => state.viewType,
-    (state, value) => ({ ...state, viewType: value }),
+    (state, value) => ({
+      ...state,
+      viewType: value,
+      movementMode: value === "list" && state.movementMode === "custom-order"
+        ? "normal"
+        : state.movementMode,
+    }),
   )],
   ["movement-mode", controlDefinition(
     "movement-mode",
     (state) => state.movementMode,
-    (state, value) => ({ ...state, movementMode: value }),
+    (state, value) => ({
+      ...state,
+      movementMode: state.viewType === "list" && value === "custom-order"
+        ? "normal"
+        : value,
+    }),
   )],
 ]);
 

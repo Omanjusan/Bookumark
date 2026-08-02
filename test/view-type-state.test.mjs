@@ -44,3 +44,28 @@ test("returns the same shared state when the selected view is unchanged", () => 
     INITIAL_FIXED_DISPLAY_STATE,
   );
 });
+
+test("leaves custom placement when entering list without deleting remembered sort", () => {
+  const custom = reduceFixedDisplayState(INITIAL_FIXED_DISPLAY_STATE, {
+    type: "setMovementMode",
+    mode: "custom-order",
+  });
+  const list = reduceFixedDisplayState(custom, { type: "selectView", viewType: "list" });
+
+  assert.equal(list.activeViewType, "list");
+  assert.equal(list.display.movementMode, "normal");
+  assert.deepEqual(list.display.sort, custom.display.lastStandardSort);
+  assert.deepEqual(list.display.lastStandardSort, custom.display.lastStandardSort);
+});
+
+test("rejects custom placement while list view is active", () => {
+  const list = reduceFixedDisplayState(INITIAL_FIXED_DISPLAY_STATE, {
+    type: "selectView",
+    viewType: "list",
+  });
+  const attempted = reduceFixedDisplayState(list, {
+    type: "setMovementMode",
+    mode: "custom-order",
+  });
+  assert.equal(attempted.display.movementMode, "normal");
+});

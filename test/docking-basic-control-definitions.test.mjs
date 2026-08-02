@@ -138,6 +138,21 @@ test("returns movement mode to normal for active search, filter, and standard so
   assert.equal(store.getState().movementMode, "normal");
 });
 
+test("returns custom placement to normal only when entering list view", () => {
+  const custom = {
+    ...createDefaultDockingSharedState("layout-1"),
+    movementMode: "custom-order",
+  };
+  const store = createDockingBasicControlStore(custom);
+
+  store.update(instance("view-type"), "icon");
+  assert.equal(store.getState().movementMode, "custom-order");
+  store.update(instance("view-type"), "list");
+  assert.equal(store.getState().movementMode, "normal");
+  store.update(instance("movement-mode"), "custom-order");
+  assert.equal(store.getState().movementMode, "normal");
+});
+
 test("normalizes a legacy directory-mode initial state at the runtime boundary", () => {
   const initial = {
     ...createDefaultDockingSharedState("layout-1"),

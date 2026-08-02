@@ -1624,6 +1624,7 @@ header h1 {
   position: fixed;
   inset-block-start: 16px;
   inset-inline-end: 16px;
+  margin: 0;
   z-index: 20;
   display: grid;
   gap: 8px;
@@ -1635,7 +1636,8 @@ header h1 {
   color: var(--text);
   box-shadow: 0 8px 24px rgb(0 0 0 / 24%);
 }
-.list-date-settings[hidden] { display: none; }
+.list-date-settings:not([open]) { display: none; }
+.list-date-settings::backdrop { background: rgb(0 0 0 / 45%); }
 .list-date-settings > header {
   display: flex;
   align-items: center;

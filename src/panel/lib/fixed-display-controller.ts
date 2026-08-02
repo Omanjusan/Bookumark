@@ -67,6 +67,7 @@ export function reduceFixedDisplayState(
       };
     }
     case "setMovementMode":
+      if (state.activeViewType === "list" && action.mode === "custom-order") return state;
       return {
         ...state,
         display: reduceDisplayState(state.display, action),
@@ -81,10 +82,18 @@ export function reduceFixedDisplayState(
         ...state,
         display: reduceDisplayState(state.display, action),
       };
-    case "selectView":
-      return action.viewType === state.activeViewType
-        ? state
-        : { ...state, activeViewType: action.viewType };
+    case "selectView": {
+      if (action.viewType === state.activeViewType) return state;
+      const leaveCustom = action.viewType === "list"
+        && state.display.movementMode === "custom-order";
+      return {
+        ...state,
+        activeViewType: action.viewType,
+        display: leaveCustom
+          ? reduceDisplayState(state.display, { type: "resetMovementMode" })
+          : state.display,
+      };
+    }
   }
 }
 

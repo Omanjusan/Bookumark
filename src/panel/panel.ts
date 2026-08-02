@@ -256,7 +256,9 @@ const panelFlavorPickerChoices = document.getElementById(
 const panelFlavorPickerClose = document.getElementById(
   "panel-flavor-picker-close",
 ) as HTMLButtonElement;
-const listDateSettingsRoot = document.getElementById("list-date-settings") as HTMLElement;
+const listDateSettingsRoot = document.getElementById(
+  "list-date-settings",
+) as HTMLDialogElement;
 const listDateSettingsClose = document.getElementById(
   "list-date-settings-close",
 ) as HTMLButtonElement;
@@ -564,6 +566,7 @@ bindBayFactoryChipDrag(bayFactoryEditor, (change) => {
 
 function currentDragMode(): ReturnType<typeof resolveViewDragMode> {
   return resolveViewDragMode({
+    viewType: fixedDisplayState.activeViewType,
     movementMode: fixedDisplayState.display.movementMode,
     query: fixedDisplayState.query,
     filterCount: fixedDisplayState.filters.length,
