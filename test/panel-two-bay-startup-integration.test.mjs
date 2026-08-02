@@ -17,6 +17,20 @@ test("routes active panel startup through the independent two-bay boundary", () 
   assert.doesNotMatch(activeStartup, /bindLayoutManagement/);
 });
 
+test("loads and repairs flavor preferences before publishing the first panel render", () => {
+  const activeStartup = functionSection("loadAndStartPanelRuntime", "loadAndStartLegacyPanelRuntime");
+
+  assert.match(activeStartup, /loadPanelFlavorPreferences\(\)/);
+  assert.match(activeStartup, /preparePanelFlavorPreferences\([^;]*candidateTreeItems/s);
+  assert.match(activeStartup, /if \(candidateFlavorState\.changed\)[\s\S]*?savePanelFlavorPreferences/);
+  assert.match(activeStartup, /panelFlavorPreferences = candidateFlavorState\.preferences/);
+  assert.match(source, /renderPanelGrid\([^;]*flavorPreferences:\s*panelFlavorPreferences/s);
+
+  const publish = activeStartup.indexOf("panelFlavorPreferences = candidateFlavorState.preferences");
+  const save = activeStartup.indexOf("savePanelFlavorPreferences");
+  assert.ok(save >= 0 && save < publish);
+});
+
 test("keeps the legacy startup frozen and outside the initial-load controller", () => {
   assert.match(source, /export async function loadAndStartLegacyPanelRuntime/);
   assert.match(source, /load:\s*loadAndStartPanelRuntime/);

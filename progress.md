@@ -430,4 +430,8 @@ DB-14の要求分析、懸念事項のインタビュー、仕様確定、テス
 - v1文書として32bit seedとGUID別overrideだけを専用`storage.local`キーへ防御的に保存するモデルを追加した。
 - 未保存・破損値の正規化、個別指定優先、自動配色への復帰、不正UI入力の拒否、Firefox全ブックマークGUIDによる孤児override除去を追加した。
 - PF-1対象3テスト、全187テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
-- PF-2以降の実装GOは未取得であり、次はPF-2「初期読み込みへの保存配色統合」のテストケース確認とRed-Green GO確認から再開する。
+- パネル配色設定 PF-2「初期読み込みへの保存配色統合」のRed-Greenを完了し、状態を`PF-2_COMPLETE`とした。
+- 保存済み配色をFirefox全ブックマークツリーで正常化・孤児除去し、補正保存が成功するまで通常runtimeへ公開しないようにした。
+- 初回パネル描画から永続seedとGUID別overrideを使用し、検索、ソート、表示切替後も同じ保存設定を参照するようにした。
+- PF-2対象3テスト、全187テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
+- PF-3以降の実装GOは未取得であり、次はPF-3「パネル歯車と配色ポップオーバー」のテストケース確認とRed-Green GO確認から再開する。

@@ -1,5 +1,7 @@
 import type { PanelInformationField, PanelTileModel } from "./panel-tile-model.js";
 import { createPanelFlavorSeed, panelFlavorForGuid } from "./panel-flavor.js";
+import { panelFlavorFromPreferences } from "./panel-flavor-preferences.js";
+import type { PanelFlavorPreferences } from "./panel-flavor-preferences.js";
 
 const FALLBACK_FAVICON_PATH = "icons/bookmark.svg";
 
@@ -7,6 +9,7 @@ interface PanelGridViewOptions {
   readonly draggable?: boolean;
   readonly document?: Document;
   readonly flavorSeed?: number;
+  readonly flavorPreferences?: PanelFlavorPreferences;
 }
 
 const SESSION_FLAVOR_SEED = createPanelFlavorSeed();
@@ -28,7 +31,13 @@ export function renderPanelGrid(
   const grid = documentRef.createElement("ul");
   grid.className = "panel-grid";
   for (const tile of tiles) {
-    grid.appendChild(tileElementOf(tile, draggable, flavorSeed, documentRef));
+    grid.appendChild(tileElementOf(
+      tile,
+      draggable,
+      options.flavorPreferences,
+      flavorSeed,
+      documentRef,
+    ));
   }
   root.appendChild(grid);
   if (draggable && tiles.length > 0) {
@@ -52,6 +61,7 @@ function boundaryElementOf(
 function tileElementOf(
   tile: PanelTileModel,
   draggable: boolean,
+  flavorPreferences: PanelFlavorPreferences | undefined,
   flavorSeed: number,
   documentRef: Document,
 ): HTMLLIElement {
@@ -60,7 +70,9 @@ function tileElementOf(
   element.dataset.guid = tile.guid;
   element.dataset.url = tile.url;
   element.dataset.size = tile.size;
-  element.dataset.panelFlavor = panelFlavorForGuid(tile.guid, flavorSeed);
+  element.dataset.panelFlavor = flavorPreferences === undefined
+    ? panelFlavorForGuid(tile.guid, flavorSeed)
+    : panelFlavorFromPreferences(tile.guid, flavorPreferences);
   element.title = tile.url;
   element.draggable = draggable;
 

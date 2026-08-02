@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { PANEL_FLAVOR_IDS, panelFlavorForGuid } from "../dist/panel/lib/panel-flavor.js";
+import { panelFlavorFromPreferences } from "../dist/panel/lib/panel-flavor-preferences.js";
 import { renderPanelGrid } from "../dist/panel/lib/panel-grid-view.js";
 
 test("adds a registered stable flavor only to panel-grid tiles", () => {
@@ -15,6 +16,25 @@ test("adds a registered stable flavor only to panel-grid tiles", () => {
   assert.equal(rendered[0].dataset.panelFlavor, panelFlavorForGuid("alpha", 42));
   assert.equal(rendered[1].dataset.panelFlavor, panelFlavorForGuid("beta", 42));
   assert.ok(rendered.every((element) => PANEL_FLAVOR_IDS.includes(element.dataset.panelFlavor)));
+});
+
+test("renders persistent seed colors and GUID overrides from startup preferences", () => {
+  const fake = createFakeDocument();
+  const root = fake.element("main");
+  const preferences = {
+    version: 1,
+    seed: 73,
+    overrides: { alpha: "rose" },
+  };
+
+  renderPanelGrid(root, [tile("alpha"), tile("beta")], {
+    document: fake.document,
+    flavorPreferences: preferences,
+  });
+
+  const rendered = root.children[0].children;
+  assert.equal(rendered[0].dataset.panelFlavor, "rose");
+  assert.equal(rendered[1].dataset.panelFlavor, panelFlavorFromPreferences("beta", preferences));
 });
 
 function tile(guid) {

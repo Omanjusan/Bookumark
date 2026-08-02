@@ -8,6 +8,7 @@ import {
   loadPanelFlavorPreferences,
   normalizePanelFlavorPreferences,
   panelFlavorFromPreferences,
+  preparePanelFlavorPreferences,
   reconcilePanelFlavorOverrides,
   savePanelFlavorPreferences,
   setPanelFlavorOverride,
@@ -86,6 +87,28 @@ test("removes only orphan overrides using the complete bookmark GUID set", () =>
     changed: true,
   });
   assert.equal(reconcilePanelFlavorOverrides(preferences, ["alpha", "beta", "orphan"]).changed, false);
+});
+
+test("prepares startup preferences against every bookmark but not folder GUIDs", () => {
+  const stored = {
+    version: 1,
+    seed: 11,
+    overrides: { visible: "coral", otherFolder: "blue", folder: "pink", orphan: "rose" },
+  };
+  const treeItems = [
+    { kind: "folder", guid: "folder" },
+    { kind: "bookmark", guid: "visible" },
+    { kind: "bookmark", guid: "otherFolder" },
+  ];
+
+  assert.deepEqual(preparePanelFlavorPreferences(stored, treeItems, () => 0), {
+    preferences: {
+      version: 1,
+      seed: 11,
+      overrides: { visible: "coral", otherFolder: "blue" },
+    },
+    changed: true,
+  });
 });
 
 test("loads and saves only the dedicated key using defensive copies", async () => {

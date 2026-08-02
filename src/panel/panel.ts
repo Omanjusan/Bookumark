@@ -98,6 +98,13 @@ import { createPanelDragClickGuard } from "./lib/panel-drag-click-guard.js";
 import { observeGridCells } from "./lib/grid-resize-observer.js";
 import { renderIconView } from "./lib/icon-view.js";
 import { renderPanelGrid } from "./lib/panel-grid-view.js";
+import {
+  createPanelFlavorPreferences,
+  loadPanelFlavorPreferences,
+  preparePanelFlavorPreferences,
+  savePanelFlavorPreferences,
+} from "./lib/panel-flavor-preferences.js";
+import type { PanelFlavorPreferences } from "./lib/panel-flavor-preferences.js";
 import { bindPanelFolderNavigation } from "./lib/panel-folder-navigation.js";
 import { bindPanelFolderDrag } from "./lib/panel-folder-drag.js";
 import { loadPanelFolderCandidate } from "./lib/panel-folder-load.js";
@@ -351,6 +358,7 @@ let folderOrders: CustomOrderByFolder = {};
 let currentFolderGuid: string | null = null;
 let folderHistory: FolderNavigationHistory | null = null;
 let folderNavigationPending = false;
+let panelFlavorPreferences: PanelFlavorPreferences = createPanelFlavorPreferences();
 let gridCells = { columns: 0, rows: 0 };
 let fixedDisplayState = INITIAL_FIXED_DISPLAY_STATE;
 let visitStatusValue: VisitStatusFilterValue = "all";
@@ -545,7 +553,10 @@ function redraw(): void {
     },
     showPanel: (models, options) => {
       countEl.textContent = models.length + "件";
-      renderPanelGrid(root, models, options);
+      renderPanelGrid(root, models, {
+        ...options,
+        flavorPreferences: panelFlavorPreferences,
+      });
     },
     showIcon: (models, options) => {
       countEl.textContent = models.length + "件";
@@ -1226,6 +1237,11 @@ function rebuildActiveDockingLayout(
 async function loadAndStartPanelRuntime(): Promise<void> {
   const twoBayState = await loadPanelTwoBayState();
   const candidateTreeItems = await getBookmarkTreeItems();
+  const storedFlavorPreferences = await loadPanelFlavorPreferences();
+  const candidateFlavorState = preparePanelFlavorPreferences(
+    storedFlavorPreferences,
+    candidateTreeItems,
+  );
   const savedFolderOrders = await loadFolderOrders();
   let candidateFolderOrders: CustomOrderByFolder;
   if (savedFolderOrders === null) {
@@ -1250,7 +1266,13 @@ async function loadAndStartPanelRuntime(): Promise<void> {
     saveCurrentFolder,
   });
 
+  // 初期公開前に新規seed、補正、孤児除去を保存し、失敗時は部分状態を公開しない。
+  if (candidateFlavorState.changed) {
+    await savePanelFlavorPreferences(candidateFlavorState.preferences);
+  }
+
   // 新構成とブックマークの全非同期ロード成功後にだけ通常runtimeへ公開する。
+  panelFlavorPreferences = candidateFlavorState.preferences;
   treeItems = candidateTreeItems;
   folderOrders = candidateFolderOrders;
   currentFolderGuid = candidateFolder.folderGuid;

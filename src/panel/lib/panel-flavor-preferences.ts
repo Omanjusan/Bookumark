@@ -4,6 +4,7 @@ import {
   panelFlavorForGuid,
 } from "./panel-flavor.js";
 import type { PanelFlavorId } from "./panel-flavor.js";
+import type { BookmarkTreeItem } from "./bookmarks.js";
 
 export const PANEL_FLAVOR_PREFERENCES_STORAGE_KEY = "panelFlavorPreferences.v1";
 
@@ -88,6 +89,23 @@ export function reconcilePanelFlavorOverrides(
   return {
     preferences: { version: 1, seed: preferences.seed, overrides },
     changed: Object.keys(overrides).length !== Object.keys(preferences.overrides).length,
+  };
+}
+
+/** 保存候補を正常化し、Firefox全ツリー内のブックマークだけへ個別指定を整合する。 */
+export function preparePanelFlavorPreferences(
+  candidate: unknown,
+  treeItems: readonly Pick<BookmarkTreeItem, "kind" | "guid">[],
+  random: () => number = Math.random,
+): PanelFlavorPreferencesResult {
+  const normalized = normalizePanelFlavorPreferences(candidate, random);
+  const reconciled = reconcilePanelFlavorOverrides(
+    normalized.preferences,
+    treeItems.filter(({ kind }) => kind === "bookmark").map(({ guid }) => guid),
+  );
+  return {
+    preferences: reconciled.preferences,
+    changed: normalized.changed || reconciled.changed,
   };
 }
 
