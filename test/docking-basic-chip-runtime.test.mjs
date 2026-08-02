@@ -73,7 +73,10 @@ test("renders five accessible glyph choices and keeps favorite as an exclusive v
     "view-type-option view-type-option--card",
     "view-type-option view-type-option--list",
   ]);
-  assert.equal(firstLabels[2].findByTag("IMG").attributes.src, "icons/bookmark.svg");
+  assert.equal(
+    firstLabels[2].findAllByTag("SPAN").some(({ className }) => className.includes("--icon")),
+    true,
+  );
 
   firstInputs[0].checked = true;
   firstInputs[0].emit("change");

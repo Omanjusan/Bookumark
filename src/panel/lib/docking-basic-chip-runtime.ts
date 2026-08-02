@@ -298,12 +298,9 @@ function appendRadioChoice(
   const span = documentRef.createElement("span");
   span.className = model.className.startsWith("movement-option") ? "movement-segment" : "";
   if (model.glyph) {
-    const glyph = model.glyph === "icon"
-      ? documentRef.createElement("img")
-      : documentRef.createElement("i");
+    const glyph = documentRef.createElement("span");
     glyph.className = `view-type-glyph view-type-glyph--${model.glyph}`;
     glyph.setAttribute("aria-hidden", "true");
-    if (model.glyph === "icon") glyph.setAttribute("src", "icons/bookmark.svg");
     if (model.glyph === "favorite") glyph.textContent = "★";
     span.appendChild(glyph);
   } else {

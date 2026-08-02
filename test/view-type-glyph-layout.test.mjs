@@ -10,7 +10,8 @@ test("view mode glyph buttons use one fixed footprint", () => {
 });
 
 test("panel, card, and list glyphs define their requested silhouettes", () => {
-  assert.match(css, /\.view-type-glyph--panel\s*{[^}]*mask:/s);
-  assert.match(css, /\.view-type-glyph--card\s*{[^}]*clip-path:\s*polygon/s);
-  assert.match(css, /\.view-type-glyph--list\s*{[^}]*repeating-linear-gradient/s);
+  assert.match(css, /\.view-type-glyph--panel\s*{[^}]*transform:\s*scale\(\.9\);[^}]*mask:/s);
+  assert.match(css, /\.view-type-glyph--icon\s*{[^}]*background:\s*currentColor;[^}]*bookmark\.svg/s);
+  assert.match(css, /\.view-type-glyph--card\s*{[^}]*linear-gradient\(45deg/s);
+  assert.match(css, /\.view-type-glyph--list\s*{[^}]*transform:\s*scale\(\.9\);[^}]*repeating-linear-gradient/s);
 });

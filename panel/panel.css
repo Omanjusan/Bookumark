@@ -884,11 +884,13 @@ header h1 {
 }
 .view-type-glyph--favorite {
   font-size: 17px;
+  font-style: normal;
   line-height: 18px;
   text-align: center;
 }
 .view-type-glyph--panel {
   background: currentColor;
+  transform: scale(.9);
   mask:
     radial-gradient(circle at 0 0, transparent 0 3px, #000 3.5px) 0 0 / 50% 50% no-repeat,
     radial-gradient(circle at 100% 0, transparent 0 3px, #000 3.5px) 100% 0 / 50% 50% no-repeat,
@@ -896,17 +898,23 @@ header h1 {
     radial-gradient(circle at 100% 100%, transparent 0 3px, #000 3.5px) 100% 100% / 50% 50% no-repeat;
 }
 .view-type-glyph--icon {
-  object-fit: contain;
+  background: currentColor;
+  mask: url("icons/bookmark.svg") center / contain no-repeat;
 }
 .view-type-glyph--card {
-  box-sizing: border-box;
+  position: relative;
   inline-size: 20px;
   block-size: 13px;
-  border: 2px solid currentColor;
-  clip-path: polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 0 100%);
+  background:
+    linear-gradient(currentColor, currentColor) left top / 15px 2px no-repeat,
+    linear-gradient(45deg, transparent 39%, currentColor 40% 60%, transparent 61%) right top / 7px 7px no-repeat,
+    linear-gradient(currentColor, currentColor) right bottom / 2px 8px no-repeat,
+    linear-gradient(currentColor, currentColor) left bottom / 100% 2px no-repeat,
+    linear-gradient(currentColor, currentColor) left top / 2px 100% no-repeat;
 }
 .view-type-glyph--list {
   block-size: 17px;
+  transform: scale(.9);
   background: repeating-linear-gradient(
     to bottom,
     currentColor 0 2px,
