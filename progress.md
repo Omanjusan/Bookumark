@@ -440,3 +440,8 @@ DB-14の要求分析、懸念事項のインタビュー、仕様確定、テス
 - 配色選択の正常保存後だけGUID別overrideを正式状態へ昇格し、パネルを即時再描画するようにした。「自動」はoverrideを削除してseed配色へ戻す。
 - PF-3対象4テスト、既存CSS契約を含む全189テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
 - PF-4以降の実装GOは未取得であり、次はPF-4「保存失敗復旧とクリック・D&D分離」のテストケース確認とRed-Green GO確認から再開する。
+- 一覧表改善 LIST-1「表示モデルと日付設定モデル」のRed-Greenを完了し、状態を`LIST-1_COMPLETE`とした。
+- 一覧モデルへ登録日時、最終訪問日時、訪問回数の表示値を追加し、欠損・不正値を`—`、取得済み未訪問を`0`として区別した。現行DOM互換のドメイン値はLIST-2まで暫定保持する。
+- 一覧日時設定を専用v1文書として定義し、初期値をブラウザー方式、対応方式をブラウザー、ISO、日本、米国、英国、欧州として正常化するモデルと`storage.local`読み書きを追加した。
+- 地域方式は`Intl.DateTimeFormat`へ委譲し、ISO方式もブラウザーと同じローカルタイムゾーンで秒を省略する。対象2テスト、全190テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
+- LIST-2以降の実装GOは未取得であり、次はLIST-2「高密度テーブル描画」のRed-Green GO確認から再開する。
