@@ -11,6 +11,7 @@ interface ListViewOptions {
   readonly document?: Pick<Document, "createElement">;
   readonly sort?: DisplaySortSelection<StandardSortAxisId>;
   readonly onSort?: (selection: DisplaySortSelection<StandardSortAxisId>) => void;
+  readonly onDateSettings?: () => void;
 }
 
 /** 一覧モデルを既存のクリック・D&D契約を持つ5列テーブルとして描画する。 */
@@ -36,10 +37,27 @@ export function renderListView(
   for (const item of items) body.appendChild(rowOf(documentRef, item, draggable));
   table.appendChild(body);
   scroll.appendChild(table);
+  if (options.onDateSettings) {
+    scroll.appendChild(dateSettingsButtonOf(documentRef, options.onDateSettings));
+  }
   root.appendChild(scroll);
   if (draggable && items.length > 0) {
     root.appendChild(boundaryOf(documentRef, "end", items[items.length - 1].guid));
   }
+}
+
+/** 一覧右上へ日付表示設定を開く歯車を生成する。 */
+function dateSettingsButtonOf(
+  documentRef: Pick<Document, "createElement">,
+  onOpen: () => void,
+): HTMLButtonElement {
+  const button = documentRef.createElement("button");
+  button.className = "list-date-settings-button";
+  button.type = "button";
+  button.textContent = "⚙";
+  button.setAttribute("aria-label", "一覧の日付表示設定");
+  button.addEventListener("click", onOpen);
+  return button;
 }
 
 /** 別軸は昇順で選択し、選択中の同一軸だけ方向を反転する。 */

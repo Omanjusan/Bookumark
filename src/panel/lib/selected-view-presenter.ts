@@ -7,6 +7,7 @@ import { buildIconViewModels } from "./icon-view-model.js";
 import type { IconViewModel } from "./icon-view-model.js";
 import { buildListViewModels } from "./list-view-model.js";
 import type { ListViewModel } from "./list-view-model.js";
+import type { ListDateFormatPreferences } from "./list-date-format-preferences.js";
 import { buildPanelDrawingPlan } from "./panel-drawing-plan.js";
 import type { PanelTileModel } from "./panel-tile-model.js";
 
@@ -16,6 +17,7 @@ interface SelectedViewInput {
   readonly columns: number;
   readonly rows: number;
   readonly draggable: boolean;
+  readonly listDatePreferences?: ListDateFormatPreferences;
 }
 
 interface SelectedViewOptions {
@@ -65,7 +67,9 @@ export function presentSelectedView(
       output.showCard(buildCardViewModels(displaySet.items), options);
       return;
     case "list":
-      output.showList(buildListViewModels(displaySet.items), options);
+      output.showList(buildListViewModels(displaySet.items, {
+        preferences: input.listDatePreferences,
+      }), options);
       return;
   }
 }

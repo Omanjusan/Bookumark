@@ -152,6 +152,15 @@ import type { TwoBayConfiguration } from "./lib/two-bay-persistence-model.js";
 import { createFolderNavigationHistory } from "./lib/folder-navigation-history.js";
 import type { FolderNavigationHistory } from "./lib/folder-navigation-history.js";
 import { renderListView } from "./lib/list-view.js";
+import {
+  loadListDateFormatPreferences,
+  normalizeListDateFormatPreferences,
+  saveListDateFormatPreferences,
+} from "./lib/list-date-format-preferences.js";
+import type {
+  ListDateFormatPreferences,
+} from "./lib/list-date-format-preferences.js";
+import { bindListDateSettings } from "./lib/list-date-settings-controller.js";
 import type { FolderHistoryDirection } from "./lib/panel-folder-history-input.js";
 import { bindLayoutManagement } from "./lib/layout-management-controller.js";
 import { createLayoutManagementCoordinator } from "./lib/layout-management-coordinator.js";
@@ -247,6 +256,14 @@ const panelFlavorPickerChoices = document.getElementById(
 const panelFlavorPickerClose = document.getElementById(
   "panel-flavor-picker-close",
 ) as HTMLButtonElement;
+const listDateSettingsRoot = document.getElementById("list-date-settings") as HTMLElement;
+const listDateSettingsClose = document.getElementById(
+  "list-date-settings-close",
+) as HTMLButtonElement;
+const listDateFormat = document.getElementById("list-date-format") as HTMLSelectElement;
+const listDateSettingsStatus = document.getElementById(
+  "list-date-settings-status",
+) as HTMLElement;
 const dockingRailRoots = {
   top: document.getElementById("docking-rail-top") as HTMLElement,
   left: document.getElementById("docking-rail-left") as HTMLElement,
@@ -371,6 +388,7 @@ let currentFolderGuid: string | null = null;
 let folderHistory: FolderNavigationHistory | null = null;
 let folderNavigationPending = false;
 let panelFlavorPreferences: PanelFlavorPreferences = createPanelFlavorPreferences();
+let listDatePreferences: ListDateFormatPreferences = { version: 1, format: "browser" };
 let gridCells = { columns: 0, rows: 0 };
 let fixedDisplayState = INITIAL_FIXED_DISPLAY_STATE;
 let visitStatusValue: VisitStatusFilterValue = "all";
@@ -398,6 +416,19 @@ const panelFlavorPicker = bindPanelFlavorPicker({
     const candidate = setPanelFlavorOverride(panelFlavorPreferences, guid, flavor);
     await savePanelFlavorPreferences(candidate);
     panelFlavorPreferences = candidate;
+    redraw();
+  },
+});
+const listDateSettings = bindListDateSettings({
+  root: listDateSettingsRoot,
+  close: listDateSettingsClose,
+  select: listDateFormat,
+  status: listDateSettingsStatus,
+}, {
+  onChange: async (format) => {
+    const candidate: ListDateFormatPreferences = { version: 1, format };
+    await saveListDateFormatPreferences(candidate);
+    listDatePreferences = candidate;
     redraw();
   },
 });
@@ -569,6 +600,7 @@ function redraw(): void {
     items: currentItems,
     state: fixedDisplayState,
     draggable: dragEnabled(),
+    listDatePreferences,
     ...gridCells,
   }, {
     showLoading: () => renderPanelStatus(root, { status: "loading" }),
@@ -603,6 +635,7 @@ function redraw(): void {
         ...options,
         sort: fixedDisplayState.display.lastStandardSort,
         onSort: setListSort,
+        onDateSettings: () => listDateSettings.open(listDatePreferences.format),
       });
     },
   });
@@ -1283,6 +1316,10 @@ async function loadAndStartPanelRuntime(): Promise<void> {
   const twoBayState = await loadPanelTwoBayState();
   const candidateTreeItems = await getBookmarkTreeItems();
   const storedFlavorPreferences = await loadPanelFlavorPreferences();
+  const storedListDatePreferences = await loadListDateFormatPreferences();
+  const candidateListDatePreferences = normalizeListDateFormatPreferences(
+    storedListDatePreferences,
+  );
   const candidateFlavorState = preparePanelFlavorPreferences(
     storedFlavorPreferences,
     candidateTreeItems,
@@ -1315,9 +1352,13 @@ async function loadAndStartPanelRuntime(): Promise<void> {
   if (candidateFlavorState.changed) {
     await savePanelFlavorPreferences(candidateFlavorState.preferences);
   }
+  if (candidateListDatePreferences.changed) {
+    await saveListDateFormatPreferences(candidateListDatePreferences.preferences);
+  }
 
   // 新構成とブックマークの全非同期ロード成功後にだけ通常runtimeへ公開する。
   panelFlavorPreferences = candidateFlavorState.preferences;
+  listDatePreferences = candidateListDatePreferences.preferences;
   treeItems = candidateTreeItems;
   folderOrders = candidateFolderOrders;
   currentFolderGuid = candidateFolder.folderGuid;

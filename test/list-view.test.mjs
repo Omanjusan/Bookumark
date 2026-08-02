@@ -74,6 +74,22 @@ test("renders active sort state and delivers header sort selections", () => {
   ]);
 });
 
+test("renders a labelled top-right date settings gear", () => {
+  const fake = createFakeDocument();
+  const root = fake.element("main");
+  let opened = 0;
+  renderListView(root, [item], {
+    document: fake.document,
+    onDateSettings: () => { opened += 1; },
+  });
+
+  const gear = root.children[0].children[1];
+  assert.equal(gear.className, "list-date-settings-button");
+  assert.equal(gear.attributes["aria-label"], "一覧の日付表示設定");
+  gear.emit("click");
+  assert.equal(opened, 1);
+});
+
 test("selects a new list axis ascending and toggles only the active axis", () => {
   assert.deepEqual(
     nextListSortSelection({ axisId: "visitCount", direction: "desc" }, "title"),
@@ -106,7 +122,7 @@ test("uses the agreed dense transparent table layout without hiding narrow colum
   assert.match(css, /\.list-cell\s*\{[^}]*padding:\s*0 4px[^}]*text-align:\s*left/s);
   assert.match(css, /\.list-icon\s*\{[^}]*inline-size:\s*16px[^}]*block-size:\s*16px/s);
   assert.match(css, /\.list-tile:hover\s+\.list-cell\s*\{[^}]*background:\s*var\(--hover\)/s);
-  assert.doesNotMatch(css, /@media\s*\(max-width:\s*440px\)[\s\S]*?\.list-(?:date|visit)[^{]*\{[^}]*display:\s*none/s);
+  assert.doesNotMatch(css, /\.list-(?:date-added|last-visit|visit-count)\s*\{[^}]*display:\s*none/s);
 });
 
 function createFakeDocument() {

@@ -125,6 +125,29 @@
       aria-label="パネル配色"
     ></div>
   </section>
+  <section
+    id="list-date-settings"
+    class="list-date-settings"
+    role="dialog"
+    aria-modal="false"
+    aria-labelledby="list-date-settings-title"
+    hidden
+  >
+    <header>
+      <strong id="list-date-settings-title">一覧の日付表示設定</strong>
+      <button id="list-date-settings-close" type="button" aria-label="一覧の日付表示設定を閉じる">×</button>
+    </header>
+    <label for="list-date-format">日付表示方式</label>
+    <select id="list-date-format">
+      <option value="browser">ブラウザー設定</option>
+      <option value="iso">ISO（2026-08-03 14:05）</option>
+      <option value="ja-JP">日本</option>
+      <option value="en-US">米国</option>
+      <option value="en-GB">英国</option>
+      <option value="de-DE">欧州</option>
+    </select>
+    <span id="list-date-settings-status" role="status" aria-live="polite"></span>
+  </section>
   <dialog id="two-bay-settings-dialog" aria-labelledby="two-bay-settings-title">
     <div class="two-bay-settings-heading">
       <h2 id="two-bay-settings-title">設定</h2>
