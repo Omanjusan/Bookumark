@@ -31,6 +31,14 @@ test("loads and repairs flavor preferences before publishing the first panel ren
   assert.ok(save >= 0 && save < publish);
 });
 
+test("connects panel gears to the shared flavor picker and persists successful choices", () => {
+  assert.match(source, /bindPanelFlavorPicker\(/);
+  assert.match(source, /onFlavorSettings:\s*\([^)]*\)\s*=>\s*panelFlavorPicker\.open/);
+  assert.match(source, /setPanelFlavorOverride\(panelFlavorPreferences/);
+  assert.match(source, /await savePanelFlavorPreferences\(candidate\)/);
+  assert.match(source, /panelFlavorPreferences = candidate;[\s\S]*?redraw\(\)/);
+});
+
 test("keeps the legacy startup frozen and outside the initial-load controller", () => {
   assert.match(source, /export async function loadAndStartLegacyPanelRuntime/);
   assert.match(source, /load:\s*loadAndStartPanelRuntime/);

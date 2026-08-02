@@ -1431,6 +1431,7 @@ header h1 {
 }
 
 .panel-tile {
+  position: relative;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -1442,6 +1443,93 @@ header h1 {
   background: var(--surface);
   cursor: pointer;
 }
+.panel-flavor-settings {
+  position: absolute;
+  inset-block-start: 3px;
+  inset-inline-end: 3px;
+  display: grid;
+  place-items: center;
+  inline-size: 22px;
+  block-size: 22px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  color: var(--text);
+  opacity: 0;
+  pointer-events: none;
+  cursor: pointer;
+  z-index: 1;
+}
+.panel-tile:hover .panel-flavor-settings,
+.panel-tile:focus-within .panel-flavor-settings {
+  opacity: 1;
+  pointer-events: auto;
+}
+.panel-flavor-settings:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--text-faint);
+  outline-offset: -2px;
+}
+.panel-flavor-picker {
+  position: fixed;
+  z-index: 20;
+  width: min(276px, calc(100vw - 16px));
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 24%);
+}
+.panel-flavor-picker[hidden] { display: none; }
+.panel-flavor-picker > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.panel-flavor-picker > header button {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.panel-flavor-picker-choices {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.panel-flavor-choice {
+  min-width: 0;
+  min-height: 36px;
+  border: 2px solid transparent;
+  border-radius: 7px;
+  background: var(--hover);
+  color: var(--text);
+  cursor: pointer;
+}
+.panel-flavor-choice[aria-checked="true"] {
+  border-color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--surface);
+}
+.panel-flavor-choice[data-flavor-choice="coral"] { background: var(--panel-flavor-coral-bg); }
+.panel-flavor-choice[data-flavor-choice="red"] { background: var(--panel-flavor-red-bg); }
+.panel-flavor-choice[data-flavor-choice="orange"] { background: var(--panel-flavor-orange-bg); }
+.panel-flavor-choice[data-flavor-choice="amber"] { background: var(--panel-flavor-amber-bg); }
+.panel-flavor-choice[data-flavor-choice="lemon"] { background: var(--panel-flavor-lemon-bg); }
+.panel-flavor-choice[data-flavor-choice="lime"] { background: var(--panel-flavor-lime-bg); }
+.panel-flavor-choice[data-flavor-choice="green"] { background: var(--panel-flavor-green-bg); }
+.panel-flavor-choice[data-flavor-choice="mint"] { background: var(--panel-flavor-mint-bg); }
+.panel-flavor-choice[data-flavor-choice="teal"] { background: var(--panel-flavor-teal-bg); }
+.panel-flavor-choice[data-flavor-choice="cyan"] { background: var(--panel-flavor-cyan-bg); }
+.panel-flavor-choice[data-flavor-choice="blue"] { background: var(--panel-flavor-blue-bg); }
+.panel-flavor-choice[data-flavor-choice="indigo"] { background: var(--panel-flavor-indigo-bg); }
+.panel-flavor-choice[data-flavor-choice="violet"] { background: var(--panel-flavor-violet-bg); }
+.panel-flavor-choice[data-flavor-choice="purple"] { background: var(--panel-flavor-purple-bg); }
+.panel-flavor-choice[data-flavor-choice="pink"] { background: var(--panel-flavor-pink-bg); }
+.panel-flavor-choice[data-flavor-choice="rose"] { background: var(--panel-flavor-rose-bg); }
 .panel-grid .panel-tile[data-panel-flavor] {
   --text: var(--panel-flavor-text);
   --text-muted: var(--panel-flavor-text-muted);
@@ -1483,6 +1571,15 @@ header h1 {
 .panel-tile[data-size="1"]    { grid-column: span 4; grid-row: span 4; }
 .panel-tile[data-size="2"]    { grid-column: span 8; grid-row: span 4; }
 .panel-tile[data-size="4"]    { grid-column: span 8; grid-row: span 8; }
+
+.panel-tile[data-size="1/16"] .panel-flavor-settings,
+.panel-tile[data-size="1/8"] .panel-flavor-settings {
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  border: 0;
+  border-radius: inherit;
+}
 
 .panel-favicon {
   display: inline-flex;

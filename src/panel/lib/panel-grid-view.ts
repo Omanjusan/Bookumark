@@ -10,6 +10,11 @@ interface PanelGridViewOptions {
   readonly document?: Document;
   readonly flavorSeed?: number;
   readonly flavorPreferences?: PanelFlavorPreferences;
+  readonly onFlavorSettings?: (
+    guid: string,
+    title: string,
+    anchor: HTMLButtonElement,
+  ) => void;
 }
 
 const SESSION_FLAVOR_SEED = createPanelFlavorSeed();
@@ -35,6 +40,7 @@ export function renderPanelGrid(
       tile,
       draggable,
       options.flavorPreferences,
+      options.onFlavorSettings,
       flavorSeed,
       documentRef,
     ));
@@ -62,6 +68,7 @@ function tileElementOf(
   tile: PanelTileModel,
   draggable: boolean,
   flavorPreferences: PanelFlavorPreferences | undefined,
+  onFlavorSettings: PanelGridViewOptions["onFlavorSettings"],
   flavorSeed: number,
   documentRef: Document,
 ): HTMLLIElement {
@@ -105,6 +112,22 @@ function tileElementOf(
   }
   if (hasField(tile, "auxiliary") && tile.auxiliary) {
     appendText(element, "panel-auxiliary", tile.auxiliary, documentRef);
+  }
+
+  if (onFlavorSettings !== undefined) {
+    const settings = documentRef.createElement("button");
+    settings.type = "button";
+    settings.className = "panel-flavor-settings";
+    settings.textContent = "⚙";
+    settings.title = `${tile.title}の配色を変更`;
+    settings.draggable = false;
+    settings.setAttribute("aria-label", `${tile.title}の配色を変更`);
+    settings.setAttribute("aria-haspopup", "dialog");
+    settings.addEventListener("click", (event) => {
+      event.stopPropagation();
+      onFlavorSettings(tile.guid, tile.title, settings);
+    });
+    element.appendChild(settings);
   }
 
   return element;

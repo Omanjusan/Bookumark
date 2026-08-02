@@ -37,6 +37,27 @@ test("renders persistent seed colors and GUID overrides from startup preferences
   assert.equal(rendered[1].dataset.panelFlavor, panelFlavorFromPreferences("beta", preferences));
 });
 
+test("renders a labelled settings gear that opens the current bookmark without opening it", () => {
+  const fake = createFakeDocument();
+  const root = fake.element("main");
+  const opened = [];
+  renderPanelGrid(root, [tile("alpha")], {
+    document: fake.document,
+    flavorSeed: 1,
+    onFlavorSettings: (guid, title, anchor) => opened.push({ guid, title, anchor }),
+  });
+
+  const rendered = root.children[0].children[0];
+  const gear = rendered.children.at(-1);
+  assert.equal(gear.className, "panel-flavor-settings");
+  assert.equal(gear.attributes["aria-label"], "alphaの配色を変更");
+  assert.equal(gear.draggable, false);
+  const event = { stopPropagationCalls: 0, stopPropagation() { this.stopPropagationCalls += 1; } };
+  gear.listeners.click(event);
+  assert.equal(event.stopPropagationCalls, 1);
+  assert.deepEqual(opened, [{ guid: "alpha", title: "alpha", anchor: gear }]);
+});
+
 function tile(guid) {
   return {
     guid,
@@ -64,6 +85,7 @@ function createFakeDocument() {
     appendChild(child) { this.children.push(child); return child; },
     setAttribute(name, value) { this.attributes[name] = value; },
     addEventListener(type, listener) { this.listeners[type] = listener; },
+    getBoundingClientRect() { return { left: 10, right: 30, top: 20, bottom: 40 }; },
   });
   return { document: { createElement: element }, element };
 }

@@ -106,6 +106,25 @@
     <footer id="docking-rail-bottom" class="panel-tools dock-rail dock-rail--bottom" aria-label="下レール"></footer>
     </div>
   </div>
+  <section
+    id="panel-flavor-picker"
+    class="panel-flavor-picker"
+    role="dialog"
+    aria-modal="false"
+    aria-labelledby="panel-flavor-picker-title"
+    hidden
+  >
+    <header>
+      <strong id="panel-flavor-picker-title"></strong>
+      <button id="panel-flavor-picker-close" type="button" aria-label="配色選択を閉じる">×</button>
+    </header>
+    <div
+      id="panel-flavor-picker-choices"
+      class="panel-flavor-picker-choices"
+      role="radiogroup"
+      aria-label="パネル配色"
+    ></div>
+  </section>
   <dialog id="two-bay-settings-dialog" aria-labelledby="two-bay-settings-title">
     <div class="two-bay-settings-heading">
       <h2 id="two-bay-settings-title">設定</h2>

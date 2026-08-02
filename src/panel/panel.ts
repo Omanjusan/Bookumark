@@ -105,6 +105,8 @@ import {
   savePanelFlavorPreferences,
 } from "./lib/panel-flavor-preferences.js";
 import type { PanelFlavorPreferences } from "./lib/panel-flavor-preferences.js";
+import { setPanelFlavorOverride } from "./lib/panel-flavor-preferences.js";
+import { bindPanelFlavorPicker } from "./lib/panel-flavor-picker.js";
 import { bindPanelFolderNavigation } from "./lib/panel-folder-navigation.js";
 import { bindPanelFolderDrag } from "./lib/panel-folder-drag.js";
 import { loadPanelFolderCandidate } from "./lib/panel-folder-load.js";
@@ -235,6 +237,16 @@ const twoBayChipToolbox = document.getElementById("two-bay-chip-toolbox") as HTM
 const commonNotificationDialog = document.getElementById(
   "common-notification-dialog",
 ) as HTMLDialogElement;
+const panelFlavorPickerRoot = document.getElementById("panel-flavor-picker") as HTMLElement;
+const panelFlavorPickerTitle = document.getElementById(
+  "panel-flavor-picker-title",
+) as HTMLElement;
+const panelFlavorPickerChoices = document.getElementById(
+  "panel-flavor-picker-choices",
+) as HTMLElement;
+const panelFlavorPickerClose = document.getElementById(
+  "panel-flavor-picker-close",
+) as HTMLButtonElement;
 const dockingRailRoots = {
   top: document.getElementById("docking-rail-top") as HTMLElement,
   left: document.getElementById("docking-rail-left") as HTMLElement,
@@ -376,6 +388,19 @@ let saveReevaluation: DockingSaveReevaluationSession | null = null;
 let layoutEditTransactionConnection: LayoutEditTransactionConnection | null = null;
 let activeBayEditSession: BayEditSession | null = null;
 let activeBayEditTransaction: BayEditTransactionConnection | null = null;
+const panelFlavorPicker = bindPanelFlavorPicker({
+  root: panelFlavorPickerRoot,
+  title: panelFlavorPickerTitle,
+  choices: panelFlavorPickerChoices,
+  close: panelFlavorPickerClose,
+}, {
+  onSelect: async (guid, flavor) => {
+    const candidate = setPanelFlavorOverride(panelFlavorPreferences, guid, flavor);
+    await savePanelFlavorPreferences(candidate);
+    panelFlavorPreferences = candidate;
+    redraw();
+  },
+});
 let beginBayEditing: ((bayId: string) => void) | null = null;
 let beginNewBayEditing: ((draft: NewBayDraft) => void) | null = null;
 let newBayFactoryConnection: NewBayFactoryController | null = null;
@@ -556,6 +581,12 @@ function redraw(): void {
       renderPanelGrid(root, models, {
         ...options,
         flavorPreferences: panelFlavorPreferences,
+        onFlavorSettings: (guid, title, anchor) => panelFlavorPicker.open(
+          guid,
+          title,
+          anchor,
+          panelFlavorPreferences.overrides[guid] ?? null,
+        ),
       });
     },
     showIcon: (models, options) => {
