@@ -2,7 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-import { renderListView } from "../dist/panel/lib/list-view.js";
+import {
+  nextListSortSelection,
+  renderListView,
+} from "../dist/panel/lib/list-view.js";
 
 const css = await readFile(new URL("../panel/panel.css", import.meta.url), "utf8");
 
@@ -30,8 +33,9 @@ test("renders a semantic five-column table with the common row contract", () => 
   assert.equal(table.tagName, "TABLE");
   assert.equal(table.className, "list-view");
   const headerCells = table.children[1].children[0].children;
-  assert.deepEqual(headerCells.map((cell) => cell.textContent), [
-    "", "タイトル", "登録日時", "最終訪問日時", "訪問回数",
+  assert.equal(headerCells[0].children.length, 0);
+  assert.deepEqual(headerCells.slice(1).map((cell) => cell.children[0].textContent), [
+    "タイトル", "登録日時", "最終訪問日時", "訪問回数",
   ]);
 
   const row = table.children[2].children[0];
@@ -44,6 +48,41 @@ test("renders a semantic five-column table with the common row contract", () => 
   assert.deepEqual(row.children.slice(1).map((cell) => cell.textContent), [
     "Alpha", "2026/08/01 10:00", "2026/08/03 12:30", "7",
   ]);
+});
+
+test("renders active sort state and delivers header sort selections", () => {
+  const fake = createFakeDocument();
+  const root = fake.element("main");
+  const selections = [];
+  renderListView(root, [item], {
+    document: fake.document,
+    sort: { axisId: "dateAdded", direction: "desc" },
+    onSort: (selection) => selections.push(selection),
+  });
+
+  const headers = root.children[0].children[0].children[1].children[0].children;
+  assert.deepEqual(headers.map((header) => header.attributes["aria-sort"]), [
+    undefined, "none", "descending", "none", "none",
+  ]);
+  assert.equal(headers[2].children[0].textContent, "登録日時 ▼");
+
+  headers[2].children[0].emit("click");
+  headers[4].children[0].emit("click");
+  assert.deepEqual(selections, [
+    { axisId: "dateAdded", direction: "asc" },
+    { axisId: "visitCount", direction: "asc" },
+  ]);
+});
+
+test("selects a new list axis ascending and toggles only the active axis", () => {
+  assert.deepEqual(
+    nextListSortSelection({ axisId: "visitCount", direction: "desc" }, "title"),
+    { axisId: "title", direction: "asc" },
+  );
+  assert.deepEqual(
+    nextListSortSelection({ axisId: "title", direction: "asc" }, "title"),
+    { axisId: "title", direction: "desc" },
+  );
 });
 
 test("renders an empty table without boundaries and keeps rows non-draggable when disabled", () => {
@@ -81,8 +120,11 @@ function createFakeDocument() {
     dataset: {},
     children: [],
     attributes: {},
+    listeners: {},
     appendChild(child) { this.children.push(child); return child; },
     setAttribute(name, value) { this.attributes[name] = value; },
+    addEventListener(type, listener) { this.listeners[type] = listener; },
+    emit(type) { this.listeners[type]?.({ target: this }); },
   });
   return { document: { createElement: element }, element };
 }

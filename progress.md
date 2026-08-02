@@ -451,3 +451,8 @@ DB-14の要求分析、懸念事項のインタビュー、仕様確定、テス
 - テーブル最小幅760pxと横スクロール容器を追加し、狭幅でも列を非表示にしない契約へ変更した。現行の行クリック、data属性、キーボードフォーカス、D&D境界契約は維持している。
 - LIST-2対象2テスト、全190テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
 - LIST-3以降の実装GOは未取得であり、次はLIST-3「列ヘッダーソート」のRed-Green GO確認から再開する。
+- 一覧表改善 LIST-3「列ヘッダーソート」のRed-Greenを完了し、状態を`LIST-3_COMPLETE`とした。
+- タイトル、登録日時、最終訪問日時、訪問回数の列見出しをキーボード操作可能なbuttonへ変更し、別軸の初回選択を昇順、同一軸の再選択を方向反転とした。
+- 現在の列と方向を`▲`／`▼`および`aria-sort`で表示し、一覧ヘッダーからの操作を既存ソートチップと同じ共有状態更新経路へ接続した。
+- LIST-3対象3テスト、全190テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
+- LIST-4以降の実装GOは未取得であり、次はLIST-4「日付設定オーバーレイ」のRed-Green GO確認から再開する。

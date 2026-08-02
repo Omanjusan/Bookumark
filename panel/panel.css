@@ -1629,6 +1629,22 @@ header h1 {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.list-sort-button {
+  width: 100%;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.list-sort-button:hover { color: var(--text); }
+.list-sort-button:focus-visible {
+  outline: 2px solid var(--text-faint);
+  outline-offset: -2px;
+}
 .list-tile {
   display: table-row;
   grid-column: auto;

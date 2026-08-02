@@ -599,9 +599,23 @@ function redraw(): void {
     },
     showList: (models, options) => {
       countEl.textContent = models.length + "件";
-      renderListView(root, models, options);
+      renderListView(root, models, {
+        ...options,
+        sort: fixedDisplayState.display.lastStandardSort,
+        onSort: setListSort,
+      });
     },
   });
+}
+
+/** 一覧列見出しから共有ソート状態を更新し、全ソートUIを同期する。 */
+function setListSort(selection: {
+  readonly axisId: StandardSortAxisId;
+  readonly direction: "asc" | "desc";
+}): void {
+  if (!updateDockingControl("sort", selection)) return;
+  syncMovementControls();
+  redraw();
 }
 
 /** 評価済みDocking共有状態を既存メイン表示モデルへ原子的に反映する。 */
