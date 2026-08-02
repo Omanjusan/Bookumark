@@ -34,8 +34,8 @@ test("renders a semantic five-column table with the common row contract", () => 
   assert.equal(table.tagName, "TABLE");
   assert.equal(table.className, "list-view");
   const headerCells = table.children[1].children[0].children;
-  assert.equal(headerCells[0].children.length, 1);
-  assert.equal(headerCells[0].children[0].dataset.columnResize, "icon");
+  assert.equal(headerCells[0].children.length, 2);
+  assert.equal(headerCells[0].children.at(-1).dataset.columnResize, "icon");
   assert.deepEqual(headerCells.slice(1).map((cell) => cell.children[0].textContent), [
     "タイトル", "登録日時", "最終訪問日時", "訪問回数",
   ]);
@@ -121,6 +121,24 @@ test("renders five right-edge resize handles and commits only the dragged left c
   assert.equal(table.style.width, "760px");
   titleHandle.emit("pointerup", { pointerId: 7, clientX: 340 });
   assert.deepEqual(changes, [["title", 332]]);
+});
+
+test("renders an immediate column-width reset button in the icon header", () => {
+  const fake = createFakeDocument();
+  const root = fake.element("main");
+  let resets = 0;
+  renderListView(root, [item], {
+    document: fake.document,
+    onColumnWidthsReset: () => { resets += 1; },
+  });
+
+  const iconHeader = root.children[0].children[0].children[1].children[0].children[0];
+  const button = iconHeader.children[0];
+  assert.equal(button.className, "list-column-width-reset");
+  assert.equal(button.textContent, "↺");
+  assert.equal(button.attributes["aria-label"], "列幅を初期設定に戻す");
+  button.emit("click");
+  assert.equal(resets, 1);
 });
 
 test("clamps a dragged column at its minimum and does not commit a cancelled drag", () => {

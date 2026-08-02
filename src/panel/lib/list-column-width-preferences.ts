@@ -76,6 +76,11 @@ export function setListColumnWidth(
   };
 }
 
+/** 全列を共有参照のない初期幅へ戻す。 */
+export function resetListColumnWidths(): ListColumnWidthPreferences {
+  return defaultPreferences();
+}
+
 /** 列幅設定専用キーを読み込み、正規化前の値を返す。 */
 export async function loadListColumnWidthPreferences(): Promise<unknown> {
   const stored = await browser.storage.local.get([LIST_COLUMN_WIDTH_PREFERENCES_STORAGE_KEY]);

@@ -8,6 +8,7 @@ import {
   LIST_COLUMN_WIDTH_PREFERENCES_STORAGE_KEY,
   loadListColumnWidthPreferences,
   normalizeListColumnWidthPreferences,
+  resetListColumnWidths,
   saveListColumnWidthPreferences,
   setListColumnWidth,
 } from "../dist/panel/lib/list-column-width-preferences.js";
@@ -60,6 +61,12 @@ test("updates only the selected column and clamps it to its minimum", () => {
     lastVisitTime: 64,
   });
   assert.deepEqual(preferences.widths, DEFAULT_LIST_COLUMN_WIDTHS);
+});
+
+test("resets every column to an independent copy of the initial widths", () => {
+  const reset = resetListColumnWidths();
+  assert.deepEqual(reset, { version: 1, widths: DEFAULT_LIST_COLUMN_WIDTHS });
+  assert.notEqual(reset.widths, DEFAULT_LIST_COLUMN_WIDTHS);
 });
 
 test("loads and saves a defensive copy under the dedicated key", async () => {

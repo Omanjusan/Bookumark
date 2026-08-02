@@ -163,6 +163,7 @@ import type {
 import {
   loadListColumnWidthPreferences,
   normalizeListColumnWidthPreferences,
+  resetListColumnWidths,
   saveListColumnWidthPreferences,
   setListColumnWidth,
 } from "./lib/list-column-width-preferences.js";
@@ -653,6 +654,7 @@ function redraw(): void {
         onDateSettings: () => listDateSettings.open(listDatePreferences.format),
         columnWidths: listColumnWidthPreferences.widths,
         onColumnResize: persistListColumnWidth,
+        onColumnWidthsReset: resetAndPersistListColumnWidths,
       });
     },
   });
@@ -668,6 +670,21 @@ async function persistListColumnWidth(columnId: ListColumnId, width: number): Pr
     console.error("list column width save failed:", error);
   }
   redraw();
+}
+
+/** 全列を即時に初期幅へ戻し、保存失敗時だけ直前の列幅へ復元する。 */
+async function resetAndPersistListColumnWidths(): Promise<void> {
+  const previous = listColumnWidthPreferences;
+  const candidate = resetListColumnWidths();
+  listColumnWidthPreferences = candidate;
+  redraw();
+  try {
+    await saveListColumnWidthPreferences(candidate);
+  } catch (error) {
+    console.error("list column width reset failed:", error);
+    listColumnWidthPreferences = previous;
+    redraw();
+  }
 }
 
 /** 一覧列見出しから共有ソート状態を更新し、全ソートUIを同期する。 */

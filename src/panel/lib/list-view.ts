@@ -23,6 +23,7 @@ interface ListViewOptions {
   readonly onDateSettings?: () => void;
   readonly columnWidths?: ListColumnWidths;
   readonly onColumnResize?: (columnId: ListColumnId, width: number) => void;
+  readonly onColumnWidthsReset?: () => void;
 }
 
 /** 一覧モデルを既存のクリック・D&D契約を持つ5列テーブルとして描画する。 */
@@ -54,6 +55,7 @@ export function renderListView(
     options.sort,
     options.onSort,
     options.onColumnResize,
+    options.onColumnWidthsReset,
   ));
   const body = documentRef.createElement("tbody");
   for (const item of items) body.appendChild(rowOf(documentRef, item, draggable));
@@ -132,12 +134,14 @@ function headerOf(
   sort: DisplaySortSelection<StandardSortAxisId> | undefined,
   onSort: ((selection: DisplaySortSelection<StandardSortAxisId>) => void) | undefined,
   onColumnResize: ((columnId: ListColumnId, width: number) => void) | undefined,
+  onColumnWidthsReset: (() => void) | undefined,
 ): HTMLTableSectionElement {
   const head = documentRef.createElement("thead");
   const row = documentRef.createElement("tr");
   const iconHeader = documentRef.createElement("th");
   iconHeader.className = "list-header list-header-icon";
   iconHeader.setAttribute("scope", "col");
+  iconHeader.appendChild(columnWidthsResetButtonOf(documentRef, onColumnWidthsReset));
   iconHeader.appendChild(resizeHandleOf(
     documentRef, table, columns.icon, "icon", widths, onColumnResize,
   ));
@@ -151,6 +155,21 @@ function headerOf(
   }
   head.appendChild(row);
   return head;
+}
+
+/** アイコン見出しへ全列を初期幅へ戻す即時実行ボタンを生成する。 */
+function columnWidthsResetButtonOf(
+  documentRef: Pick<Document, "createElement">,
+  onReset: (() => void) | undefined,
+): HTMLButtonElement {
+  const button = documentRef.createElement("button");
+  button.className = "list-column-width-reset";
+  button.type = "button";
+  button.textContent = "↺";
+  button.title = "列幅を初期設定に戻す";
+  button.setAttribute("aria-label", "列幅を初期設定に戻す");
+  button.addEventListener("click", () => onReset?.());
+  return button;
 }
 
 /** 右端ドラッグを対象列だけの幅変更へ変換し、完了時だけ保存を通知する。 */
