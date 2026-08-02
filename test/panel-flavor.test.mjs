@@ -7,6 +7,11 @@ import {
   panelFlavorForGuid,
 } from "../dist/panel/lib/panel-flavor.js";
 
+test("provides sixteen distinct selectable flavor families", () => {
+  assert.equal(PANEL_FLAVOR_IDS.length, 16);
+  assert.equal(new Set(PANEL_FLAVOR_IDS).size, 16);
+});
+
 test("selects only registered flavors and keeps a GUID stable within one session", () => {
   const first = panelFlavorForGuid("bookmark-alpha", 123456);
 

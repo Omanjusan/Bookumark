@@ -425,3 +425,9 @@ DB-14の要求分析、懸念事項のインタビュー、仕様確定、テス
 - BG-1〜BG-3対象6テスト、全186テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
 - パネル背景色フレーバー BG-4「Firefox実機確認」を完了し、状態を`BG-4_COMPLETE`とした。
 - Firefox実機でパネルモード限定の背景色、同一画面内の色維持、他3表示への非適用、ライト／ダークの可読性、全サイズとD&D表示を確認し、ユーザーから全項目の正常動作確認を得た。
+- パネル配色設定 PF-1「16色パレットと永続設定モデル」のRed-Greenを完了し、状態を`PF-1_COMPLETE`とした。
+- パレットを16色へ拡張し、全ライト／ダーク配色で文字コントラスト比4.5:1以上、枠線3:1以上を維持した。
+- v1文書として32bit seedとGUID別overrideだけを専用`storage.local`キーへ防御的に保存するモデルを追加した。
+- 未保存・破損値の正規化、個別指定優先、自動配色への復帰、不正UI入力の拒否、Firefox全ブックマークGUIDによる孤児override除去を追加した。
+- PF-1対象3テスト、全187テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
+- PF-2以降の実装GOは未取得であり、次はPF-2「初期読み込みへの保存配色統合」のテストケース確認とRed-Green GO確認から再開する。

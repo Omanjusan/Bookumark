@@ -1,12 +1,20 @@
 export const PANEL_FLAVOR_IDS = [
   "coral",
+  "red",
+  "orange",
   "amber",
   "lemon",
+  "lime",
   "green",
+  "mint",
   "teal",
+  "cyan",
   "blue",
+  "indigo",
   "violet",
+  "purple",
   "pink",
+  "rose",
 ] as const;
 
 export type PanelFlavorId = typeof PANEL_FLAVOR_IDS[number];
