@@ -15,7 +15,7 @@ test("provides a top-right folder settings route without a heading row", () => {
 test("provides the agreed one-to-five spinbox modal", () => {
   assert.match(html, /<dialog[^>]*id="folder-frame-rows-settings"[^>]*aria-labelledby="folder-frame-rows-settings-title"/);
   assert.match(html, /id="folder-frame-rows-settings-close"[^>]*aria-label="フォルダ欄の設定を確定して閉じる"/);
-  assert.match(html, /id="folder-frame-default-rows"[^>]*type="number"[^>]*min="1"[^>]*max="5"[^>]*step="1"/);
+  assert.match(html, /id="folder-frame-rows-decrease"[\s\S]*?id="folder-frame-default-rows"[^>]*type="number"[^>]*min="1"[^>]*max="5"[^>]*step="1"[^>]*readonly[\s\S]*?id="folder-frame-rows-increase"/);
   assert.doesNotMatch(html, /id="folder-frame-rows-settings-confirm"/);
   assert.match(css, /\.folder-frame-rows-settings\s*\{[^}]*position:\s*fixed/s);
   assert.match(css, /\.folder-frame-rows-settings::backdrop\s*\{[^}]*background:/s);

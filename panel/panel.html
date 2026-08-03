@@ -174,7 +174,11 @@
       >×</button>
     </header>
     <label for="folder-frame-default-rows">既定の最大表示段数</label>
-    <input id="folder-frame-default-rows" type="number" min="1" max="5" step="1">
+    <div class="folder-frame-row-spinner">
+      <button id="folder-frame-rows-decrease" type="button" aria-label="既定段数を1段減らす">↓</button>
+      <input id="folder-frame-default-rows" type="number" min="1" max="5" step="1" readonly>
+      <button id="folder-frame-rows-increase" type="button" aria-label="既定段数を1段増やす">↑</button>
+    </div>
     <span id="folder-frame-rows-settings-status" role="status" aria-live="polite"></span>
   </dialog>
   <dialog id="two-bay-settings-dialog" aria-labelledby="two-bay-settings-title">

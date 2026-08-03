@@ -1,8 +1,8 @@
 import {
   effectiveFolderFrameRows,
-  MAX_FOLDER_FRAME_ROWS,
+  expandFolderFrame,
+  expandItemFrame,
   MIN_FOLDER_FRAME_ROWS,
-  requestedFolderFrameRows,
 } from "./folder-item-frame-rows.js";
 import type { FolderFrameRowsState } from "./folder-item-frame-rows.js";
 
@@ -48,9 +48,17 @@ export function renderFolderItemFrameAllocation(
     + FRAME_VERTICAL_CHROME;
   elements.folderFrame.style.height = `${height}px`;
 
-  const requestedRows = requestedFolderFrameRows(state);
-  elements.expandFolder.disabled = requestedRows === MAX_FOLDER_FRAME_ROWS;
-  elements.expandItem.disabled = requestedRows === MIN_FOLDER_FRAME_ROWS;
+  const expandedFolderRows = effectiveFolderFrameRows(
+    expandFolderFrame(state), requiredRows, viewportLimitRows,
+  );
+  const expandedItemRows = effectiveFolderFrameRows(
+    expandItemFrame(state), requiredRows, viewportLimitRows,
+  );
+  // 片方向でも表示が変わらない状態では、意味のない内部段数変更を両方とも禁止する。
+  const controlsDisabled = expandedFolderRows === effectiveRows
+    || expandedItemRows === effectiveRows;
+  elements.expandFolder.disabled = controlsDisabled;
+  elements.expandItem.disabled = controlsDisabled;
   return { requiredRows, viewportLimitRows, effectiveRows };
 }
 

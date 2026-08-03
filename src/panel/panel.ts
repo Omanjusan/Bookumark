@@ -317,6 +317,12 @@ const folderFrameRowsSettingsClose = document.getElementById(
 const folderFrameDefaultRows = document.getElementById(
   "folder-frame-default-rows",
 ) as HTMLInputElement;
+const folderFrameRowsDecrease = document.getElementById(
+  "folder-frame-rows-decrease",
+) as HTMLButtonElement;
+const folderFrameRowsIncrease = document.getElementById(
+  "folder-frame-rows-increase",
+) as HTMLButtonElement;
 const folderFrameRowsSettingsStatus = document.getElementById(
   "folder-frame-rows-settings-status",
 ) as HTMLElement;
@@ -495,6 +501,8 @@ const folderFrameRowsSettings = bindFolderFrameRowsSettings({
   root: folderFrameRowsSettingsRoot,
   close: folderFrameRowsSettingsClose,
   input: folderFrameDefaultRows,
+  decrease: folderFrameRowsDecrease,
+  increase: folderFrameRowsIncrease,
   status: folderFrameRowsSettingsStatus,
 }, {
   onSave: async (defaultRows) => {
@@ -508,10 +516,12 @@ folderFrameSettingsButton.addEventListener("click", () => {
   folderFrameRowsSettings.open(folderFrameRowsState.defaultRows);
 });
 expandFolderFrameButton.addEventListener("click", () => {
+  if (expandFolderFrameButton.disabled || expandItemFrameButton.disabled) return;
   folderFrameRowsState = expandFolderFrame(folderFrameRowsState);
   applyFolderItemFrameLayout();
 });
 expandItemFrameButton.addEventListener("click", () => {
+  if (expandFolderFrameButton.disabled || expandItemFrameButton.disabled) return;
   folderFrameRowsState = expandItemFrame(folderFrameRowsState);
   applyFolderItemFrameLayout();
 });

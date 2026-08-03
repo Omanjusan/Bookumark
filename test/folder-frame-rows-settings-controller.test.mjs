@@ -15,7 +15,8 @@ test("saves the valid draft with X and closes only after success", async () => {
   controller.open(3);
   assert.equal(elements.root.open, true);
   assert.equal(elements.input.value, "3");
-  elements.input.value = "5";
+  elements.increase.emit("click");
+  elements.increase.emit("click");
 
   await elements.close.emit("click");
 
@@ -85,5 +86,8 @@ function createElements() {
     showModal() { this.open = true; },
     close() { this.open = false; },
   });
-  return { root: element(), close: element(), input: element(), status: element() };
+  return {
+    root: element(), close: element(), input: element(), status: element(),
+    decrease: element(), increase: element(),
+  };
 }

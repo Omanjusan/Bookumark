@@ -44,7 +44,7 @@ test("uses required rows and the viewport quarter while retaining scroll positio
   assert.equal(elements.itemContent.scrollTop, 29);
 });
 
-test("keeps one empty row and disables only the requested-row limit", () => {
+test("keeps one empty row and disables both controls when either direction is invisible", () => {
   const elements = fakeElements();
   renderFolderItemFrameAllocation(elements, createFolderFrameRowsState(1), {
     folderCount: 0,
@@ -52,7 +52,7 @@ test("keeps one empty row and disables only the requested-row limit", () => {
     availableHeight: 800,
   });
   assert.equal(elements.folderFrame.style.height, "48px");
-  assert.equal(elements.expandFolder.disabled, false);
+  assert.equal(elements.expandFolder.disabled, true);
   assert.equal(elements.expandItem.disabled, true);
 
   renderFolderItemFrameAllocation(
@@ -61,6 +61,17 @@ test("keeps one empty row and disables only the requested-row limit", () => {
     { folderCount: 20, folderContentWidth: 900, availableHeight: 800 },
   );
   assert.equal(elements.expandFolder.disabled, true);
+  assert.equal(elements.expandItem.disabled, true);
+});
+
+test("re-enables both controls when content and viewport allow both visible directions", () => {
+  const elements = fakeElements();
+  renderFolderItemFrameAllocation(elements, createFolderFrameRowsState(3), {
+    folderCount: 20,
+    folderContentWidth: 320,
+    availableHeight: 1000,
+  });
+  assert.equal(elements.expandFolder.disabled, false);
   assert.equal(elements.expandItem.disabled, false);
 });
 

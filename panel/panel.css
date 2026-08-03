@@ -1816,6 +1816,12 @@ header h1 {
   background: var(--surface);
   color: var(--text);
 }
+.folder-frame-row-spinner {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 32px;
+  gap: 6px;
+}
+.folder-frame-row-spinner input { text-align: center; }
 .folder-frame-rows-settings-status { color: var(--danger); }
 .list-view {
   min-width: 0;
