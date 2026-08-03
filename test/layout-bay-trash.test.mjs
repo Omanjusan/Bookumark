@@ -9,7 +9,8 @@ const css = await readFile(new URL("../panel/panel.css", import.meta.url), "utf8
 
 test("places a hidden central bay trash target outside the inert center content", () => {
   const grid = html.match(/<div[^>]+id="docking-grid"[\s\S]*?<\/div>\s*<\/div>/)?.[0] ?? "";
-  const centerEnd = grid.indexOf("</main>\n    </div>");
+  const itemFrame = grid.indexOf('id="item-frame-shell"');
+  const centerEnd = grid.indexOf("</section>\n    </div>", itemFrame);
   const trashIndex = grid.indexOf('id="layout-bay-trash"');
   assert.ok(centerEnd >= 0 && trashIndex > centerEnd);
   assert.match(grid, /id="layout-bay-trash"[^>]+aria-label="ベイを未配置にする"[^>]+hidden/);

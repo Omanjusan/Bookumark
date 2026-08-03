@@ -11,7 +11,7 @@ export function renderPanelFolders(
   options: PanelFolderViewOptions = {},
 ): void {
   root.textContent = "";
-  root.hidden = folders.length === 0;
+  root.hidden = false;
 
   for (const folder of folders) {
     const button = document.createElement("button");

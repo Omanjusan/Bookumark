@@ -15,7 +15,7 @@ test("provides top, left, center, right, and bottom grid regions", () => {
 test("keeps folders, notices, and bookmark content in the center region", () => {
   const center = html.match(/<div[^>]+id="docking-center"[^>]*>([\s\S]*?)<\/div>\s*<div[^>]+id="docking-rail-right"/)?.[1];
   assert.ok(center);
-  assert.match(center, /id="folders"[\s\S]*?id="official-move-notice"[\s\S]*?<main id="app">/);
+  assert.match(center, /id="folders"[\s\S]*?id="official-move-notice"[\s\S]*?<main id="app"[^>]*>/);
 });
 
 test("uses a five-area CSS grid and collapses empty rails", () => {

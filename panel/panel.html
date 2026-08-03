@@ -91,6 +91,11 @@
       >⚙</button>
       <nav id="folders" class="folder-region" aria-label="フォルダ" hidden></nav>
     </section>
+    <div id="folder-item-frame-controls" class="folder-item-frame-controls">
+      <button id="expand-folder-frame" type="button">フォルダ欄を1段階広げる</button>
+      <button id="expand-item-frame" type="button">アイテム欄を1段階広げる</button>
+    </div>
+    <section id="item-frame-shell" class="item-frame-shell" aria-label="アイテム欄">
     <div
       id="official-move-notice"
       class="official-move-notice"
@@ -101,9 +106,10 @@
       <span id="official-move-message"></span>
       <button id="official-move-undo" type="button">元に戻す</button>
     </div>
-    <main id="app">
+    <main id="app" class="item-frame-content">
       <p class="status">読み込み中…</p>
     </main>
+    </section>
     </div>
     <div
       id="layout-bay-trash"

@@ -178,6 +178,8 @@ body {
 #two-bay-reset { margin-top: 18px; }
 
 .frame[data-two-bay-editing="true"] #folder-frame-shell,
+.frame[data-two-bay-editing="true"] #folder-item-frame-controls,
+.frame[data-two-bay-editing="true"] #item-frame-shell,
 .frame[data-two-bay-editing="true"] #folders,
 .frame[data-two-bay-editing="true"] #official-move-notice,
 .frame[data-two-bay-editing="true"] #app { display: none; }
@@ -481,6 +483,8 @@ header h1 {
 #docking-rail-top { grid-area: top; }
 #docking-rail-left { grid-area: left; }
 #docking-center {
+  display: flex;
+  flex-direction: column;
   grid-area: center;
   min-width: 0;
   min-height: 0;
@@ -932,9 +936,18 @@ header h1 {
   outline-offset: -2px;
 }
 
+.folder-frame-shell,
+.item-frame-shell {
+  min-width: 0;
+  min-height: 48px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
 .folder-frame-shell {
   position: relative;
-  min-width: 0;
+  flex: none;
 }
 .folder-frame-settings-button {
   position: absolute;
@@ -954,11 +967,47 @@ header h1 {
 .folder-region {
   display: flex;
   flex-wrap: wrap;
+  align-content: flex-start;
   gap: 6px;
-  margin: 0 0 10px;
-  padding-inline-end: 28px;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 6px 34px 6px 6px;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
-.folder-region[hidden] { display: none; }
+.folder-region[hidden] { display: flex; }
+.folder-item-frame-controls {
+  display: flex;
+  flex: none;
+  justify-content: center;
+  gap: 6px;
+  margin: 3px 0;
+}
+.folder-item-frame-controls button {
+  min-height: 24px;
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+.folder-item-frame-controls button:not(:disabled) { cursor: pointer; }
+.folder-item-frame-controls button:disabled { color: var(--text-faint); }
+.item-frame-shell {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+.item-frame-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 6px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
 .folder-button {
   display: inline-flex;
   align-items: center;

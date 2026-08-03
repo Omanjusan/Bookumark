@@ -174,9 +174,12 @@ import type {
 import { bindListDateSettings } from "./lib/list-date-settings-controller.js";
 import {
   createFolderFrameRowsState,
+  expandFolderFrame,
+  expandItemFrame,
   setDefaultFolderFrameRows,
 } from "./lib/folder-item-frame-rows.js";
 import type { FolderFrameRowsState } from "./lib/folder-item-frame-rows.js";
+import { renderFolderItemFrameAllocation } from "./lib/folder-item-frame-view.js";
 import {
   loadFolderFrameRowPreferences,
   normalizeFolderFrameRowPreferences,
@@ -243,6 +246,14 @@ import type { ViewType } from "./lib/view-type.js";
 
 const root = document.getElementById("app") as HTMLElement;
 const frameRoot = document.querySelector(".frame") as HTMLElement;
+const dockingCenter = document.getElementById("docking-center") as HTMLElement;
+const folderFrameShell = document.getElementById("folder-frame-shell") as HTMLElement;
+const expandFolderFrameButton = document.getElementById(
+  "expand-folder-frame",
+) as HTMLButtonElement;
+const expandItemFrameButton = document.getElementById(
+  "expand-item-frame",
+) as HTMLButtonElement;
 const legacyPanelHeader = document.querySelector(".frame > header") as HTMLElement;
 const folderRoot = document.getElementById("folders") as HTMLElement;
 const countEl = document.getElementById("count") as HTMLElement;
@@ -489,12 +500,21 @@ const folderFrameRowsSettings = bindFolderFrameRowsSettings({
     const candidate: FolderFrameRowPreferences = { version: 1, defaultRows };
     await saveFolderFrameRowPreferences(candidate);
     folderFrameRowsState = setDefaultFolderFrameRows(folderFrameRowsState, defaultRows);
-    redraw();
+    applyFolderItemFrameLayout();
   },
 });
 folderFrameSettingsButton.addEventListener("click", () => {
   folderFrameRowsSettings.open(folderFrameRowsState.defaultRows);
 });
+expandFolderFrameButton.addEventListener("click", () => {
+  folderFrameRowsState = expandFolderFrame(folderFrameRowsState);
+  applyFolderItemFrameLayout();
+});
+expandItemFrameButton.addEventListener("click", () => {
+  folderFrameRowsState = expandItemFrame(folderFrameRowsState);
+  applyFolderItemFrameLayout();
+});
+window.addEventListener("resize", () => applyFolderItemFrameLayout());
 let beginBayEditing: ((bayId: string) => void) | null = null;
 let beginNewBayEditing: ((draft: NewBayDraft) => void) | null = null;
 let newBayFactoryConnection: NewBayFactoryController | null = null;
@@ -656,6 +676,7 @@ function redraw(): void {
   activeChipRuntime?.sync();
   activeInformationChipRuntime?.sync();
   renderPanelFolders(folderRoot, currentFolders, { draggable: dragEnabled() });
+  applyFolderItemFrameLayout();
   if (currentItems === null) {
     renderPanelStatus(root, { status: "loading" });
     return;
@@ -705,6 +726,21 @@ function redraw(): void {
         onColumnWidthsReset: resetAndPersistListColumnWidths,
       });
     },
+  });
+}
+
+/** 現在のフォルダ数と中央領域寸法から上下枠の高さと操作可否だけを更新する。 */
+function applyFolderItemFrameLayout(): void {
+  renderFolderItemFrameAllocation({
+    folderFrame: folderFrameShell,
+    folderContent: folderRoot,
+    itemContent: root,
+    expandFolder: expandFolderFrameButton,
+    expandItem: expandItemFrameButton,
+  }, folderFrameRowsState, {
+    folderCount: currentFolders.length,
+    folderContentWidth: folderRoot.clientWidth,
+    availableHeight: dockingCenter.clientHeight,
   });
 }
 
