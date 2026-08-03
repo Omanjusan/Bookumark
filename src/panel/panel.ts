@@ -176,6 +176,7 @@ import {
   createFolderFrameRowsState,
   expandFolderFrame,
   expandItemFrame,
+  resetFolderFrameSceneRows,
   setDefaultFolderFrameRows,
 } from "./lib/folder-item-frame-rows.js";
 import type { FolderFrameRowsState } from "./lib/folder-item-frame-rows.js";
@@ -848,6 +849,7 @@ function setVisitStatus(value: VisitStatusFilterValue): void {
 /** 動的な表示形式チップから共有ビュー状態を更新する。 */
 function setViewType(viewType: ViewType): void {
   if (!updateDockingControl("view-type", viewType)) return;
+  resetFolderItemFrameScene({ itemScroll: true });
   redraw();
 }
 
@@ -1138,6 +1140,7 @@ async function visitFolder(folderGuid: string): Promise<void> {
   try {
     await showFolder(folderGuid);
     folderHistory?.visit(folderGuid);
+    resetFolderItemFrameScene({ folderScroll: true, itemScroll: true });
   } catch (error) {
     panelErrorNotifications.notify("folder-navigation", error);
   } finally {
@@ -1159,6 +1162,7 @@ async function moveFolderHistory(direction: FolderHistoryDirection): Promise<voi
     await showFolder(destination);
     if (direction === "back") folderHistory.moveBack();
     else folderHistory.moveForward();
+    resetFolderItemFrameScene({ folderScroll: true, itemScroll: true });
   } catch (error) {
     panelErrorNotifications.notify("folder-navigation", error);
   } finally {
@@ -1432,6 +1436,7 @@ function rebuildActiveDockingLayout(
   evaluatedState = evaluatePanelDockingState(documents),
 ): void {
   if (currentFolderGuid === null) return;
+  folderFrameRowsState = resetFolderFrameSceneRows(folderFrameRowsState);
   pendingDockingSharedState = structuredClone(evaluatedState);
   try {
     const plan = dockingLayoutController().rebuild(documents);
@@ -1439,6 +1444,16 @@ function rebuildActiveDockingLayout(
   } finally {
     pendingDockingSharedState = null;
   }
+}
+
+/** シーン内段数を既定へ戻し、指定された内容欄だけを先頭へ戻す。 */
+function resetFolderItemFrameScene(options: {
+  readonly folderScroll?: boolean;
+  readonly itemScroll?: boolean;
+} = {}): void {
+  folderFrameRowsState = resetFolderFrameSceneRows(folderFrameRowsState);
+  if (options.folderScroll) folderRoot.scrollTop = 0;
+  if (options.itemScroll) root.scrollTop = 0;
 }
 
 /** 新しい上下2ベイ構成とブックマーク候補だけを原子的に通常runtimeへ公開する。 */
