@@ -975,11 +975,13 @@ header h1 {
   padding: 6px 34px 6px 6px;
   overflow-x: hidden;
   overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 .folder-region[hidden] { display: flex; }
 .folder-item-frame-controls {
   display: flex;
   flex: none;
+  flex-wrap: wrap;
   justify-content: center;
   gap: 6px;
   margin: 3px 0;
@@ -1007,6 +1009,7 @@ header h1 {
   padding: 6px;
   overflow-x: hidden;
   overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 .folder-button {
   display: inline-flex;
