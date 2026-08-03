@@ -5,7 +5,8 @@ import { readFile } from "node:fs/promises";
 const css = await readFile(new URL("../panel/panel.css", import.meta.url), "utf8");
 
 test("view mode glyph buttons use one fixed footprint", () => {
-  assert.match(css, /\.view-type-option span\s*{[^}]*inline-size:\s*32px;[^}]*block-size:\s*28px;/s);
+  assert.match(css, /\.view-type-option > span\s*{[^}]*inline-size:\s*32px;[^}]*block-size:\s*28px;/s);
+  assert.doesNotMatch(css, /\.view-type-option span\s*{/);
   assert.match(css, /\.view-type-glyph\s*{[^}]*inline-size:\s*18px;[^}]*block-size:\s*18px;/s);
 });
 

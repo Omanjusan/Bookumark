@@ -865,7 +865,7 @@ header h1 {
   opacity: 0;
   pointer-events: none;
 }
-.view-type-option span {
+.view-type-option > span {
   display: grid;
   place-items: center;
   box-sizing: border-box;
@@ -921,7 +921,7 @@ header h1 {
     transparent 2px 5px
   );
 }
-.view-type-option:first-child span { border-left: 0; }
+.view-type-option:first-child > span { border-left: 0; }
 .view-type-option input:checked + span {
   background: var(--hover);
   color: var(--text);
