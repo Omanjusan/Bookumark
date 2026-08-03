@@ -81,7 +81,16 @@
         </footer>
       </div>
     </section>
-    <nav id="folders" class="folder-region" aria-label="フォルダ" hidden></nav>
+    <section id="folder-frame-shell" class="folder-frame-shell" aria-label="フォルダ欄">
+      <button
+        id="folder-frame-settings"
+        class="folder-frame-settings-button"
+        type="button"
+        aria-label="フォルダ欄の既定段数を設定"
+        title="フォルダ欄の既定段数を設定"
+      >⚙</button>
+      <nav id="folders" class="folder-region" aria-label="フォルダ" hidden></nav>
+    </section>
     <div
       id="official-move-notice"
       class="official-move-notice"
@@ -144,6 +153,23 @@
       <option value="de-DE">欧州（DD.MM.YYYY HH:mm）</option>
     </select>
     <span id="list-date-settings-status" role="status" aria-live="polite"></span>
+  </dialog>
+  <dialog
+    id="folder-frame-rows-settings"
+    class="folder-frame-rows-settings"
+    aria-labelledby="folder-frame-rows-settings-title"
+  >
+    <header>
+      <strong id="folder-frame-rows-settings-title">フォルダ欄の設定</strong>
+      <button
+        id="folder-frame-rows-settings-close"
+        type="button"
+        aria-label="フォルダ欄の設定を確定して閉じる"
+      >×</button>
+    </header>
+    <label for="folder-frame-default-rows">既定の最大表示段数</label>
+    <input id="folder-frame-default-rows" type="number" min="1" max="5" step="1">
+    <span id="folder-frame-rows-settings-status" role="status" aria-live="polite"></span>
   </dialog>
   <dialog id="two-bay-settings-dialog" aria-labelledby="two-bay-settings-title">
     <div class="two-bay-settings-heading">

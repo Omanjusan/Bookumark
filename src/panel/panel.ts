@@ -172,6 +172,22 @@ import type {
   ListColumnWidthPreferences,
 } from "./lib/list-column-width-preferences.js";
 import { bindListDateSettings } from "./lib/list-date-settings-controller.js";
+import {
+  createFolderFrameRowsState,
+  setDefaultFolderFrameRows,
+} from "./lib/folder-item-frame-rows.js";
+import type { FolderFrameRowsState } from "./lib/folder-item-frame-rows.js";
+import {
+  loadFolderFrameRowPreferences,
+  normalizeFolderFrameRowPreferences,
+  saveFolderFrameRowPreferences,
+} from "./lib/folder-frame-row-preferences.js";
+import type {
+  FolderFrameRowPreferences,
+} from "./lib/folder-frame-row-preferences.js";
+import {
+  bindFolderFrameRowsSettings,
+} from "./lib/folder-frame-rows-settings-controller.js";
 import type { FolderHistoryDirection } from "./lib/panel-folder-history-input.js";
 import { bindLayoutManagement } from "./lib/layout-management-controller.js";
 import { createLayoutManagementCoordinator } from "./lib/layout-management-coordinator.js";
@@ -276,6 +292,21 @@ const listDateSettingsClose = document.getElementById(
 const listDateFormat = document.getElementById("list-date-format") as HTMLSelectElement;
 const listDateSettingsStatus = document.getElementById(
   "list-date-settings-status",
+) as HTMLElement;
+const folderFrameSettingsButton = document.getElementById(
+  "folder-frame-settings",
+) as HTMLButtonElement;
+const folderFrameRowsSettingsRoot = document.getElementById(
+  "folder-frame-rows-settings",
+) as HTMLDialogElement;
+const folderFrameRowsSettingsClose = document.getElementById(
+  "folder-frame-rows-settings-close",
+) as HTMLButtonElement;
+const folderFrameDefaultRows = document.getElementById(
+  "folder-frame-default-rows",
+) as HTMLInputElement;
+const folderFrameRowsSettingsStatus = document.getElementById(
+  "folder-frame-rows-settings-status",
 ) as HTMLElement;
 const dockingRailRoots = {
   top: document.getElementById("docking-rail-top") as HTMLElement,
@@ -404,6 +435,7 @@ let panelFlavorPreferences: PanelFlavorPreferences = createPanelFlavorPreference
 let listDatePreferences: ListDateFormatPreferences = { version: 1, format: "browser" };
 let listColumnWidthPreferences: ListColumnWidthPreferences =
   normalizeListColumnWidthPreferences(undefined).preferences;
+let folderFrameRowsState: FolderFrameRowsState = createFolderFrameRowsState();
 let gridCells = { columns: 0, rows: 0 };
 let fixedDisplayState = INITIAL_FIXED_DISPLAY_STATE;
 let visitStatusValue: VisitStatusFilterValue = "all";
@@ -446,6 +478,22 @@ const listDateSettings = bindListDateSettings({
     listDatePreferences = candidate;
     redraw();
   },
+});
+const folderFrameRowsSettings = bindFolderFrameRowsSettings({
+  root: folderFrameRowsSettingsRoot,
+  close: folderFrameRowsSettingsClose,
+  input: folderFrameDefaultRows,
+  status: folderFrameRowsSettingsStatus,
+}, {
+  onSave: async (defaultRows) => {
+    const candidate: FolderFrameRowPreferences = { version: 1, defaultRows };
+    await saveFolderFrameRowPreferences(candidate);
+    folderFrameRowsState = setDefaultFolderFrameRows(folderFrameRowsState, defaultRows);
+    redraw();
+  },
+});
+folderFrameSettingsButton.addEventListener("click", () => {
+  folderFrameRowsSettings.open(folderFrameRowsState.defaultRows);
 });
 let beginBayEditing: ((bayId: string) => void) | null = null;
 let beginNewBayEditing: ((draft: NewBayDraft) => void) | null = null;
@@ -1364,11 +1412,15 @@ async function loadAndStartPanelRuntime(): Promise<void> {
   const storedFlavorPreferences = await loadPanelFlavorPreferences();
   const storedListDatePreferences = await loadListDateFormatPreferences();
   const storedListColumnWidthPreferences = await loadListColumnWidthPreferences();
+  const storedFolderFrameRowPreferences = await loadFolderFrameRowPreferences();
   const candidateListDatePreferences = normalizeListDateFormatPreferences(
     storedListDatePreferences,
   );
   const candidateListColumnWidthPreferences = normalizeListColumnWidthPreferences(
     storedListColumnWidthPreferences,
+  );
+  const candidateFolderFrameRowPreferences = normalizeFolderFrameRowPreferences(
+    storedFolderFrameRowPreferences,
   );
   const candidateFlavorState = preparePanelFlavorPreferences(
     storedFlavorPreferences,
@@ -1408,11 +1460,17 @@ async function loadAndStartPanelRuntime(): Promise<void> {
   if (candidateListColumnWidthPreferences.changed) {
     await saveListColumnWidthPreferences(candidateListColumnWidthPreferences.preferences);
   }
+  if (candidateFolderFrameRowPreferences.changed) {
+    await saveFolderFrameRowPreferences(candidateFolderFrameRowPreferences.preferences);
+  }
 
   // 新構成とブックマークの全非同期ロード成功後にだけ通常runtimeへ公開する。
   panelFlavorPreferences = candidateFlavorState.preferences;
   listDatePreferences = candidateListDatePreferences.preferences;
   listColumnWidthPreferences = candidateListColumnWidthPreferences.preferences;
+  folderFrameRowsState = createFolderFrameRowsState(
+    candidateFolderFrameRowPreferences.preferences.defaultRows,
+  );
   treeItems = candidateTreeItems;
   folderOrders = candidateFolderOrders;
   currentFolderGuid = candidateFolder.folderGuid;

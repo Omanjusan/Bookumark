@@ -177,6 +177,7 @@ body {
 #system-bay-status { color: var(--text-muted); }
 #two-bay-reset { margin-top: 18px; }
 
+.frame[data-two-bay-editing="true"] #folder-frame-shell,
 .frame[data-two-bay-editing="true"] #folders,
 .frame[data-two-bay-editing="true"] #official-move-notice,
 .frame[data-two-bay-editing="true"] #app { display: none; }
@@ -931,11 +932,31 @@ header h1 {
   outline-offset: -2px;
 }
 
+.folder-frame-shell {
+  position: relative;
+  min-width: 0;
+}
+.folder-frame-settings-button {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  z-index: 1;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.folder-frame-settings-button:hover { background: var(--hover); }
 .folder-region {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin: 0 0 10px;
+  padding-inline-end: 28px;
 }
 .folder-region[hidden] { display: none; }
 .folder-button {
@@ -1706,6 +1727,44 @@ header h1 {
   color: var(--text);
 }
 .list-date-settings-status { color: var(--danger); }
+.folder-frame-rows-settings {
+  position: fixed;
+  inset-block-start: 16px;
+  inset-inline-end: 16px;
+  margin: 0;
+  z-index: 20;
+  display: grid;
+  gap: 8px;
+  width: min(300px, calc(100vw - 32px));
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 24%);
+}
+.folder-frame-rows-settings:not([open]) { display: none; }
+.folder-frame-rows-settings::backdrop { background: rgb(0 0 0 / 45%); }
+.folder-frame-rows-settings > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.folder-frame-rows-settings > header button {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.folder-frame-rows-settings input {
+  min-height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+}
+.folder-frame-rows-settings-status { color: var(--danger); }
 .list-view {
   min-width: 0;
   border-collapse: collapse;

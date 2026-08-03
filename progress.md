@@ -496,3 +496,9 @@ DB-14の要求分析、懸念事項のインタビュー、仕様確定、テス
 - Redは新規モデル未実装による`ERR_MODULE_NOT_FOUND`で成立し、DIR-2対象11テスト、全195テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
 - モデルは十分に小さく責務が限定されているため、独立したRefactorフェーズは不要と判断した。
 - DIR-3以降の実装GOは未取得であり、次はDIR-3「既定段数の保存と設定モーダル」のRed–Green GO確認から再開する。
+- フォルダ欄・アイテム欄の上下分離 DIR-3「既定段数の保存と設定モーダル」のRed–Greenを完了し、状態を`DIR-3_COMPLETE`とした。
+- 専用キー`folderFrameRowPreferences.v1`へversion 1と既定段数だけを保存し、未保存・破損・範囲外・余剰項目を初期3段へ補正する永続化境界を追加した。補正保存成功後だけ通常runtimeへ公開する。
+- フォルダ欄右上の歯車から、1～5の整数だけを受け付けるスピンボックス設定モーダルを開く導線を追加した。`×`は保存成功後に閉じて現在シーンへ適用し、Escapeは破棄、外側操作は維持、保存失敗は正式値へ戻して固定エラーを表示する。
+- Redは新規保存モデル・コントローラー未実装の`ERR_MODULE_NOT_FOUND`と設定DOM未実装で成立し、DIR-3対象3テスト群、全198テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
+- 保存モデルとモーダル制御は既存責務から分離済みで重複も小さいため、独立したRefactorフェーズは不要と判断した。
+- DIR-4以降の実装GOは未取得であり、次はDIR-4「上下枠、独立スクロール、枠間操作」のRed–Green GO確認から再開する。
