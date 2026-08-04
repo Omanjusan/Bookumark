@@ -51,6 +51,20 @@ test("aggregates folder navigation failures with a fixed error toast", () => {
   assert.doesNotMatch(JSON.stringify(fake.toasts), /private-folder-name/);
 });
 
+test("shows experiment root setup failure without exposing diagnostics", () => {
+  const fake = harness();
+  const adapter = createPanelErrorNotificationAdapter(fake.dependencies);
+
+  adapter.notify("experiment-root", new Error("private bookmark root"));
+
+  assert.equal(fake.toasts[0].severity, "error");
+  assert.equal(
+    fake.toasts[0].message,
+    "開発用フォルダを作成できなかったため、ブックマークのルートを表示しています",
+  );
+  assert.doesNotMatch(JSON.stringify(fake.toasts), /private bookmark root/);
+});
+
 test("uses one save message while keeping bookmark and folder diagnostics distinct", () => {
   const fake = harness();
   const bookmarkError = new Error("bookmark-guid");

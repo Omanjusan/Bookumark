@@ -5,6 +5,7 @@ import type {
 
 export type PanelErrorOperation =
   | "initial-load"
+  | "experiment-root"
   | "folder-navigation"
   | "bookmark-custom-order-save"
   | "folder-custom-order-save";
@@ -55,6 +56,11 @@ const TOAST_DETAILS: Record<Exclude<PanelErrorOperation, "initial-load">, {
   readonly aggregateKey: string;
   readonly message: string;
 }> = {
+  "experiment-root": {
+    idPrefix: "panel-experiment-root-failure",
+    aggregateKey: "panel-experiment-root-failures",
+    message: "開発用フォルダを作成できなかったため、ブックマークのルートを表示しています",
+  },
   "folder-navigation": {
     idPrefix: "panel-folder-navigation-failure",
     aggregateKey: "panel-folder-navigation-failures",
@@ -77,6 +83,7 @@ export function createPanelErrorNotificationAdapter(
   dependencies: PanelErrorNotificationDependencies,
 ): PanelErrorNotificationAdapter {
   const sequences: Record<Exclude<PanelErrorOperation, "initial-load">, number> = {
+    "experiment-root": 0,
     "folder-navigation": 0,
     "bookmark-custom-order-save": 0,
     "folder-custom-order-save": 0,

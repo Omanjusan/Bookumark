@@ -50,9 +50,10 @@ test("routes the complete initial load and retry through the common error dialog
   assert.match(source, /initialLoadController\.handlePrimary\(id\)/);
   assert.doesNotMatch(source, /async function main\(\)/);
   assert.ok(
-    source.indexOf("const candidateTreeItems = await getBookmarkTreeItems()")
+    source.indexOf("const initialTreeItems = await getBookmarkTreeItems()")
       < source.indexOf("treeItems = candidateTreeItems"),
   );
+  assert.match(source, /resolvePanelInitialBookmarkRoot/);
   assert.ok(
     source.indexOf("const candidateFolder = await loadPanelFolderCandidate")
       < source.indexOf("bayFactoryConnection.replaceBays(dockingState.bays)"),

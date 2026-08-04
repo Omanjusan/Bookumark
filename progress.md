@@ -525,3 +525,13 @@ DB-14の要求分析、懸念事項のインタビュー、仕様確定、テス
 - 子要素取得またはフォルダ作成に失敗した場合は、原因を結果へ保持してFirefoxルートへフォールバックする。画面通知とexperiment専用起動接続はEXP-ROOT-2へ分離した。
 - Redは既存production build成功後、新規モジュール未実装による`ERR_MODULE_NOT_FOUND`で成立した。対象5テスト、全202テストの成功を確認した。
 - 独立責務の小さな関数であり追加Refactorは不要と判断した。次はEXP-ROOT-2「experiment起動時だけ初期rootへ接続」のRed–Green GO確認から再開する。
+- 実公開前導入 EXP-ROOT-2「experiment起動時だけ初期rootへ接続」のRed–Green自動化部分を完了し、状態を`EXP-ROOT-2_GREEN`とした。
+- development buildのパネルHTMLだけへ`data-experiment-mode="true"`を付与し、production buildには付与しないビルド境界を追加した。
+- production起動は保存済みフォルダ復元を維持し、experiment起動は保存位置より`root/bookumark`を優先する。新規作成後だけツリーを再取得し、既存フォルダ再利用時は余分な再取得を行わない。
+- experimentフォルダの検索・作成・作成後再取得に失敗した場合は、実rootで起動を継続し、内部原因を本文へ出さない固定errorトーストを共通通知へ追加した。成功時は通知しない。
+- Redは初期root調停モジュールとdevelopmentマーカー未実装で成立した。対象4テスト群、全204テスト、production/developmentビルド境界、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
+- 次はFirefox実機でexperiment初回起動時の`bookumark`自動作成・初期表示と、`<`による実root移動を確認する。
+- EXP-ROOT-2のFirefox実機確認では、仮想root直下への`bookumark`作成がFirefox APIの`The bookmark root cannot be modified`制約により失敗し、実rootが初期表示された。
+- ユーザー判断により保存先を別のFirefox標準フォルダへ変更せず、作成失敗時にエラー通知を出して実rootへフォールバックする確定済み仕様を適用する。仮想root直下に作成できる環境では従来どおり`bookumark`を初期表示する。
+- Firefox実機で作成失敗時の固定errorトースト表示についてユーザーPASSを得た。実rootへのフォールバックと起動継続を含め、EXP-ROOT-2を`EXP-ROOT-2_COMPLETE`とした。
+- 次はAMO-1「production ZIP・審査用ソースZIP生成コマンド」のテストケース確認とRed–Green GO確認から再開する。

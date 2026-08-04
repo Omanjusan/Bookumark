@@ -110,6 +110,7 @@ import { bindPanelFlavorPicker } from "./lib/panel-flavor-picker.js";
 import { bindPanelFolderNavigation } from "./lib/panel-folder-navigation.js";
 import { bindPanelFolderDrag } from "./lib/panel-folder-drag.js";
 import { loadPanelFolderCandidate } from "./lib/panel-folder-load.js";
+import { resolvePanelInitialBookmarkRoot } from "./lib/panel-initial-bookmark-root.js";
 import { renderPanelFolders } from "./lib/panel-folder-view.js";
 import {
   buildPanelDockingState,
@@ -1469,7 +1470,21 @@ function resetFolderItemFrameScene(options: {
 /** 新しい上下2ベイ構成とブックマーク候補だけを原子的に通常runtimeへ公開する。 */
 async function loadAndStartPanelRuntime(): Promise<void> {
   const twoBayState = await loadPanelTwoBayState();
-  const candidateTreeItems = await getBookmarkTreeItems();
+  const initialTreeItems = await getBookmarkTreeItems();
+  const savedFolder = await loadCurrentFolder();
+  const initialBookmarkRoot = await resolvePanelInitialBookmarkRoot({
+    treeItems: initialTreeItems,
+    savedFolder,
+    experiment: document.documentElement.dataset.experimentMode === "true",
+  }, {
+    getChildren: (parentGuid) => browser.bookmarks.getChildren(parentGuid),
+    create: (details) => browser.bookmarks.create(details),
+    reloadTreeItems: getBookmarkTreeItems,
+  });
+  if (initialBookmarkRoot.error !== null) {
+    panelErrorNotifications.notify("experiment-root", initialBookmarkRoot.error);
+  }
+  const candidateTreeItems = initialBookmarkRoot.treeItems;
   const storedFlavorPreferences = await loadPanelFlavorPreferences();
   const storedListDatePreferences = await loadListDateFormatPreferences();
   const storedListColumnWidthPreferences = await loadListColumnWidthPreferences();
@@ -1498,8 +1513,7 @@ async function loadAndStartPanelRuntime(): Promise<void> {
     if (reconciled.changed) await saveFolderOrders(candidateFolderOrders);
   }
 
-  const savedFolder = await loadCurrentFolder();
-  const candidateFolderGuid = resolveCurrentFolderGuid(candidateTreeItems, savedFolder);
+  const candidateFolderGuid = initialBookmarkRoot.folderGuid;
   if (candidateFolderGuid === null) throw new Error("Firefox bookmark root was not found");
   const candidateFolder = await loadPanelFolderCandidate({
     treeItems: candidateTreeItems,
