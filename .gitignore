@@ -8,6 +8,7 @@ dist/
 .claude/
 .env
 web-ext-artifacts/
+amo-artifacts/
 .amo-upload-uuid
 .web-ext-staging/
 /AGENTS.md

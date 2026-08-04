@@ -7,6 +7,7 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "build:dev": "node scripts/build.mjs --development",
+    "build:amo": "node scripts/build-amo-artifacts.mjs",
     "preexperiment": "npm run build:dev",
     "experiment": "web-ext run --source-dir dist --firefox=flatpak:org.mozilla.firefox --firefox-profile=develop --keep-profile-changes",
     "prelint:ext": "npm run build",

@@ -535,3 +535,9 @@ DB-14の要求分析、懸念事項のインタビュー、仕様確定、テス
 - ユーザー判断により保存先を別のFirefox標準フォルダへ変更せず、作成失敗時にエラー通知を出して実rootへフォールバックする確定済み仕様を適用する。仮想root直下に作成できる環境では従来どおり`bookumark`を初期表示する。
 - Firefox実機で作成失敗時の固定errorトースト表示についてユーザーPASSを得た。実rootへのフォールバックと起動継続を含め、EXP-ROOT-2を`EXP-ROOT-2_COMPLETE`とした。
 - 次はAMO-1「production ZIP・審査用ソースZIP生成コマンド」のテストケース確認とRed–Green GO確認から再開する。
+- 実公開前導入 AMO-1「production ZIP・審査用ソースZIP生成コマンド」のRed–Greenを完了し、状態を`AMO-1_COMPLETE`とした。
+- `npm run build:amo`でバージョン一致を検証し、`amo-artifacts/`を作り直してproduction拡張ZIPとAMO審査用ソースZIPを同時生成するようにした。AMO送信・署名処理は含まない。
+- ソースZIPは許可リスト方式とし、再ビルドに必要なmanifest、package文書、lockfile、TypeScript設定、productionビルドスクリプト、TypeScriptソース、HTML、CSS、SVG、ライセンス、説明、AMOビルド手順だけを格納する。
+- 実生成監査で`panel/`配下の無視済み旧JS・source map混入を検出し、HTML・CSS・SVGの個別指定へ狭めて再生成した。`dist/`、`node_modules/`、`.git/`、`.env`、成果物、テスト、個人用文書はソースZIPへ含めない。
+- 両ZIPの展開整合性と内容を確認した。Redは成果物計画モジュール未実装による`ERR_MODULE_NOT_FOUND`で成立し、対象5テスト、全205テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
+- 現在生成した`0.1.0`のZIPはパイプライン検証用で提出候補ではない。次はAMO-2「0.1.1同期と提出・導入手順」のRed–Green GO確認から再開する。
