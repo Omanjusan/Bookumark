@@ -547,3 +547,8 @@ DB-14の要求分析、懸念事項のインタビュー、仕様確定、テス
 - `bookumark-0.1.1.zip`と`bookumark-0.1.1-source.zip`を実生成し、両ZIPの展開整合性、manifestのversion 0.1.1、production ZIPへのdevelopment用ファイル・マーカー非混入を確認した。AMOへの送信は行っていない。
 - Redは0.1.0の未同期と手順書未実装で成立し、対象3テスト、全206テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
 - 次はAMO-3「0.1.1提出候補の最終監査」のGO確認から再開する。
+- 実公開前導入 AMO-3「0.1.1提出候補の最終監査」を完了し、状態を`AMO-3_COMPLETE`とした。
+- コミット`4916b4b`を基準にクリーンな作業ツリーから全206テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`を再実行し、すべて成功した。
+- `npm run build:amo`で0.1.1の本体ZIPとソースZIPを再生成し、両ZIPの展開整合性を確認した。本体ZIPのSHA-256は`d0fb056a4bc3549ea7ee8dfb4d317ea22d669de2efa69143fd8586e3c2633589`、ソースZIPは`f50a0d0ff074481cae33170cdfcb503b2d308ee6edac349a09ccf31435ad0747`。
+- ソースZIPを空の一時ディレクトリへ展開し、`npm ci && npm run build`を実行してproduction `dist/`を再構築した。提出元の`dist/`との再帰比較は差分ゼロだった。
+- 0.1.1はAMOへの手動unlisted提出が可能な候補になった。AMOへの外部送信と、取得後の署名済みXPI実機導入は未実施であり、次はAMO-4の送信GO確認から再開する。
