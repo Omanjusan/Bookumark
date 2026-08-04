@@ -541,3 +541,9 @@ DB-14の要求分析、懸念事項のインタビュー、仕様確定、テス
 - 実生成監査で`panel/`配下の無視済み旧JS・source map混入を検出し、HTML・CSS・SVGの個別指定へ狭めて再生成した。`dist/`、`node_modules/`、`.git/`、`.env`、成果物、テスト、個人用文書はソースZIPへ含めない。
 - 両ZIPの展開整合性と内容を確認した。Redは成果物計画モジュール未実装による`ERR_MODULE_NOT_FOUND`で成立し、対象5テスト、全205テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
 - 現在生成した`0.1.0`のZIPはパイプライン検証用で提出候補ではない。次はAMO-2「0.1.1同期と提出・導入手順」のRed–Green GO確認から再開する。
+- 実公開前導入 AMO-2「0.1.1同期と提出・導入手順」のRed–Greenを完了し、状態を`AMO-2_COMPLETE`とした。
+- manifest、package、lockfile本体、lockfileルートpackageの4箇所を最初のAMO提出候補`0.1.1`へ同期した。
+- API認証を使わないAMO開発者サイトでのunlisted手動提出、本体ZIPと審査用ソースZIPの使い分け、署名済みXPI取得、DEV先行導入、実務プロファイル導入、DEVの署名済み版／experiment版切替、手動更新を`docs/amo-unlisted-release.md`へ記録した。
+- `bookumark-0.1.1.zip`と`bookumark-0.1.1-source.zip`を実生成し、両ZIPの展開整合性、manifestのversion 0.1.1、production ZIPへのdevelopment用ファイル・マーカー非混入を確認した。AMOへの送信は行っていない。
+- Redは0.1.0の未同期と手順書未実装で成立し、対象3テスト、全206テスト、production build、Firefox拡張lint（errors 0／warnings 0／notices 0）、`git diff --check`の成功を確認した。
+- 次はAMO-3「0.1.1提出候補の最終監査」のGO確認から再開する。

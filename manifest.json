@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Bookumark",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "under construction - customizable bookmark firefox add-on",
   "browser_specific_settings": {
     "gecko": {
